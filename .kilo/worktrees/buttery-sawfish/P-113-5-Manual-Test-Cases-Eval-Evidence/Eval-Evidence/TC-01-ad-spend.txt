@@ -1,0 +1,146 @@
+TC-01 — Chi phí quảng cáo theo ngày và kênh, quy đổi sang VND
+=================================================================
+ĐỌC NHANH
+Kết quả: ĐẠT tới sandbox; CHƯA ĐỦ BẰNG CHỨNG hoàn tất toàn bộ luồng.
+Nguồn: marketing_ad_spend (913 dòng) và fx_rates (22 dòng).
+Bảng đích: fct_daily_ad_spend, 115 dòng; 1 model chạy được, 4/4 test đạt.
+
+LUỒNG ĐÃ ĐƯỢC GHI NHẬN TRONG ẢNH
+Nhập yêu cầu -> lập kế hoạch -> người dùng duyệt kế hoạch
+-> nhận/soi dữ liệu -> tạo dữ liệu thử -> sinh code/test
+-> kiểm tra an toàn -> sandbox ĐẠT -> các bước tiếp theo CHƯA XÁC NHẬN.
+
+ĐỌC THEO THỨ TỰ
+Phần 02: nội dung người dùng nhập.
+Phần 03: tiêu chí mong đợi.
+Phần 04-05: từng bước đã thực hiện và kết quả của bước đó.
+Phần 06: output mẫu. Phần 07: kết luận. Phần 08: mở ảnh bằng chứng.
+Ghi chú: ô tổng token/chi phí trong ảnh chưa cập nhật đủ khi run còn chạy.
+======================================================================
+
+
+======================================================================
+PHẦN 01 — THÔNG TIN LẦN KIỂM THỬ
+======================================================================
+- Ngày tạo lần chạy trên giao diện: 04/10/2026, 11:00:27.
+- Run ID: 33f31dc7a9.
+- Người dùng hiển thị: de.
+- Môi trường: ứng dụng web local chạy bằng Docker, sandbox DuckDB.
+- Chế độ: LLM thật, provider openai.
+- Model cấu hình: planner/codegen/testgen = gpt-5.6-luna;
+  optimizer = gpt-5.6-terra.
+- Chế độ duyệt hiển thị: 1 vai trò DE (tự duyệt).
+- Commit của bản đang chạy: chưa được cung cấp trong bằng chứng.
+- Nguồn bằng chứng: 4 ảnh chụp do người kiểm thử cung cấp.
+  Báo cáo này ghi nhận những gì nhìn thấy trong ảnh, không phải lần chạy lại.
+
+======================================================================
+PHẦN 02 — YÊU CẦU ĐẦU VÀO
+======================================================================
+Từ marketing_ad_spend và fx_rates, tính tổng chi phí quảng cáo theo ngày
+và kênh bằng VND. Với khoản USD, dùng rate_to_vnd của ngày gần nhất
+không vượt quá ngày quảng cáo. Khoản VND giữ nguyên. Loại dòng trùng
+theo ngày và campaign_id trước khi tổng hợp. Bảng đích fct_daily_ad_spend
+gồm: date, channel, spend_vnd.
+
+======================================================================
+PHẦN 03 — MỤC TIÊU VÀ KẾT QUẢ MONG ĐỢI
+======================================================================
+- Agent lập kế hoạch đọc marketing_ad_spend và fx_rates.
+- Loại dòng trùng theo (date, campaign_id) trước khi quy đổi/tổng hợp.
+- Với USD: chọn tỷ giá USD có rate_date lớn nhất nhưng <= ngày quảng cáo;
+  tính spend_vnd = spend * rate_to_vnd. Không sử dụng tỷ giá tương lai.
+- Với VND: giữ nguyên spend.
+- Tổng hợp theo (date, channel), mỗi cặp có một dòng kết quả.
+- Bảng đích: fct_daily_ad_spend.
+- Cột đầu ra: date (DATE), channel (VARCHAR), spend_vnd (DOUBLE).
+- Model chạy được trong sandbox; ghi lại kết quả test và output thực tế.
+- Số tiền đúng cho từng nhóm cần được đối chiếu với dữ liệu nguồn hoặc
+  phép tính độc lập; không dùng số tiền của output làm đáp án kỳ vọng.
+
+======================================================================
+PHẦN 04 — CÁC BƯỚC ĐƯỢC GHI NHẬN TRONG ẢNH
+======================================================================
+1) Người kiểm thử nhập yêu cầu đầu vào trên giao diện web.
+2) Agent trình bày kế hoạch J1b gồm 5 bước: đọc quảng cáo; loại dòng trùng;
+   chuẩn hóa tỷ giá; quy đổi chi phí; tổng hợp bảng đích.
+3) Kế hoạch được duyệt. Các ảnh sau hiển thị "Kế hoạch đã duyệt (J1b)".
+4) Hệ thống nhận nguồn, soi dữ liệu, tạo dữ liệu thử, sinh code và test,
+   kiểm tra an toàn, rồi chạy sandbox.
+5) Người kiểm thử chụp trạng thái tiến trình và bảng output mẫu.
+
+======================================================================
+PHẦN 05 — KẾT QUẢ THỰC TẾ
+======================================================================
+- E1 lập kế hoạch: bảng đích fct_daily_ad_spend, mode ELT.
+- V0 soát đặc tả: đạt.
+- J1b duyệt kế hoạch: có dấu hoàn tất.
+- E0 nhận nguồn: fx_rates = 22 dòng; marketing_ad_spend = 913 dòng.
+- P soi dữ liệu: 2 bảng.
+- E2 dữ liệu thử: small, large, dirty, empty, few, dupkeys.
+  Ảnh chỉ xác nhận các bộ này đã được tạo; chưa cho thấy kết quả kiểm tra
+  riêng của từng bộ ở bước đối chiếu/tối ưu.
+- E3 sinh code: 4 file; 24,2 giây; 6.324 token theo dòng tiến trình.
+- E3b sinh test: 3 file test; 15,2 giây; 5.090 token theo dòng tiến trình.
+- V1 an toàn: không phát hiện vấn đề.
+- V2 sandbox: 1/1 model chạy được, 4/4 test đạt; 4,4 giây.
+- Bảng đích có 115 dòng.
+- Vòng sửa lỗi = 0; lần cứu hộ = 0; vòng duyệt = 0 tại thời điểm chụp.
+- Bảng thống kê ở thời điểm chụp hiển thị: 1 lượt gọi LLM,
+  10.371 token, chi phí 0,0037 USD; tối ưu hiển thị "—".
+  Đây là số trên ảnh chụp khi hệ thống còn chạy, không phải tổng cuối cùng:
+  các dòng E3/E3b đã hiển thị thêm token chưa được phản ánh trong ô tổng.
+- Trạng thái ở ảnh tiến trình: "Đang chạy", "Agent đang chạy bước tiếp theo...".
+  Chưa có ảnh xác nhận hoàn tất tối ưu/đối chiếu hoặc duyệt code J2.
+
+======================================================================
+PHẦN 06 — OUTPUT THỰC TẾ — 10 DÒNG MẪU HIỂN THỊ
+======================================================================
+date        | channel      | spend_vnd
+------------|--------------|----------------------
+2026-09-04  | FACEBOOK     | 38907000.0
+2026-09-07  | FACEBOOK     | 42252000.0
+2026-09-12  | FACEBOOK     | 55592000.0
+2026-09-19  | FACEBOOK ADS | 3862000.0
+2026-09-09  | GOOGLE       | 32490204.722999997
+2026-09-18  | GOOGLE       | 39644912.124
+2026-09-22  | FB           | 3785000.0
+2026-09-14  | FACEBOOK ADS | 8235000.0
+2026-09-02  | TIKTOK       | 65283000.0
+2026-09-10  | FACEBOOK     | 47458000.0
+
+======================================================================
+PHẦN 07 — ĐÁNH GIÁ TỪ BẰNG CHỨNG HIỆN CÓ
+======================================================================
+- ĐẠT ở phạm vi sinh pipeline và thực thi sandbox: đúng tên bảng/cột
+  hiển thị, 1 model chạy được, 4/4 test đạt, có bảng output thực tế.
+- CHƯA KẾT LUẬN hoàn tất toàn bộ luồng: ảnh vẫn ở trạng thái đang chạy,
+  chưa có bằng chứng cuối cùng cho tối ưu/đối chiếu và duyệt code J2.
+- CHƯA XÁC MINH ĐỘC LẬP mọi số tiền: chưa có phép tính đối chứng từ nguồn,
+  SQL đối chứng hay nội dung test để xác nhận từng quy tắc nghiệp vụ.
+- Ghi nhận các nhãn FACEBOOK, FACEBOOK ADS và FB còn là các nhóm riêng.
+  Yêu cầu ban đầu không yêu cầu gộp các tên này thành một kênh, nên chưa
+  coi đây là lỗi của ca kiểm thử này.
+
+======================================================================
+PHẦN 08 — ẢNH BẰNG CHỨNG (ĐƯỜNG DẪN TƯƠNG ĐỐI TỪ THƯ MỤC CHỨA FILE TXT)
+======================================================================
+- evidence/TC-01-01-plan.png: kế hoạch J1b và đặc tả trước khi sinh code.
+- evidence/TC-01-02-progress.png: LLM thật, Run ID, tiến trình và V2 đạt.
+- evidence/TC-01-03-output.png: 115 dòng, output mẫu và kế hoạch đã duyệt.
+- evidence/TC-01-04-schema.png: các cột đầu ra và ý nghĩa.
+
+======================================================================
+PHẦN 09 — BỔ SUNG KHI NGƯỜI KIỂM THỬ HOÀN TẤT
+======================================================================
+- Ghi commit hoặc phiên bản Docker đang chạy nếu có.
+- Chụp trạng thái cuối cùng và bước duyệt code J2 nếu kiểm tra toàn bộ luồng.
+- Đối chiếu ít nhất một khoản USD với tỷ giá gần nhất <= ngày quảng cáo;
+  ưu tiên ngày cuối tuần để kiểm tra việc dùng tỷ giá ngày làm việc trước đó.
+- Ghi lại kết quả đối chứng và kết luận cuối cùng sau khi có bằng chứng.
+
+======================================================================
+PHẦN 10 — GHI CHÚ BỔ SUNG CỦA NGƯỜI KIỂM THỬ
+======================================================================
+Lệnh ghi trong file: docker compose stop backend
+Đây là ghi chú lệnh; chưa có bằng chứng xác nhận đã thực thi trong ca này.

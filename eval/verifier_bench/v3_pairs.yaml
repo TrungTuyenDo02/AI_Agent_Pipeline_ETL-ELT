@@ -1,0 +1,259 @@
+# V3 cặp query: (a = bản gốc, b = bản "tối ưu"). label: equivalent = V3 phải cho qua; different = V3 phải chặn.
+# Bảng: raw.orders(order_id, customer_id, status, amount DOUBLE có rỗng, created_at TIMESTAMP có trùng/giây lẻ)
+#       raw.customers(customer_id có rỗng/trùng, city)
+# trap: kiểu bẫy (null, trùng dòng, làm tròn, thứ tự không xác định, ...). labeled_by: author | external.
+
+pairs:
+  # ---------- tương đương thật (phải qua) ----------
+  - id: eq_union_dedup_after
+    label: equivalent
+    labeled_by: author
+    trap: UNION → UNION ALL khi phía sau đã khử trùng
+    a: "select distinct order_id from (select order_id from raw.orders union select order_id from raw.orders where status = 'paid') t"
+    b: "select distinct order_id from (select order_id from raw.orders union all select order_id from raw.orders where status = 'paid') t"
+  - id: eq_filter_pushdown
+    label: equivalent
+    labeled_by: author
+    trap: lọc trước khi nối
+    a: "select o.order_id, c.city from raw.orders o join raw.customers c on o.customer_id = c.customer_id where o.status = 'paid'"
+    b: "select o.order_id, c.city from (select * from raw.orders where status = 'paid') o join raw.customers c on o.customer_id = c.customer_id"
+  - id: eq_count_star_one
+    label: equivalent
+    labeled_by: author
+    trap: count(*) và count(1)
+    a: "select customer_id, count(*) as n from raw.orders group by customer_id"
+    b: "select customer_id, count(1) as n from raw.orders group by customer_id"
+  - id: eq_in_vs_exists
+    label: equivalent
+    labeled_by: author
+    trap: IN dương và EXISTS (null trong danh sách không đổi kết quả)
+    a: "select order_id from raw.orders where customer_id in (select customer_id from raw.customers)"
+    b: "select order_id from raw.orders o where exists (select 1 from raw.customers c where c.customer_id = o.customer_id)"
+  - id: eq_redundant_predicate
+    label: equivalent
+    labeled_by: author
+    trap: điều kiện thừa
+    a: "select order_id, amount from raw.orders where amount > 100 and amount > 50"
+    b: "select order_id, amount from raw.orders where amount > 100"
+  - id: eq_distinct_vs_group_by
+    label: equivalent
+    labeled_by: author
+    trap: DISTINCT và GROUP BY
+    a: "select distinct customer_id from raw.orders"
+    b: "select customer_id from raw.orders group by customer_id"
+  - id: eq_coalesce_sum_grouped
+    label: equivalent
+    labeled_by: author
+    trap: coalesce ngoài/trong SUM khi có GROUP BY
+    a: "select customer_id, coalesce(sum(amount), 0) as s from raw.orders group by customer_id"
+    b: "select customer_id, sum(coalesce(amount, 0)) as s from raw.orders group by customer_id"
+  - id: eq_drop_subquery_order
+    label: equivalent
+    labeled_by: author
+    trap: ORDER BY trong subquery không có tác dụng
+    a: "select order_id, amount from (select * from raw.orders order by created_at) t"
+    b: "select order_id, amount from raw.orders"
+  - id: eq_cte_inline
+    label: equivalent
+    labeled_by: author
+    trap: CTE và subquery
+    a: "with p as (select * from raw.orders where status = 'paid') select customer_id, sum(amount) as s from p group by customer_id"
+    b: "select customer_id, sum(amount) as s from (select * from raw.orders where status = 'paid') p group by customer_id"
+  - id: eq_between
+    label: equivalent
+    labeled_by: author
+    trap: BETWEEN và hai phép so sánh
+    a: "select order_id from raw.orders where amount between 100 and 300"
+    b: "select order_id from raw.orders where amount >= 100 and amount <= 300"
+  - id: eq_left_join_null_rejecting
+    label: equivalent
+    labeled_by: author
+    trap: LEFT JOIN + WHERE trên cột bảng phải = INNER JOIN
+    a: "select o.order_id, c.city from raw.orders o left join raw.customers c on o.customer_id = c.customer_id where c.city = 'HN'"
+    b: "select o.order_id, c.city from raw.orders o join raw.customers c on o.customer_id = c.customer_id where c.city = 'HN'"
+  - id: eq_case_vs_coalesce
+    label: equivalent
+    labeled_by: author
+    trap: CASE WHEN IS NULL và COALESCE
+    a: "select order_id, case when amount is null then 0 else amount end as a from raw.orders"
+    b: "select order_id, coalesce(amount, 0) as a from raw.orders"
+
+  # ---------- khác tinh vi (phải chặn) ----------
+  - id: diff_count_column_vs_star
+    label: different
+    labeled_by: author
+    trap: null — count(cột) bỏ dòng rỗng
+    a: "select customer_id, count(*) as n from raw.orders group by customer_id"
+    b: "select customer_id, count(amount) as n from raw.orders group by customer_id"
+  - id: diff_sum_all_null_group
+    label: different
+    labeled_by: author
+    trap: null — nhóm toàn rỗng cho NULL thay vì 0
+    a: "select customer_id, sum(amount) as s from raw.orders group by customer_id"
+    b: "select customer_id, sum(coalesce(amount, 0)) as s from raw.orders group by customer_id"
+  - id: diff_avg_vs_sum_count
+    label: different
+    labeled_by: author
+    trap: null — AVG bỏ dòng rỗng, sum/count(*) thì không
+    a: "select customer_id, round(avg(amount), 2) as m from raw.orders group by customer_id"
+    b: "select customer_id, round(sum(amount) / count(*), 2) as m from raw.orders group by customer_id"
+  - id: diff_count_distinct_key
+    label: different
+    labeled_by: author
+    trap: dòng trùng — count(distinct khóa) khác count(*) khi khóa trùng
+    a: "select status, count(*) as n from raw.orders group by status"
+    b: "select status, count(distinct order_id) as n from raw.orders group by status"
+  - id: diff_union_without_dedup_after
+    label: different
+    labeled_by: author
+    trap: dòng trùng — UNION → UNION ALL khi phía sau KHÔNG khử trùng
+    a: "select order_id, status from raw.orders union select order_id, status from raw.orders where status = 'paid'"
+    b: "select order_id, status from raw.orders union all select order_id, status from raw.orders where status = 'paid'"
+  - id: diff_round_sum_vs_sum_round
+    label: different
+    labeled_by: author
+    trap: làm tròn trước/sau khi cộng
+    a: "select customer_id, round(sum(amount), 0) as s from raw.orders group by customer_id"
+    b: "select customer_id, sum(round(amount, 0)) as s from raw.orders group by customer_id"
+  - id: diff_cast_truncates
+    label: different
+    labeled_by: author
+    trap: làm tròn — ép kiểu cắt phần lẻ khác round
+    a: "select order_id, round(amount)::bigint as a from raw.orders"
+    b: "select order_id, floor(amount)::bigint as a from raw.orders"
+  - id: diff_limit_order_ties
+    label: different
+    labeled_by: author
+    trap: thứ tự không xác định — LIMIT với ORDER BY có giá trị trùng
+    a: "select order_id from raw.orders order by created_at, order_id limit 3"
+    b: "select order_id from raw.orders order by created_at limit 3"
+  - id: diff_any_value_vs_min
+    label: different
+    labeled_by: author
+    trap: thứ tự không xác định — any_value phụ thuộc thứ tự quét
+    a: "select customer_id, min(status) as st from raw.orders group by customer_id"
+    b: "select customer_id, any_value(status) as st from raw.orders group by customer_id"
+  - id: diff_not_in_with_null
+    label: different
+    labeled_by: author
+    trap: null — NOT IN với danh sách có NULL trả rỗng, NOT EXISTS thì không
+    a: "select order_id from raw.orders o where not exists (select 1 from raw.customers c where c.customer_id = o.customer_id)"
+    b: "select order_id from raw.orders where customer_id not in (select customer_id from raw.customers)"
+  - id: diff_date_boundary_fraction
+    label: different
+    labeled_by: author
+    trap: biên ngày — giây lẻ 23:59:59.5 rơi ra ngoài BETWEEN
+    a: "select order_id from raw.orders where created_at::date = date '2026-09-01'"
+    b: "select order_id from raw.orders where created_at between timestamp '2026-09-01 00:00:00' and timestamp '2026-09-01 23:59:59'"
+  - id: diff_left_vs_inner_orphans
+    label: different
+    labeled_by: author
+    trap: khóa mồ côi — INNER JOIN làm mất đơn không có khách
+    a: "select o.order_id, c.city from raw.orders o left join raw.customers c on o.customer_id = c.customer_id"
+    b: "select o.order_id, c.city from raw.orders o join raw.customers c on o.customer_id = c.customer_id"
+  - id: diff_case_sensitive_status
+    label: different
+    labeled_by: author
+    trap: chữ hoa/thường — 'PAID' bị bỏ sót
+    a: "select order_id from raw.orders where lower(status) = 'paid'"
+    b: "select order_id from raw.orders where status = 'paid'"
+  - id: diff_join_fanout_duplicate_customers
+    label: different
+    labeled_by: author
+    trap: dòng trùng — nối với bảng khách có mã trùng làm nhân doanh thu
+    a: "select o.customer_id, sum(o.amount) as s from raw.orders o where o.customer_id in (select customer_id from raw.customers) group by o.customer_id"
+    b: "select o.customer_id, sum(o.amount) as s from raw.orders o join raw.customers c on o.customer_id = c.customer_id group by o.customer_id"
+
+  # ---------- ca khó do Claude viết thay thành viên (ai_proxy, 2026-10-05) — KHÔNG phải người ngoài nhóm ----------
+  - id: eq_filter_count_vs_sum_case
+    label: equivalent
+    labeled_by: ai_proxy
+    trap: COUNT FILTER và SUM(CASE) ép cùng kiểu
+    a: "select customer_id, count(*) filter (where status = 'paid') as n from raw.orders group by customer_id"
+    b: "select customer_id, sum(case when status = 'paid' then 1 else 0 end)::bigint as n from raw.orders group by customer_id"
+  - id: eq_de_morgan_with_nulls
+    label: equivalent
+    labeled_by: ai_proxy
+    trap: De Morgan vẫn đúng với logic ba giá trị (NULL)
+    a: "select order_id from raw.orders where not (status = 'paid' or amount > 100)"
+    b: "select order_id from raw.orders where status <> 'paid' and amount <= 100"
+  - id: eq_in_list_vs_or
+    label: equivalent
+    labeled_by: ai_proxy
+    trap: IN danh sách và OR
+    a: "select order_id from raw.orders where status in ('paid', 'refunded')"
+    b: "select order_id from raw.orders where status = 'paid' or status = 'refunded'"
+  - id: eq_count_distinct_vs_subquery
+    label: equivalent
+    labeled_by: ai_proxy
+    trap: count(distinct) bỏ NULL
+    a: "select count(distinct customer_id) as n from raw.orders"
+    b: "select count(*) as n from (select distinct customer_id from raw.orders where customer_id is not null) t"
+  - id: eq_avg_vs_sum_over_count_col
+    label: equivalent
+    labeled_by: ai_proxy
+    trap: AVG = SUM / COUNT(cột) (cùng bỏ NULL)
+    a: "select customer_id, round(avg(amount), 6) as m from raw.orders group by customer_id"
+    b: "select customer_id, round(sum(amount) / count(amount), 6) as m from raw.orders group by customer_id"
+  - id: diff_sum_distinct
+    label: different
+    labeled_by: ai_proxy
+    trap: dòng trùng — SUM(DISTINCT) bỏ các số tiền bằng nhau
+    a: "select customer_id, sum(amount) as s from raw.orders group by customer_id"
+    b: "select customer_id, sum(distinct amount) as s from raw.orders group by customer_id"
+  - id: diff_count_distinct_null_bucket
+    label: different
+    labeled_by: ai_proxy
+    trap: null — coalesce biến NULL thành một nhóm được đếm
+    a: "select count(distinct customer_id) as n from raw.orders"
+    b: "select count(distinct coalesce(customer_id, '?')) as n from raw.orders"
+  - id: diff_timezone_shift
+    label: different
+    labeled_by: ai_proxy
+    trap: múi giờ — cộng 7 giờ đổi ngày của đơn sau 17:00
+    a: "select created_at::date as d, count(*) as n from raw.orders group by 1"
+    b: "select (created_at + interval 7 hour)::date as d, count(*) as n from raw.orders group by 1"
+  - id: diff_median_vs_quantile_disc
+    label: different
+    labeled_by: ai_proxy
+    trap: làm tròn — median nội suy, quantile_disc lấy giá trị có thật
+    a: "select customer_id, median(amount) as m from raw.orders group by customer_id"
+    b: "select customer_id, quantile_disc(amount, 0.5) as m from raw.orders group by customer_id"
+  - id: diff_window_range_vs_rows
+    label: different
+    labeled_by: ai_proxy
+    trap: thứ tự trùng — khung mặc định RANGE gộp các dòng cùng giờ, ROWS thì không
+    a: "select order_id, customer_id, created_at, sum(amount) over (partition by customer_id order by created_at) as run from raw.orders"
+    b: "select order_id, customer_id, created_at, sum(amount) over (partition by customer_id order by created_at rows between unbounded preceding and current row) as run from raw.orders"
+  - id: diff_string_agg_order
+    label: different
+    labeled_by: ai_proxy
+    trap: thứ tự không xác định — string_agg không ORDER BY
+    a: "select customer_id, string_agg(status, ',' order by status) as s from raw.orders group by customer_id"
+    b: "select customer_id, string_agg(status, ',') as s from raw.orders group by customer_id"
+  - id: diff_trim_whitespace
+    label: different
+    labeled_by: ai_proxy
+    trap: khoảng trắng — chỉ khác khi dữ liệu có ' paid ' (dữ liệu thử KHÔNG có → không đo được)
+    a: "select order_id from raw.orders where trim(status) = 'paid'"
+    b: "select order_id from raw.orders where status = 'paid'"
+
+# Query có dấu hiệu chậm: chạy luật viết lại tất định + sqlglot của Optimizer rồi so trên dữ liệu ngẫu nhiên
+rule_queries:
+  - {id: rq_order_in_subquery, sql: "select order_id, amount from (select * from raw.orders order by created_at) t"}
+  - {id: rq_distinct_star, sql: "select distinct * from raw.customers"}
+  - {id: rq_self_union, sql: "select * from raw.orders union select * from raw.orders"}
+  - {id: rq_union_same_table, sql: "select * from raw.orders where status = 'paid' union select * from raw.orders where status = 'refunded'"}
+  - {id: rq_range_to_equality, sql: "select order_id from raw.orders where amount >= 100 and amount <= 100"}
+  - {id: rq_cast_equality, sql: "select order_id from raw.orders where cast(order_id as varchar) = 'O3'"}
+  - {id: rq_rownumber_dedupe, sql: "select order_id, status from (select *, row_number() over (partition by order_id order by created_at) as rn from raw.orders) t where rn = 1"}
+  - {id: rq_filter_after_join, sql: "select o.order_id, c.city from raw.orders o join raw.customers c on o.customer_id = c.customer_id where o.status = 'paid'"}
+
+# Bất biến: xáo thứ tự dòng → kết quả không đổi; nhân đôi dữ liệu → cột cộng dồn gấp đôi
+invariants:
+  - id: inv_sum_count_by_customer
+    sql: "select customer_id, sum(amount) as s, count(*) as n from raw.orders group by customer_id"
+    doubles: [s, n]
+  - id: inv_revenue_by_day_paid
+    sql: "select created_at::date as d, sum(amount) as s, count(*) as n from raw.orders where lower(status) = 'paid' group by 1"
+    doubles: [s, n]

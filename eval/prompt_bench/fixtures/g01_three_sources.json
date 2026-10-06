@@ -1,0 +1,115 @@
+{
+ "case": "g01_three_sources",
+ "run_id": "0c62d7dc73",
+ "request_text": "Gộp đơn hàng từ 3 nguồn shopee_orders, tiki_orders, website_orders và tính doanh thu theo ngày. Chỉ tính đơn đã hoàn tất: status COMPLETED (Shopee), state delivered (Tiki), status paid (website). Bảng đích fct_daily_revenue, các cột: order_date (DATE, ngày đặt đơn), order_count (số đơn được tính), revenue_vnd (tổng tiền VND, số nguyên).",
+ "spec": {
+  "request_text": "Gộp đơn hàng từ 3 nguồn shopee_orders, tiki_orders, website_orders và tính doanh thu theo ngày. Chỉ tính đơn đã hoàn tất: status COMPLETED (Shopee), state delivered (Tiki), status paid (website). Bảng đích fct_daily_revenue, các cột: order_date (DATE, ngày đặt đơn), order_count (số đơn được tính), revenue_vnd (tổng tiền VND, số nguyên).",
+  "mode": "ELT",
+  "mode_reason": "Mặc định ELT: nạp dữ liệu thô vào kho rồi biến đổi bằng dbt.",
+  "sources": [
+   {
+    "name": "shopee_orders",
+    "kind": "csv",
+    "path": "eval/datasets/golden/g01_three_sources/sources/shopee_orders.csv"
+   },
+   {
+    "name": "tiki_orders",
+    "kind": "json",
+    "path": "eval/datasets/golden/g01_three_sources/sources/tiki_orders.json"
+   },
+   {
+    "name": "website_orders",
+    "kind": "csv",
+    "path": "eval/datasets/golden/g01_three_sources/sources/website_orders.csv"
+   }
+  ],
+  "target": "fct_daily_revenue",
+  "grain": [
+   "order_date"
+  ],
+  "output_columns": [
+   {
+    "name": "order_date",
+    "type": "DATE",
+    "description": "Ngày đặt đơn, dùng để tổng hợp doanh thu theo ngày.",
+    "references": "shopee_orders.order_date; tiki_orders.created_at; website_orders.created_ts"
+   },
+   {
+    "name": "order_count",
+    "type": "BIGINT",
+    "description": "Số đơn đủ điều kiện được tính trong ngày.",
+    "references": "shopee_orders.order_id; tiki_orders.id; website_orders.order_id"
+   },
+   {
+    "name": "revenue_vnd",
+    "type": "BIGINT",
+    "description": "Tổng tiền VND của các đơn đủ điều kiện trong ngày.",
+    "references": "shopee_orders.total_amount; tiki_orders.grand_total; website_orders.amount_vnd"
+   }
+  ],
+  "metrics": [
+   {
+    "name": "order_count",
+    "description": "Đếm số bản ghi đơn hàng có trạng thái đủ điều kiện sau khi gộp ba nguồn."
+   },
+   {
+    "name": "revenue_vnd",
+    "description": "Tổng số tiền của các đơn có trạng thái đủ điều kiện, tính bằng VND."
+   }
+  ],
+  "filters": [
+   "shopee_orders.status = 'COMPLETED'",
+   "tiki_orders.state = 'delivered'",
+   "website_orders.status = 'paid'"
+  ],
+  "unknowns": [],
+  "assumptions": [
+   "Chuẩn hóa ba nguồn về cùng cấu trúc trước khi gộp bằng UNION.",
+   "Đọc và chuyển order_date, created_at và created_ts sang kiểu DATE; với Tiki và website lấy phần ngày từ trường thời gian.",
+   "Chuyển các giá trị tiền dạng chuỗi có dấu phân cách hàng nghìn như '1.000.000' sang số trước khi cộng.",
+   "Các trường tiền của ba nguồn đều được coi là cùng một loại tiền VND vì danh mục nguồn không cho thấy nhiều loại tiền.",
+   "Doanh thu được chuyển về số nguyên BIGINT theo yêu cầu đầu ra.",
+   "Mỗi bản ghi đơn hàng đủ điều kiện sau khi gộp được tính là một đơn; không thực hiện đối chiếu hoặc loại trùng giữa các nguồn."
+  ],
+  "questions": [],
+  "decisions": {},
+  "signals": {
+   "restricted_pii": false,
+   "non_tabular_source": false,
+   "tabular_source": true,
+   "small_subset_of_large": false
+  }
+ },
+ "code_files": {
+  "models/staging/stg_shopee_orders.sql": "SELECT\n    \"order_id\" AS order_id,\n    coalesce(try_strptime(\"order_date\", '%d/%m/%Y'), try_cast(\"order_date\" as timestamp))::date AS order_date,\n    \"status\" AS status,\n    try_cast(replace(\"total_amount\", '.', '') as bigint) AS amount_vnd\nFROM {{ source('raw', 'shopee_orders') }}\n",
+  "models/staging/stg_tiki_orders.sql": "SELECT\n    \"id\" AS order_id,\n    \"created_at\"::date AS order_date,\n    \"state\" AS status,\n    CAST(\"grand_total\" AS BIGINT) AS amount_vnd\nFROM {{ source('raw', 'tiki_orders') }}\n",
+  "models/staging/stg_website_orders.sql": "SELECT\n    \"order_id\" AS order_id,\n    try_cast(\"created_ts\" as timestamp)::date AS order_date,\n    \"status\" AS status,\n    try_cast(\"amount_vnd\" as double)::bigint AS amount_vnd\nFROM {{ source('raw', 'website_orders') }}\n",
+  "models/marts/fct_daily_revenue.sql": "WITH eligible_orders AS (\n    SELECT\n        order_date,\n        amount_vnd\n    FROM {{ ref('stg_shopee_orders') }}\n    WHERE status = 'COMPLETED'\n\n    UNION ALL\n\n    SELECT\n        order_date,\n        amount_vnd\n    FROM {{ ref('stg_tiki_orders') }}\n    WHERE status = 'delivered'\n\n    UNION ALL\n\n    SELECT\n        order_date,\n        amount_vnd\n    FROM {{ ref('stg_website_orders') }}\n    WHERE status = 'paid'\n)\nSELECT\n    order_date,\n    COUNT(*) AS order_count,\n    CAST(SUM(amount_vnd) AS BIGINT) AS revenue_vnd\nFROM eligible_orders\nGROUP BY order_date\n",
+  "dags/fct_daily_revenue_dag.py": "from datetime import datetime\n\nfrom airflow import DAG\nfrom airflow.operators.bash import BashOperator\nfrom airflow.operators.empty import EmptyOperator\n\n\nwith DAG(\n    dag_id=\"fct_daily_revenue_dag\",\n    start_date=datetime(2026, 1, 1),\n    schedule=None,\n    catchup=False,\n) as dag:\n    start = EmptyOperator(task_id=\"start\")\n\n    dbt_build = BashOperator(\n        task_id=\"dbt_build_fct_daily_revenue\",\n        bash_command=(\n            \"dbt build \"\n            \"--project-dir '{{ var.value.dbt_project_dir }}' \"\n            \"--profiles-dir '{{ var.value.dbt_profiles_dir }}' \"\n            \"--select fct_daily_revenue\"\n        ),\n    )\n\n    end = EmptyOperator(task_id=\"end\")\n\n    start >> dbt_build >> end"
+ },
+ "optimizer": {
+  "sql": "WITH eligible_orders AS (\n    SELECT\n        order_date,\n        amount_vnd\n    FROM main.stg_shopee_orders\n    WHERE status = 'COMPLETED'\n\n    UNION ALL\n\n    SELECT\n        order_date,\n        amount_vnd\n    FROM main.stg_tiki_orders\n    WHERE status = 'delivered'\n\n    UNION ALL\n\n    SELECT\n        order_date,\n        amount_vnd\n    FROM main.stg_website_orders\n    WHERE status = 'paid'\n)\nSELECT\n    order_date,\n    COUNT(*) AS order_count,\n    CAST(SUM(amount_vnd) AS BIGINT) AS revenue_vnd\nFROM eligible_orders\nGROUP BY order_date",
+  "findings": []
+ },
+ "retry_error": "",
+ "real_usage": [
+  {
+   "task": "planner",
+   "model": "gpt-5.6-luna",
+   "input_tokens": 1870,
+   "output_tokens": 1104
+  },
+  {
+   "task": "codegen",
+   "model": "gpt-5.6-luna",
+   "input_tokens": 2901,
+   "output_tokens": 1442
+  },
+  {
+   "task": "testgen",
+   "model": "gpt-5.6-luna",
+   "input_tokens": 2744,
+   "output_tokens": 476
+  }
+ ]
+}

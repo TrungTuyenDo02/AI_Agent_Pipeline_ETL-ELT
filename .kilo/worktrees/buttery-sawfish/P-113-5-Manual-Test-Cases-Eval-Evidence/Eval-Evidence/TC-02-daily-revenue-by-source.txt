@@ -1,0 +1,173 @@
+TC-02 — Doanh thu theo ngày và nguồn bán từ Shopee và Tiki
+=================================================================
+ĐỌC NHANH
+Kết quả: ĐẠT về luồng chức năng, ảnh xác nhận Hoàn tất sau J2.
+Nguồn: shopee_orders (315 dòng), tiki_orders (300 dòng).
+Bảng đích: fct_daily_revenue_by_source, 60 dòng; 4/4 test đạt.
+Tối ưu: skipped, giữ bản gốc. Chi phí hiển thị: 0,0172 USD.
+
+LUỒNG ĐÃ ĐI QUA
+Lập kế hoạch -> người dùng duyệt kế hoạch -> nhận/soi dữ liệu
+-> sinh code/test -> an toàn -> sandbox ĐẠT
+-> thử 3 đề xuất tối ưu -> giữ bản gốc -> người dùng duyệt code -> Hoàn tất.
+
+ĐỌC THEO THỨ TỰ
+Phần 02-03: yêu cầu và tiêu chí mong đợi.
+Phần 04-05: từng bước đã thực hiện, kết quả và số liệu đo được.
+Phần 06: lý do giữ bản gốc; dấu đỏ V3 là ứng viên bị loại.
+Phần 08: output. Phần 09: kết luận. Phần 10: mở ảnh bằng chứng.
+======================================================================
+
+
+======================================================================
+PHẦN 01 — THÔNG TIN LẦN KIỂM THỬ
+======================================================================
+- Ngày ghi báo cáo: 04/10/2026.
+- Môi trường theo phiên kiểm thử: ứng dụng web local chạy bằng Docker,
+  thực thi pipeline trong sandbox DuckDB.
+- Chế độ trên ảnh: LLM thật, provider openai.
+- Người dùng hiển thị: de; 1 vai trò DE (tự duyệt).
+- Run ID, ngày giờ tạo run, commit và tên model cụ thể: không hiển thị
+  trong các ảnh của ca này, cần bổ sung nếu muốn truy vết chính xác.
+- Bằng chứng: 5 ảnh chụp do người kiểm thử cung cấp.
+  Báo cáo ghi nhận kết quả trong ảnh; không phải lần thực thi lại.
+
+======================================================================
+PHẦN 02 — YÊU CẦU CA KIỂM THỬ
+======================================================================
+Theo yêu cầu đã thống nhất trong cuộc trao đổi và đặc tả trong ảnh:
+Từ shopee_orders và tiki_orders, tính doanh thu theo ngày và nguồn bán.
+Chỉ lấy Shopee có status = COMPLETED và Tiki có state = delivered.
+Dùng ngày đặt hàng, mỗi mã đơn chỉ tính một lần trong từng nguồn,
+không trừ hoàn tiền.
+
+Ảnh không chụp nguyên văn ô nhập yêu cầu ban đầu. Nội dung trên mô tả
+phạm vi kiểm thử đã thống nhất, không phải bản trích nguyên văn từ ô nhập.
+
+======================================================================
+PHẦN 03 — KẾT QUẢ MONG ĐỢI
+======================================================================
+- Chỉ đọc shopee_orders và tiki_orders để tính doanh thu.
+- Lọc status = COMPLETED ở Shopee và state = delivered ở Tiki.
+- Chuẩn hóa order_date của Shopee từ DD/MM/YYYY hoặc YYYY-MM-DD sang DATE;
+  lấy phần ngày của created_at ở Tiki.
+- Chuẩn hóa total_amount của Shopee thành số; dùng grand_total ở Tiki.
+- Loại mã đơn trùng trong từng nguồn trước khi tổng hợp.
+- Tổng hợp theo (order_date, source), không trừ khoản hoàn tiền.
+- Bảng đích: fct_daily_revenue_by_source.
+- Cột đầu ra: order_date (DATE), source (VARCHAR), revenue (DOUBLE).
+- Sandbox thực thi được model và có kết quả test.
+- Đề xuất tối ưu chỉ được áp dụng khi đạt điều kiện đối chiếu và hiệu năng;
+  nếu không đạt, giữ truy vấn gốc và ghi rõ lý do.
+- Người kiểm thử duyệt code J2 để kết thúc luồng.
+
+======================================================================
+PHẦN 04 — CÁC BƯỚC ĐƯỢC GHI NHẬN
+======================================================================
+1) Agent trình bày kế hoạch J1b gồm 6 bước: đọc hai nguồn, lọc điều kiện,
+   chuẩn hóa ngày/doanh thu, chuẩn hóa nguồn/mã đơn, loại mã trùng,
+   tổng hợp bảng đích.
+2) Người kiểm thử duyệt kế hoạch.
+3) Hệ thống nhận nguồn, soi dữ liệu, tạo dữ liệu thử, sinh code và test,
+   kiểm tra an toàn, chạy sandbox.
+4) Hệ thống thử tối ưu lần lượt bằng rules, sqlglot và LLM.
+5) Màn duyệt code hiển thị model dbt, DAG Airflow, test và bằng chứng.
+   Một ảnh chụp ở thời điểm đang chờ quyết định J2.
+6) Ảnh tiến trình cuối hiển thị J2 Duyệt và Hoàn tất đều có dấu hoàn tất.
+
+======================================================================
+PHẦN 05 — KẾT QUẢ THỰC TẾ TRÊN GIAO DIỆN
+======================================================================
+- E1 lập kế hoạch: fct_daily_revenue_by_source, mode ELT;
+  16,3 giây, 10.257 token theo dòng tiến trình.
+- V0 soát đặc tả: đạt.
+- J1b duyệt kế hoạch: hoàn tất.
+- E0 nhận nguồn: shopee_orders = 315 dòng; tiki_orders = 300 dòng.
+- P soi dữ liệu: 2 bảng.
+- E2 tạo dữ liệu thử: small, large, dirty, empty, few, dupkeys.
+- E3 sinh code: 4 file; 15,9 giây, 5.249 token.
+- E3b sinh test: 3 file test; 8,3 giây, 4.104 token.
+- V1 an toàn: không phát hiện vấn đề về lệnh nguy hiểm hoặc tên bảng/cột.
+- V2 sandbox: 1/1 model chạy được, 4/4 test đạt; 5,3 giây.
+- Bảng đích có 60 dòng.
+- Số lần sửa = 0; số lần cứu hộ = 0 trên bảng bằng chứng.
+- Chi phí LLM hiển thị: 0,0172 USD.
+- Đóng gói bản duyệt: hoàn tất.
+- J2 Duyệt: hoàn tất trong ảnh tiến trình cuối.
+- Trạng thái cuối của tiến trình: Hoàn tất.
+
+======================================================================
+PHẦN 06 — KẾT QUẢ TỐI ƯU
+======================================================================
+- Hệ thống ghi nhận 2 dấu hiệu chậm.
+- Thời gian trung vị truy vấn gốc trên bộ large: 44,111 ms.
+- Ba nguồn đề xuất được thử: rules -> sqlglot -> llm.
+- Đề xuất rules bị loại vì kết quả lệch trên small, dirty, dupkeys.
+- Đề xuất sqlglot cũng chưa đạt. Lý do đầy đủ bị cắt trong ảnh,
+  nên báo cáo không suy đoán nội dung còn thiếu.
+- Bước đề xuất bằng LLM hiển thị 44 giây và 2.201 token.
+- Quyết định cuối: skipped; đã thử 3 đề xuất, không đề xuất nào đạt.
+- Hệ thống giữ truy vấn gốc. Không có số đo sau tối ưu được áp dụng;
+  bảng bằng chứng hiển thị thời gian sau là "—".
+- Các dấu đỏ V3 ở hai lần thử đầu là bằng chứng loại ứng viên tối ưu,
+  không phải kết luận model gốc thất bại. Luồng sau đó vẫn hoàn tất.
+
+======================================================================
+PHẦN 07 — CODE VÀ TEST NHÌN THẤY TRONG ẢNH
+======================================================================
+- Model mart: fct_daily_revenue_by_source.sql.
+- Hai staging model: stg_shopee_orders.sql, stg_tiki_orders.sql.
+- Có file DAG Airflow cho bảng đích.
+- Có file YAML test, assert_fct_daily_revenue_by_source_reconciles.sql
+  và assert_grain_unique.sql.
+- Phần SQL hiện trên màn hình dùng ROW_NUMBER theo order_id để chọn
+  một bản ghi và UNION ALL hai nguồn. Staging Tiki được lọc bằng
+  trạng thái DELIVERED đã chuẩn hóa trong phần SQL nhìn thấy.
+- Chưa có toàn bộ nội dung code/test được đính kèm ca này; không coi
+  phần mô tả của LLM là bằng chứng đã kiểm chứng mọi dòng SQL.
+
+======================================================================
+PHẦN 08 — OUTPUT THỰC TẾ — 10 DÒNG MẪU HIỂN THỊ
+======================================================================
+order_date  | source | revenue
+------------|--------|------------
+2026-09-08  | Shopee | 14363000.0
+2026-09-16  | Shopee | 5744000.0
+2026-09-11  | Tiki   | 11376000.0
+2026-09-13  | Tiki   | 16964000.0
+2026-09-28  | Shopee | 10981000.0
+2026-09-27  | Shopee | 6485000.0
+2026-09-06  | Shopee | 6382000.0
+2026-09-17  | Tiki   | 10880000.0
+2026-09-02  | Tiki   | 21706000.0
+2026-09-17  | Shopee | 9715000.0
+
+======================================================================
+PHẦN 09 — ĐÁNH GIÁ
+======================================================================
+- ĐẠT về luồng chức năng được ghi nhận: duyệt kế hoạch -> sinh code/test
+  -> sandbox -> thử tối ưu -> giữ bản gốc -> duyệt code -> hoàn tất.
+- ĐẠT ở phạm vi test hệ thống hiển thị: 1 model chạy được, 4/4 test đạt,
+  có bảng đích 60 dòng và output mẫu.
+- Việc bỏ qua tối ưu là quyết định được ghi nhận, không phải cải thiện
+  tốc độ. Không ghi nhận truy vấn nhanh hơn khi chưa có số đo chứng minh.
+- CHƯA XÁC MINH ĐỘC LẬP toàn bộ số doanh thu: ảnh chưa chứa phép tính
+  đối chứng từ nguồn hoặc SQL tham chiếu độc lập. Không kết luận mọi
+  số liệu nghiệp vụ đúng tuyệt đối chỉ dựa vào 4/4 test đạt.
+
+======================================================================
+PHẦN 10 — ẢNH BẰNG CHỨNG (TƯƠNG ĐỐI TỪ THƯ MỤC CHỨA TXT)
+======================================================================
+- evidence/TC-02-01-plan.png: kế hoạch J1b, nguồn và schema đầu ra.
+- evidence/TC-02-02-output.png: 60 dòng, 10 dòng mẫu, chi phí và skipped.
+- evidence/TC-02-03-code.png: code dbt, DAG và danh sách test.
+- evidence/TC-02-04-review.png: bằng chứng sandbox/tối ưu và màn quyết định J2.
+- evidence/TC-02-05-completed.png: toàn bộ tiến trình tới J2 và Hoàn tất.
+
+======================================================================
+PHẦN 11 — THÔNG TIN CÓ THỂ BỔ SUNG ĐỂ TĂNG KHẢ NĂNG TRUY VẾT
+======================================================================
+- Run ID, thời điểm tạo run và commit của bản đang chạy.
+- Gói code/test tải từ ứng dụng.
+- Đối chiếu ít nhất một nhóm ngày/nguồn bằng cách lọc đúng trạng thái,
+  loại trùng mã đơn và cộng tiền trực tiếp từ nguồn; ghi lại phép tính.

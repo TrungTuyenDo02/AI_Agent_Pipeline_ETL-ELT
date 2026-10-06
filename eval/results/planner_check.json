@@ -1,0 +1,274 @@
+[
+ {
+  "case": "g01_three_sources",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001727,
+  "error": "",
+  "round": 1
+ },
+ {
+  "case": "g02_duplicate_rows",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001532,
+  "error": "",
+  "round": 1
+ },
+ {
+  "case": "g03_refunds",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001815,
+  "error": "",
+  "round": 1
+ },
+ {
+  "case": "g04_mixed_dates",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001562,
+  "error": "",
+  "round": 1
+ },
+ {
+  "case": "g05_vnd_format",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001459,
+  "error": "",
+  "round": 1
+ },
+ {
+  "case": "g06_one_to_many_join",
+  "expect_questions": false,
+  "asked": [
+   "Với đơn completed không có dòng trong order_items, xử lý items_sold như thế nào?"
+  ],
+  "question_ok": false,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.002078,
+  "error": "",
+  "round": 1
+ },
+ {
+  "case": "g07_null_amounts",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001523,
+  "error": "",
+  "round": 1
+ },
+ {
+  "case": "g08_cross_source_keys",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001971,
+  "error": "",
+  "round": 1
+ },
+ {
+  "case": "g09_customer_dimension",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001631,
+  "error": "",
+  "round": 1
+ },
+ {
+  "case": "g10_ambiguous_request",
+  "expect_questions": true,
+  "asked": [
+   "Những trạng thái nào được tính vào doanh thu website?"
+  ],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.00165,
+  "error": "",
+  "round": 1
+ },
+ {
+  "case": "g11_monthly_by_channel",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001601,
+  "error": "",
+  "round": 1
+ },
+ {
+  "case": "g12_pii_etl",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ETL",
+  "mode_ok": true,
+  "cost_usd": 0.001169,
+  "error": "",
+  "round": 1
+ },
+ {
+  "case": "g01_three_sources",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001913,
+  "error": "",
+  "round": 2
+ },
+ {
+  "case": "g02_duplicate_rows",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001686,
+  "error": "",
+  "round": 2
+ },
+ {
+  "case": "g03_refunds",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001401,
+  "error": "",
+  "round": 2
+ },
+ {
+  "case": "g04_mixed_dates",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001815,
+  "error": "",
+  "round": 2
+ },
+ {
+  "case": "g05_vnd_format",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001339,
+  "error": "",
+  "round": 2
+ },
+ {
+  "case": "g06_one_to_many_join",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001731,
+  "error": "",
+  "round": 2
+ },
+ {
+  "case": "g07_null_amounts",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001353,
+  "error": "",
+  "round": 2
+ },
+ {
+  "case": "g08_cross_source_keys",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001799,
+  "error": "",
+  "round": 2
+ },
+ {
+  "case": "g09_customer_dimension",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001306,
+  "error": "",
+  "round": 2
+ },
+ {
+  "case": "g10_ambiguous_request",
+  "expect_questions": true,
+  "asked": [
+   "Những trạng thái nào được tính vào doanh thu website?"
+  ],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.001167,
+  "error": "",
+  "round": 2
+ },
+ {
+  "case": "g11_monthly_by_channel",
+  "expect_questions": false,
+  "asked": [],
+  "question_ok": true,
+  "mode": "ELT",
+  "mode_ok": true,
+  "cost_usd": 0.00155,
+  "error": "",
+  "round": 2
+ },
+ {
+  "case": "g12_pii_etl",
+  "expect_questions": false,
+  "asked": [
+   "Khách hàng có city rỗng hoặc NULL được xử lý thế nào?"
+  ],
+  "question_ok": false,
+  "mode": "ETL",
+  "mode_ok": true,
+  "cost_usd": 0.002061,
+  "error": "",
+  "round": 2
+ }
+]

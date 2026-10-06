@@ -1,0 +1,61 @@
+{
+ "provider": "openai",
+ "model": "planner=gpt-5.6-luna, codegen=gpt-5.6-luna, testgen=gpt-5.6-luna, optimizer=gpt-5.6-terra",
+ "rows": [
+  {
+   "case": "g01_three_sources",
+   "ok": true,
+   "detail": "Khớp 3 dòng"
+  },
+  {
+   "case": "g02_duplicate_rows",
+   "ok": true,
+   "detail": "Khớp 2 dòng"
+  },
+  {
+   "case": "g03_refunds",
+   "ok": true,
+   "detail": "Khớp 2 dòng"
+  },
+  {
+   "case": "g04_mixed_dates",
+   "ok": true,
+   "detail": "Khớp 2 dòng"
+  },
+  {
+   "case": "g05_vnd_format",
+   "ok": true,
+   "detail": "Khớp 2 dòng"
+  },
+  {
+   "case": "g06_one_to_many_join",
+   "ok": true,
+   "detail": "Khớp 2 dòng"
+  },
+  {
+   "case": "g07_null_amounts",
+   "ok": true,
+   "detail": "Khớp 2 dòng"
+  },
+  {
+   "case": "g08_cross_source_keys",
+   "ok": true,
+   "detail": "Khớp 2 dòng"
+  },
+  {
+   "case": "g09_customer_dimension",
+   "ok": true,
+   "detail": "Khớp 3 dòng"
+  },
+  {
+   "case": "g11_monthly_by_channel",
+   "ok": true,
+   "detail": "Khớp 3 dòng"
+  },
+  {
+   "case": "g12_pii_etl",
+   "ok": true,
+   "detail": "Khớp 2 dòng"
+  }
+ ]
+}

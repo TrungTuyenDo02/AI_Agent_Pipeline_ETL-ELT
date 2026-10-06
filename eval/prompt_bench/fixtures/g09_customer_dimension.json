@@ -1,0 +1,124 @@
+{
+ "case": "g09_customer_dimension",
+ "run_id": "cb06b661f9",
+ "request_text": "Bảng customers lưu nhiều phiên bản của một khách (mỗi lần cập nhật một dòng, cột updated_at). Tạo bảng chiều dim_customers, mỗi khách một dòng: customer_id, email và city lấy từ bản ghi có updated_at mới nhất, completed_orders (số đơn status completed trong bảng orders, không có thì 0).",
+ "spec": {
+  "request_text": "Bảng customers lưu nhiều phiên bản của một khách (mỗi lần cập nhật một dòng, cột updated_at). Tạo bảng chiều dim_customers, mỗi khách một dòng: customer_id, email và city lấy từ bản ghi có updated_at mới nhất, completed_orders (số đơn status completed trong bảng orders, không có thì 0).",
+  "mode": "ELT",
+  "mode_reason": "Mặc định ELT: nạp dữ liệu thô vào kho rồi biến đổi bằng dbt.",
+  "sources": [
+   {
+    "name": "customers",
+    "kind": "csv",
+    "path": "eval/datasets/golden/g09_customer_dimension/sources/customers.csv"
+   },
+   {
+    "name": "orders",
+    "kind": "csv",
+    "path": "eval/datasets/golden/g09_customer_dimension/sources/orders.csv"
+   }
+  ],
+  "target": "dim_customers",
+  "grain": [
+   "customer_id"
+  ],
+  "output_columns": [
+   {
+    "name": "customer_id",
+    "type": "VARCHAR",
+    "description": "Mã khách hàng",
+    "references": "customers.customer_id"
+   },
+   {
+    "name": "email",
+    "type": "VARCHAR",
+    "description": "Email từ bản ghi customers mới nhất theo updated_at",
+    "references": "customers.email"
+   },
+   {
+    "name": "city",
+    "type": "VARCHAR",
+    "description": "Thành phố từ bản ghi customers mới nhất theo updated_at",
+    "references": "customers.city"
+   },
+   {
+    "name": "completed_orders",
+    "type": "BIGINT",
+    "description": "Số đơn hàng có status là completed của khách hàng",
+    "references": "orders.status"
+   }
+  ],
+  "metrics": [
+   {
+    "name": "completed_orders",
+    "description": "Đếm số đơn hàng theo customer_id sau khi lọc status = completed; khách hàng không có đơn completed nhận giá trị 0"
+   }
+  ],
+  "filters": [
+   "Chỉ tính các bản ghi orders có status = completed"
+  ],
+  "unknowns": [],
+  "assumptions": [
+   "updated_at được đọc và chuyển đổi sang kiểu ngày để xác định bản ghi customers mới nhất cho mỗi customer_id.",
+   "Mỗi customer_id có một bản ghi xác định là mới nhất theo updated_at.",
+   "Ghép danh sách khách hàng với số đơn completed bằng phép ghép giữ toàn bộ khách hàng; khách hàng không có đơn completed được gán 0.",
+   "Các nguồn không thể hiện nhiều loại tiền tệ và bảng đích không có chỉ số tiền tệ, nên không áp dụng xử lý đa tiền tệ."
+  ],
+  "questions": [],
+  "decisions": {},
+  "signals": {
+   "restricted_pii": false,
+   "non_tabular_source": false,
+   "tabular_source": true,
+   "small_subset_of_large": false
+  }
+ },
+ "code_files": {
+  "models/staging/stg_customers.sql": "select\n    customer_id,\n    email,\n    city,\n    try_cast(\"updated_at\" as timestamp)::date as updated_at\nfrom {{ source('raw', 'customers') }}\n",
+  "models/staging/stg_orders.sql": "select\n    order_id,\n    customer_id,\n    lower(trim(status)) as status\nfrom {{ source('raw', 'orders') }}\n",
+  "models/marts/dim_customers.sql": "with ranked_customers as (\n    select\n        customer_id,\n        email,\n        city,\n        row_number() over (\n            partition by customer_id\n            order by updated_at desc\n        ) as customer_rank\n    from {{ ref('stg_customers') }}\n), completed_order_counts as (\n    select\n        customer_id,\n        count(*) as completed_orders\n    from {{ ref('stg_orders') }}\n    where status = 'completed'\n    group by customer_id\n)\nselect\n    ranked_customers.customer_id,\n    ranked_customers.email,\n    ranked_customers.city,\n    coalesce(completed_order_counts.completed_orders, 0) as completed_orders\nfrom ranked_customers\nleft join completed_order_counts\n    on completed_order_counts.customer_id = ranked_customers.customer_id\nwhere ranked_customers.customer_rank = 1\n",
+  "dags/dim_customers_dag.py": "from datetime import datetime\n\nfrom airflow import DAG\nfrom airflow.operators.bash import BashOperator\nfrom airflow.operators.empty import EmptyOperator\n\n\nwith DAG(\n    dag_id=\"dim_customers_dag\",\n    start_date=datetime(2024, 1, 1),\n    schedule=None,\n    catchup=False,\n) as dag:\n    start = EmptyOperator(task_id=\"start\")\n\n    dbt_build = BashOperator(\n        task_id=\"dbt_build_dim_customers\",\n        bash_command=(\n            \"dbt build \"\n            \"--project-dir '{{ var.value.dbt_project_dir }}' \"\n            \"--profiles-dir '{{ var.value.dbt_profiles_dir }}' \"\n            \"--select dim_customers\"\n        ),\n    )\n\n    end = EmptyOperator(task_id=\"end\")\n\n    start >> dbt_build >> end"
+ },
+ "optimizer": {
+  "sql": "with ranked_customers as (\n    select\n        customer_id,\n        email,\n        city,\n        row_number() over (\n            partition by customer_id\n            order by updated_at desc\n        ) as customer_rank\n    from main.stg_customers\n), completed_order_counts as (\n    select\n        customer_id,\n        count(*) as completed_orders\n    from main.stg_orders\n    where status = 'completed'\n    group by customer_id\n)\nselect\n    ranked_customers.customer_id,\n    ranked_customers.email,\n    ranked_customers.city,\n    coalesce(completed_order_counts.completed_orders, 0) as completed_orders\nfrom ranked_customers\nleft join completed_order_counts\n    on completed_order_counts.customer_id = ranked_customers.customer_id\nwhere ranked_customers.customer_rank = 1",
+  "findings": [
+   {
+    "rule": "window_dedupe",
+    "message": "row_number() theo PARTITION BY để khử trùng: tốn phân vùng/sắp xếp; thừa nếu khóa đã duy nhất."
+   }
+  ]
+ },
+ "retry_error": "models/marts/dim_customers.sql: Bảng 'main.main.stg_customers' không có trong danh mục dữ liệu thật.\nmodels/marts/dim_customers.sql: Bảng 'main.main.stg_orders' không có trong danh mục dữ liệu thật.",
+ "real_usage": [
+  {
+   "task": "planner",
+   "model": "gpt-5.6-luna",
+   "input_tokens": 1506,
+   "output_tokens": 853
+  },
+  {
+   "task": "codegen",
+   "model": "gpt-5.6-luna",
+   "input_tokens": 2071,
+   "output_tokens": 1048
+  },
+  {
+   "task": "testgen",
+   "model": "gpt-5.6-luna",
+   "input_tokens": 1914,
+   "output_tokens": 527
+  },
+  {
+   "task": "codegen",
+   "model": "gpt-5.6-luna",
+   "input_tokens": 2820,
+   "output_tokens": 779
+  },
+  {
+   "task": "optimizer",
+   "model": "gpt-5.6-terra",
+   "input_tokens": 1440,
+   "output_tokens": 295
+  }
+ ]
+}

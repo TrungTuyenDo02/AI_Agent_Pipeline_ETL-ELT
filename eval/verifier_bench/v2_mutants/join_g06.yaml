@@ -1,0 +1,102 @@
+# Đột biến V2 trên pipeline NỐI MỘT-NHIỀU (golden g06: orders × order_items).
+# Code gốc: đầu ra thật của gpt-5.6-luna (eval/prompt_bench/fixtures/g06_one_to_many_join.json), đã qua V2.
+# Test đối soát: kỳ vọng = SQL chuẩn của golden (eval/datasets/golden/g06_one_to_many_join/reference.sql).
+# Dữ liệu: nguồn golden (4 đơn, 4 dòng hàng) — nhỏ, nên có đột biến dữ liệu không phân biệt được (ghi nhận là bỏ sót).
+# Bộ đột biến của pipeline "doanh thu 3 nguồn" dùng chung eval/mutation/mutants.yaml.
+
+base: join_g06
+mutants:
+  - id: join_left_to_inner
+    description: "Đổi LEFT JOIN → INNER JOIN (mất đơn hoàn tất không có dòng hàng)"
+    file: models/marts/fct_daily_sales.sql
+    old: "left join item_totals i"
+    new: "inner join item_totals i"
+    labeled_by: author
+
+  - id: join_key_self
+    description: "Sai khóa nối: o.order_id = o.order_id (thành nối chéo)"
+    file: models/marts/fct_daily_sales.sql
+    old: "on o.order_id = i.order_id"
+    new: "on o.order_id = o.order_id"
+    labeled_by: author
+
+  - id: join_fanout
+    description: "Nối trước khi gộp dòng hàng → nhân bản doanh thu đơn có nhiều sản phẩm"
+    file: models/marts/fct_daily_sales.sql
+    old: "sum(qty)::bigint as items_sold\n    from {{ ref('stg_order_items') }}\n    group by order_id"
+    new: "qty::bigint as items_sold\n    from {{ ref('stg_order_items') }}"
+    labeled_by: author
+
+  - id: sum_to_avg
+    description: "SUM → AVG ở doanh thu"
+    file: models/marts/fct_daily_sales.sql
+    old: "sum(o.total_vnd)"
+    new: "avg(o.total_vnd)"
+    labeled_by: author
+
+  - id: drop_where
+    description: "Bỏ WHERE status = 'completed' (tính cả đơn hủy)"
+    file: models/marts/fct_daily_sales.sql
+    old: "    where status = 'completed'\n"
+    new: ""
+    labeled_by: author
+
+  - id: wrong_column
+    description: "Đổi cột: số sản phẩm cộng price_vnd thay vì qty"
+    file: models/marts/fct_daily_sales.sql
+    old: "sum(qty)::bigint"
+    new: "sum(price_vnd)::bigint"
+    labeled_by: author
+
+  - id: add_distinct_count
+    description: "Thêm DISTINCT sai: đếm đơn theo số tiền khác nhau (sai khi hai đơn cùng ngày cùng tổng tiền)"
+    file: models/marts/fct_daily_sales.sql
+    old: "count(*)::bigint as order_count"
+    new: "count(distinct o.total_vnd)::bigint as order_count"
+    labeled_by: author
+
+  - id: count_items_not_orders
+    description: "Đếm số sản phẩm thay vì số đơn"
+    file: models/marts/fct_daily_sales.sql
+    old: "count(*)::bigint as order_count"
+    new: "count(i.items_sold)::bigint as order_count"
+    labeled_by: author
+
+  - id: control_coalesce_inside
+    description: "Đối chứng: coalesce(sum(x), 0) → sum(coalesce(x, 0)) (cùng kết quả khi có GROUP BY)"
+    file: models/marts/fct_daily_sales.sql
+    old: "coalesce(sum(i.items_sold), 0)::bigint"
+    new: "sum(coalesce(i.items_sold, 0))::bigint"
+    equivalent: true
+    labeled_by: author
+
+  - id: control_rename_cte
+    description: "Đối chứng: đổi tên CTE item_totals → qty_per_order"
+    file: models/marts/fct_daily_sales.sql
+    old: "item_totals"
+    new: "qty_per_order"
+    equivalent: true
+    labeled_by: author
+
+  # ---------- ca khó do Claude viết thay thành viên (ai_proxy, 2026-10-05) ----------
+  - id: revenue_type_bigint
+    description: "Đổi kiểu doanh thu DOUBLE → BIGINT (sai hợp đồng kiểu trong spec, giá trị không đổi)"
+    file: models/marts/fct_daily_sales.sql
+    old: "sum(o.total_vnd)::double"
+    new: "sum(o.total_vnd)::bigint"
+    labeled_by: ai_proxy
+
+  - id: status_case_mismatch
+    description: "Lọc 'Completed' viết hoa trong khi dữ liệu là chữ thường → mất mọi đơn"
+    file: models/marts/fct_daily_sales.sql
+    old: "where status = 'completed'"
+    new: "where status = 'Completed'"
+    labeled_by: ai_proxy
+
+  - id: control_count_one
+    description: "Đối chứng: count(*) → count(1)"
+    file: models/marts/fct_daily_sales.sql
+    old: "count(*)::bigint"
+    new: "count(1)::bigint"
+    equivalent: true
+    labeled_by: ai_proxy

@@ -1,0 +1,232 @@
+{
+ "snapshots": {
+  "before": {
+   "date": "2026-10-05",
+   "versions": "codegen=1, optimizer=1, planner=1, testgen=1 (bản trước khi có dòng version)",
+   "cases": {
+    "g01_three_sources": {
+     "planner": {
+      "static": 1310,
+      "dynamic": 880,
+      "total": 2190
+     },
+     "codegen": {
+      "static": 794,
+      "dynamic": 2215,
+      "total": 3009
+     },
+     "testgen": {
+      "static": 675,
+      "dynamic": 2177,
+      "total": 2852
+     },
+     "optimizer": {
+      "static": 317,
+      "dynamic": 1232,
+      "total": 1549
+     }
+    },
+    "g06_one_to_many_join": {
+     "planner": {
+      "static": 1310,
+      "dynamic": 608,
+      "total": 1918
+     },
+     "codegen": {
+      "static": 794,
+      "dynamic": 1694,
+      "total": 2488
+     },
+     "testgen": {
+      "static": 675,
+      "dynamic": 1656,
+      "total": 2331
+     },
+     "optimizer": {
+      "static": 317,
+      "dynamic": 1149,
+      "total": 1466
+     }
+    },
+    "g09_customer_dimension": {
+     "planner": {
+      "static": 1310,
+      "dynamic": 532,
+      "total": 1842
+     },
+     "codegen": {
+      "static": 794,
+      "dynamic": 1384,
+      "total": 2178
+     },
+     "testgen": {
+      "static": 675,
+      "dynamic": 1346,
+      "total": 2021
+     },
+     "codegen_retry": {
+      "static": 794,
+      "dynamic": 1942,
+      "total": 2736
+     },
+     "optimizer": {
+      "static": 317,
+      "dynamic": 1116,
+      "total": 1433
+     }
+    }
+   }
+  },
+  "after": {
+   "date": "2026-10-05",
+   "versions": "codegen=2, optimizer=2, planner=5, testgen=2",
+   "cases": {
+    "g01_three_sources": {
+     "planner": {
+      "static": 1163,
+      "dynamic": 485,
+      "total": 1648
+     },
+     "codegen": {
+      "static": 607,
+      "dynamic": 1231,
+      "total": 1838
+     },
+     "testgen": {
+      "static": 428,
+      "dynamic": 1195,
+      "total": 1623
+     },
+     "optimizer": {
+      "static": 295,
+      "dynamic": 449,
+      "total": 744
+     }
+    },
+    "g06_one_to_many_join": {
+     "planner": {
+      "static": 1163,
+      "dynamic": 345,
+      "total": 1508
+     },
+     "codegen": {
+      "static": 607,
+      "dynamic": 936,
+      "total": 1543
+     },
+     "testgen": {
+      "static": 428,
+      "dynamic": 900,
+      "total": 1328
+     },
+     "optimizer": {
+      "static": 295,
+      "dynamic": 482,
+      "total": 777
+     }
+    },
+    "g09_customer_dimension": {
+     "planner": {
+      "static": 1163,
+      "dynamic": 301,
+      "total": 1464
+     },
+     "codegen": {
+      "static": 607,
+      "dynamic": 745,
+      "total": 1352
+     },
+     "testgen": {
+      "static": 428,
+      "dynamic": 709,
+      "total": 1137
+     },
+     "codegen_retry": {
+      "static": 607,
+      "dynamic": 1083,
+      "total": 1690
+     },
+     "optimizer": {
+      "static": 295,
+      "dynamic": 559,
+      "total": 854
+     }
+    }
+   }
+  }
+ },
+ "real_usage": {
+  "g01_three_sources": [
+   {
+    "task": "planner",
+    "model": "gpt-5.6-luna",
+    "input_tokens": 1870,
+    "output_tokens": 1104
+   },
+   {
+    "task": "codegen",
+    "model": "gpt-5.6-luna",
+    "input_tokens": 2901,
+    "output_tokens": 1442
+   },
+   {
+    "task": "testgen",
+    "model": "gpt-5.6-luna",
+    "input_tokens": 2744,
+    "output_tokens": 476
+   }
+  ],
+  "g06_one_to_many_join": [
+   {
+    "task": "planner",
+    "model": "gpt-5.6-luna",
+    "input_tokens": 1582,
+    "output_tokens": 992
+   },
+   {
+    "task": "codegen",
+    "model": "gpt-5.6-luna",
+    "input_tokens": 2364,
+    "output_tokens": 1638
+   },
+   {
+    "task": "testgen",
+    "model": "gpt-5.6-luna",
+    "input_tokens": 2207,
+    "output_tokens": 841
+   }
+  ],
+  "g09_customer_dimension": [
+   {
+    "task": "planner",
+    "model": "gpt-5.6-luna",
+    "input_tokens": 1506,
+    "output_tokens": 853
+   },
+   {
+    "task": "codegen",
+    "model": "gpt-5.6-luna",
+    "input_tokens": 2071,
+    "output_tokens": 1048
+   },
+   {
+    "task": "testgen",
+    "model": "gpt-5.6-luna",
+    "input_tokens": 1914,
+    "output_tokens": 527
+   },
+   {
+    "task": "codegen",
+    "model": "gpt-5.6-luna",
+    "input_tokens": 2820,
+    "output_tokens": 779
+   },
+   {
+    "task": "optimizer",
+    "model": "gpt-5.6-terra",
+    "input_tokens": 1440,
+    "output_tokens": 295
+   }
+  ]
+ }
+}

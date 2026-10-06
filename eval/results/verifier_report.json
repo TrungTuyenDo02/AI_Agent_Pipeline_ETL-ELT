@@ -1,0 +1,1959 @@
+{
+ "date": "2026-10-05",
+ "v1": {
+  "attacks": 78,
+  "valid": 43,
+  "caught": 76,
+  "missed": [
+   "recursive_cte_dos",
+   "range_explosion_dos"
+  ],
+  "false_blocks": [],
+  "crashes": [],
+  "found_leaks": [
+   [
+    "2026-10-05",
+    "query_function",
+    "query() của DuckDB chạy một chuỗi SQL tùy ý bên trong"
+   ],
+   [
+    "2026-10-05",
+    "duckdb_secrets",
+    "lộ secret/cấu hình của tiến trình DuckDB"
+   ],
+   [
+    "2026-10-05",
+    "pragma_function",
+    ""
+   ],
+   [
+    "2026-10-05",
+    "dag_os_system_at_parse",
+    "Airflow chạy code cấp module của DAG mỗi lần đọc file → lệnh hệ thống chạy trên scheduler"
+   ],
+   [
+    "2026-10-05",
+    "dag_subprocess",
+    ""
+   ],
+   [
+    "2026-10-05",
+    "dag_exec",
+    ""
+   ],
+   [
+    "2026-10-05",
+    "dag_bash_pipe_to_shell",
+    "lệnh bash tải script từ mạng rồi chạy"
+   ],
+   [
+    "2026-10-05",
+    "config_alias_injection",
+    "alias được dbt ghép vào câu DDL; giá trị không phải định danh có thể chèn SQL"
+   ],
+   [
+    "2026-10-05",
+    "config_materialized_external",
+    "dbt-duckdb materialized='external' ghi file ra đĩa"
+   ],
+   [
+    "2026-10-05",
+    "current_setting_secret",
+    "cấu hình DuckDB có thể chứa khóa (s3_secret_access_key)"
+   ],
+   [
+    "2026-10-05",
+    "dag_import_alias",
+    "đổi tên module để né kiểm tra os.system"
+   ],
+   [
+    "2026-10-05",
+    "dag_from_os_import_system",
+    ""
+   ],
+   [
+    "2026-10-05",
+    "dag_getattr_obfuscation",
+    ""
+   ],
+   [
+    "2026-10-05",
+    "dag_importlib",
+    ""
+   ],
+   [
+    "2026-10-05",
+    "dag_os_execl",
+    ""
+   ],
+   [
+    "2026-10-05",
+    "dag_read_ssh_key",
+    ""
+   ],
+   [
+    "2026-10-05",
+    "dag_bash_command_via_variable",
+    "lệnh nguy hiểm đặt trong biến rồi mới truyền vào bash_command"
+   ],
+   [
+    "2026-10-05",
+    "dag_bash_python_c",
+    ""
+   ]
+  ],
+  "external": 0,
+  "ai_proxy": 31
+ },
+ "v1_rows": [
+  {
+   "id": "drop_upper",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lệnh 'DROP' bị chặn: model chỉ được là câu SELECT."
+  },
+  {
+   "id": "drop_lower",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lệnh 'DROP' bị chặn: model chỉ được là câu SELECT."
+  },
+  {
+   "id": "drop_mixed_case",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lệnh 'DROP' bị chặn: model chỉ được là câu SELECT."
+  },
+  {
+   "id": "chained_drop",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Chỉ cho phép đúng 1 câu lệnh, nhận được 2."
+  },
+  {
+   "id": "drop_after_line_comment",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Chỉ cho phép đúng 1 câu lệnh, nhận được 2."
+  },
+  {
+   "id": "drop_hidden_in_block_comment_then_real",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Chỉ cho phép đúng 1 câu lệnh, nhận được 2."
+  },
+  {
+   "id": "attach_db",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lệnh 'ATTACH' bị chặn: model chỉ được là câu SELECT."
+  },
+  {
+   "id": "chained_attach",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Chỉ cho phép đúng 1 câu lệnh, nhận được 2."
+  },
+  {
+   "id": "install_ext",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lệnh 'INSTALL' bị chặn: model chỉ được là câu SELECT."
+  },
+  {
+   "id": "load_ext",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lệnh 'COMMAND' bị chặn: model chỉ được là câu SELECT."
+  },
+  {
+   "id": "copy_to_file",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lệnh 'COPY' bị chặn: model chỉ được là câu SELECT."
+  },
+  {
+   "id": "copy_query_to_abs",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lệnh 'COPY' bị chặn: model chỉ được là câu SELECT."
+  },
+  {
+   "id": "pragma",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lệnh 'PRAGMA' bị chặn: model chỉ được là câu SELECT."
+  },
+  {
+   "id": "set_setting",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lệnh 'SET' bị chặn: model chỉ được là câu SELECT."
+  },
+  {
+   "id": "export_db",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lỗi cú pháp SQL: Invalid expression / Unexpected token. Line 1, Col: 22."
+  },
+  {
+   "id": "delete_cte",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lệnh 'DELETE' bị chặn: model chỉ được là câu SELECT."
+  },
+  {
+   "id": "insert_select",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lệnh 'INSERT' bị chặn: model chỉ được là câu SELECT."
+  },
+  {
+   "id": "update",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lệnh 'UPDATE' bị chặn: model chỉ được là câu SELECT."
+  },
+  {
+   "id": "create_table_as",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lệnh 'CREATE' bị chặn: model chỉ được là câu SELECT."
+  },
+  {
+   "id": "create_macro",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lệnh 'CREATE' bị chặn: model chỉ được là câu SELECT."
+  },
+  {
+   "id": "call_pragma",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lệnh 'COMMAND' bị chặn: model chỉ được là câu SELECT."
+  },
+  {
+   "id": "read_csv_abs",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Hàm 'READ_CSV' bị chặn (đọc file/mạng/biến môi trường hoặc cấu hình hệ thống ngoài sandbox)."
+  },
+  {
+   "id": "read_csv_relative_traversal",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Hàm 'READ_CSV_AUTO' bị chặn (đọc file/mạng/biến môi trường hoặc cấu hình hệ thống ngoài sandbox)."
+  },
+  {
+   "id": "read_csv_upper",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Hàm 'READ_CSV_AUTO' bị chặn (đọc file/mạng/biến môi trường hoặc cấu hình hệ thống ngoài sandbox)."
+  },
+  {
+   "id": "read_csv_quoted_name",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Hàm 'READ_CSV' bị chặn (đọc file/mạng/biến môi trường hoặc cấu hình hệ thống ngoài sandbox)."
+  },
+  {
+   "id": "read_parquet_s3_in_subquery",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Hàm 'READ_PARQUET' bị chặn (đọc file/mạng/biến môi trường hoặc cấu hình hệ thống ngoài sandbox)."
+  },
+  {
+   "id": "read_json_in_union",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Hàm 'READ_JSON' bị chặn (đọc file/mạng/biến môi trường hoặc cấu hình hệ thống ngoài sandbox)."
+  },
+  {
+   "id": "read_text",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Hàm 'READ_TEXT' bị chặn (đọc file/mạng/biến môi trường hoặc cấu hình hệ thống ngoài sandbox)."
+  },
+  {
+   "id": "file_as_table_relative",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Bảng 'main.../../data/app.db' không có trong danh mục dữ liệu thật."
+  },
+  {
+   "id": "file_as_table_abs",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Bảng 'main.C:/Users/x/secret.csv' không có trong danh mục dữ liệu thật."
+  },
+  {
+   "id": "getenv",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Hàm 'GETENV' bị chặn (đọc file/mạng/biến môi trường hoặc cấu hình hệ thống ngoài sandbox)."
+  },
+  {
+   "id": "glob",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Hàm 'GLOB' bị chặn (đọc file/mạng/biến môi trường hoặc cấu hình hệ thống ngoài sandbox)."
+  },
+  {
+   "id": "sqlite_scan",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Hàm 'SQLITE_SCAN' bị chặn (đọc file/mạng/biến môi trường hoặc cấu hình hệ thống ngoài sandbox)."
+  },
+  {
+   "id": "postgres_scan",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Hàm 'POSTGRES_SCAN' bị chặn (đọc file/mạng/biến môi trường hoặc cấu hình hệ thống ngoài sandbox)."
+  },
+  {
+   "id": "query_function",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Hàm 'QUERY' bị chặn (đọc file/mạng/biến môi trường hoặc cấu hình hệ thống ngoài sandbox)."
+  },
+  {
+   "id": "duckdb_secrets",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Hàm 'DUCKDB_SECRETS' bị chặn (đọc file/mạng/biến môi trường hoặc cấu hình hệ thống ngoài sandbox)."
+  },
+  {
+   "id": "duckdb_settings",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Hàm 'DUCKDB_SETTINGS' bị chặn (đọc file/mạng/biến môi trường hoặc cấu hình hệ thống ngoài sandbox)."
+  },
+  {
+   "id": "pragma_function",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Hàm 'PRAGMA_DATABASE_LIST' bị chặn (đọc file/mạng/biến môi trường hoặc cấu hình hệ thống ngoài sandbox)."
+  },
+  {
+   "id": "url_literal",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Đường dẫn/URL 'https://evil.example/x' bị chặn (chỉ được đọc bảng trong workspace)."
+  },
+  {
+   "id": "unknown_table",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Bảng 'main.secret_table' không có trong danh mục dữ liệu thật."
+  },
+  {
+   "id": "information_schema",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Bảng 'information_schema.tables' không có trong danh mục dữ liệu thật."
+  },
+  {
+   "id": "config_pre_hook",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "config() không cho phép pre_hook (chỉ được: alias, materialized, tags, unique_key)."
+  },
+  {
+   "id": "config_post_hook_list",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "config() không cho phép post_hook (chỉ được: alias, materialized, tags, unique_key)."
+  },
+  {
+   "id": "jinja_run_query",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Chỉ cho phép Jinja source(), ref(), config(); phát hiện Jinja khác (macro/lệnh)."
+  },
+  {
+   "id": "jinja_set_block",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Chỉ cho phép Jinja source(), ref(), config(); phát hiện Jinja khác (macro/lệnh)."
+  },
+  {
+   "id": "jinja_env_var",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Chỉ cho phép Jinja source(), ref(), config(); phát hiện Jinja khác (macro/lệnh)."
+  },
+  {
+   "id": "path_parent",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Đường dẫn không được phép: ../evil.sql"
+  },
+  {
+   "id": "path_traversal_inside",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Đường dẫn không được phép: models/../../outside.sql"
+  },
+  {
+   "id": "path_absolute_windows",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Đường dẫn không được phép: C:/Windows/evil.sql"
+  },
+  {
+   "id": "path_backslash_traversal",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Đường dẫn không được phép: models\\..\\..\\evil.sql"
+  },
+  {
+   "id": "path_macros",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Đường dẫn không được phép: macros/evil.sql"
+  },
+  {
+   "id": "path_root_file",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Đường dẫn không được phép: profiles.yml"
+  },
+  {
+   "id": "dag_hardcoded_password",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "DAG có vẻ ghi cứng mật khẩu/chuỗi kết nối — dùng Airflow Connection/Variable."
+  },
+  {
+   "id": "dag_connection_string",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "DAG có vẻ ghi cứng mật khẩu/chuỗi kết nối — dùng Airflow Connection/Variable."
+  },
+  {
+   "id": "dag_os_system_at_parse",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "DAG không được gọi os.system() (thao tác hệ thống)."
+  },
+  {
+   "id": "dag_subprocess",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "DAG không được import 'subprocess' (lệnh hệ thống/mạng/code động)."
+  },
+  {
+   "id": "dag_exec",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "DAG không được gọi exec() (chạy code động hoặc đọc file)."
+  },
+  {
+   "id": "dag_bash_pipe_to_shell",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lệnh trong DAG chỉ được chạy dbt; phát hiện tải/chạy script, xóa đệ quy, đổi quyền hoặc python -c."
+  },
+  {
+   "id": "jinja_in_sql_comment",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": true,
+   "detail": "Chỉ cho phép Jinja source(), ref(), config(); phát hiện Jinja khác (macro/lệnh)."
+  },
+  {
+   "id": "config_alias_injection",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": true,
+   "detail": "Giá trị config(alias=...) không hợp lệ: x; drop table raw.orders"
+  },
+  {
+   "id": "config_materialized_external",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": true,
+   "detail": "Giá trị config(materialized=...) không hợp lệ: external"
+  },
+  {
+   "id": "current_setting_secret",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": true,
+   "detail": "Hàm 'CURRENT_SETTING' bị chặn (đọc file/mạng/biến môi trường hoặc cấu hình hệ thống ngoài sandbox)."
+  },
+  {
+   "id": "summarize_statement",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": true,
+   "detail": "Lệnh 'SUMMARIZE' bị chặn: model chỉ được là câu SELECT."
+  },
+  {
+   "id": "lateral_read_csv",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": true,
+   "detail": "Hàm 'READ_CSV' bị chặn (đọc file/mạng/biến môi trường hoặc cấu hình hệ thống ngoài sandbox)."
+  },
+  {
+   "id": "glob_string_table",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": true,
+   "detail": "Bảng 'main.data/sources/*.csv' không có trong danh mục dữ liệu thật."
+  },
+  {
+   "id": "recursive_cte_dos",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "range_explosion_dos",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "path_absolute_posix",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": true,
+   "detail": "Đường dẫn không được phép: /models/x.sql"
+  },
+  {
+   "id": "path_ntfs_stream",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": true,
+   "detail": "Đường dẫn không được phép: models/x.sql:hidden"
+  },
+  {
+   "id": "path_dags_up_to_profiles",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": true,
+   "detail": "Đường dẫn không được phép: dags/../profiles.yml"
+  },
+  {
+   "id": "dag_import_alias",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": true,
+   "detail": "DAG không được gọi os.system() (thao tác hệ thống)."
+  },
+  {
+   "id": "dag_from_os_import_system",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": true,
+   "detail": "DAG không được dùng os.system (thao tác hệ thống)."
+  },
+  {
+   "id": "dag_getattr_obfuscation",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": true,
+   "detail": "DAG không được gọi getattr() (chạy code động hoặc đọc file)."
+  },
+  {
+   "id": "dag_importlib",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": true,
+   "detail": "DAG không được import 'importlib' (lệnh hệ thống/mạng/code động)."
+  },
+  {
+   "id": "dag_os_execl",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": true,
+   "detail": "DAG không được gọi os.execl() (thao tác hệ thống)."
+  },
+  {
+   "id": "dag_read_ssh_key",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": true,
+   "detail": "DAG không được gọi open() (chạy code động hoặc đọc file)."
+  },
+  {
+   "id": "dag_bash_command_via_variable",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": true,
+   "detail": "Lệnh trong DAG chỉ được chạy dbt; phát hiện tải/chạy script, xóa đệ quy, đổi quyền hoặc python -c."
+  },
+  {
+   "id": "dag_bash_python_c",
+   "label": "block",
+   "labeled_by": "ai_proxy",
+   "blocked": true,
+   "detail": "Lệnh trong DAG chỉ được chạy dbt; phát hiện tải/chạy script, xóa đệ quy, đổi quyền hoặc python -c."
+  },
+  {
+   "id": "simple_select",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "select_star",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "source_jinja",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "ref_jinja",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "config_materialized",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "config_incremental",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "jinja_comment",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "cte_window_qualify",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "qualify_clause",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "strptime_slash_format",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "money_parse",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "division_operator",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "comment_mentions_drop",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "block_comment_mentions_copy",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "literal_word_drop",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "union_all",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "left_join_coalesce",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "case_when_status",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "date_trunc_group",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "regexp_replace",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "upper_trim_normalize",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "email_masking",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "exists_subquery",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "path_staging",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "path_mart",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "path_dag",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "path_test",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "dag_variable_template",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "dag_single_task_build",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "dag_connection_from_env",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "dag_os_environ_path",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "hallucinated_duckdb_function_not_blocked_as_attack",
+   "label": "pass",
+   "labeled_by": "author",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "from_first_syntax",
+   "label": "pass",
+   "labeled_by": "ai_proxy",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "literal_contains_statement",
+   "label": "pass",
+   "labeled_by": "ai_proxy",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "source_double_quotes_no_space",
+   "label": "pass",
+   "labeled_by": "ai_proxy",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "trailing_semicolon",
+   "label": "pass",
+   "labeled_by": "ai_proxy",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "using_sample",
+   "label": "pass",
+   "labeled_by": "ai_proxy",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "config_alias_identifier",
+   "label": "pass",
+   "labeled_by": "ai_proxy",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "config_unique_key_list",
+   "label": "pass",
+   "labeled_by": "ai_proxy",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "window_frame_rows",
+   "label": "pass",
+   "labeled_by": "ai_proxy",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "slash_inside_like_pattern",
+   "label": "pass",
+   "labeled_by": "ai_proxy",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "dag_docstring_mentions_curl",
+   "label": "pass",
+   "labeled_by": "ai_proxy",
+   "blocked": false,
+   "detail": "cho qua"
+  },
+  {
+   "id": "dag_python_operator_pure",
+   "label": "pass",
+   "labeled_by": "ai_proxy",
+   "blocked": false,
+   "detail": "cho qua"
+  }
+ ],
+ "v3_raw": {
+  "pairs": [
+   {
+    "id": "eq_union_dedup_after",
+    "label": "equivalent",
+    "labeled_by": "author",
+    "trap": "UNION → UNION ALL khi phía sau đã khử trùng",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 0,
+    "random_errors": 0
+   },
+   {
+    "id": "eq_filter_pushdown",
+    "label": "equivalent",
+    "labeled_by": "author",
+    "trap": "lọc trước khi nối",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 0,
+    "random_errors": 0
+   },
+   {
+    "id": "eq_count_star_one",
+    "label": "equivalent",
+    "labeled_by": "author",
+    "trap": "count(*) và count(1)",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 0,
+    "random_errors": 0
+   },
+   {
+    "id": "eq_in_vs_exists",
+    "label": "equivalent",
+    "labeled_by": "author",
+    "trap": "IN dương và EXISTS (null trong danh sách không đổi kết quả)",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 0,
+    "random_errors": 0
+   },
+   {
+    "id": "eq_redundant_predicate",
+    "label": "equivalent",
+    "labeled_by": "author",
+    "trap": "điều kiện thừa",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 0,
+    "random_errors": 0
+   },
+   {
+    "id": "eq_distinct_vs_group_by",
+    "label": "equivalent",
+    "labeled_by": "author",
+    "trap": "DISTINCT và GROUP BY",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 0,
+    "random_errors": 0
+   },
+   {
+    "id": "eq_coalesce_sum_grouped",
+    "label": "equivalent",
+    "labeled_by": "author",
+    "trap": "coalesce ngoài/trong SUM khi có GROUP BY",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 0,
+    "random_errors": 0
+   },
+   {
+    "id": "eq_drop_subquery_order",
+    "label": "equivalent",
+    "labeled_by": "author",
+    "trap": "ORDER BY trong subquery không có tác dụng",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 0,
+    "random_errors": 0
+   },
+   {
+    "id": "eq_cte_inline",
+    "label": "equivalent",
+    "labeled_by": "author",
+    "trap": "CTE và subquery",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 0,
+    "random_errors": 0
+   },
+   {
+    "id": "eq_between",
+    "label": "equivalent",
+    "labeled_by": "author",
+    "trap": "BETWEEN và hai phép so sánh",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 0,
+    "random_errors": 0
+   },
+   {
+    "id": "eq_left_join_null_rejecting",
+    "label": "equivalent",
+    "labeled_by": "author",
+    "trap": "LEFT JOIN + WHERE trên cột bảng phải = INNER JOIN",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 0,
+    "random_errors": 0
+   },
+   {
+    "id": "eq_case_vs_coalesce",
+    "label": "equivalent",
+    "labeled_by": "author",
+    "trap": "CASE WHEN IS NULL và COALESCE",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 0,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_count_column_vs_star",
+    "label": "different",
+    "labeled_by": "author",
+    "trap": "null — count(cột) bỏ dòng rỗng",
+    "v3_pass": false,
+    "v3_detail": "small: 8 dòng chỉ có ở bản gốc, 8 dòng chỉ có ở bản mới",
+    "random_diff": 86,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_sum_all_null_group",
+    "label": "different",
+    "labeled_by": "author",
+    "trap": "null — nhóm toàn rỗng cho NULL thay vì 0",
+    "v3_pass": false,
+    "v3_detail": "nullmoney: 8 dòng chỉ có ở bản gốc, 8 dòng chỉ có ở bản mới",
+    "random_diff": 35,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_avg_vs_sum_count",
+    "label": "different",
+    "labeled_by": "author",
+    "trap": "null — AVG bỏ dòng rỗng, sum/count(*) thì không",
+    "v3_pass": false,
+    "v3_detail": "small: 8 dòng chỉ có ở bản gốc, 8 dòng chỉ có ở bản mới",
+    "random_diff": 69,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_count_distinct_key",
+    "label": "different",
+    "labeled_by": "author",
+    "trap": "dòng trùng — count(distinct khóa) khác count(*) khi khóa trùng",
+    "v3_pass": false,
+    "v3_detail": "small: 5 dòng chỉ có ở bản gốc, 5 dòng chỉ có ở bản mới",
+    "random_diff": 86,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_union_without_dedup_after",
+    "label": "different",
+    "labeled_by": "author",
+    "trap": "dòng trùng — UNION → UNION ALL khi phía sau KHÔNG khử trùng",
+    "v3_pass": false,
+    "v3_detail": "small: Khác số dòng: 69 ≠ 262",
+    "random_diff": 113,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_round_sum_vs_sum_round",
+    "label": "different",
+    "labeled_by": "author",
+    "trap": "làm tròn trước/sau khi cộng",
+    "v3_pass": false,
+    "v3_detail": "small: 4 dòng chỉ có ở bản gốc, 4 dòng chỉ có ở bản mới",
+    "random_diff": 39,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_cast_truncates",
+    "label": "different",
+    "labeled_by": "author",
+    "trap": "làm tròn — ép kiểu cắt phần lẻ khác round",
+    "v3_pass": false,
+    "v3_detail": "small: 44 dòng chỉ có ở bản gốc, 44 dòng chỉ có ở bản mới",
+    "random_diff": 99,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_limit_order_ties",
+    "label": "different",
+    "labeled_by": "author",
+    "trap": "thứ tự không xác định — LIMIT với ORDER BY có giá trị trùng",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 9,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_any_value_vs_min",
+    "label": "different",
+    "labeled_by": "author",
+    "trap": "thứ tự không xác định — any_value phụ thuộc thứ tự quét",
+    "v3_pass": false,
+    "v3_detail": "small: 7 dòng chỉ có ở bản gốc, 7 dòng chỉ có ở bản mới",
+    "random_diff": 76,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_not_in_with_null",
+    "label": "different",
+    "labeled_by": "author",
+    "trap": "null — NOT IN với danh sách có NULL trả rỗng, NOT EXISTS thì không",
+    "v3_pass": false,
+    "v3_detail": "small: Khác số dòng: 49 ≠ 0",
+    "random_diff": 90,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_date_boundary_fraction",
+    "label": "different",
+    "labeled_by": "author",
+    "trap": "biên ngày — giây lẻ 23:59:59.5 rơi ra ngoài BETWEEN",
+    "v3_pass": false,
+    "v3_detail": "small: Khác số dòng: 76 ≠ 66",
+    "random_diff": 64,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_left_vs_inner_orphans",
+    "label": "different",
+    "labeled_by": "author",
+    "trap": "khóa mồ côi — INNER JOIN làm mất đơn không có khách",
+    "v3_pass": false,
+    "v3_detail": "small: Khác số dòng: 611 ≠ 562",
+    "random_diff": 112,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_case_sensitive_status",
+    "label": "different",
+    "labeled_by": "author",
+    "trap": "chữ hoa/thường — 'PAID' bị bỏ sót",
+    "v3_pass": false,
+    "v3_detail": "small: Khác số dòng: 108 ≠ 65",
+    "random_diff": 90,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_join_fanout_duplicate_customers",
+    "label": "different",
+    "labeled_by": "author",
+    "trap": "dòng trùng — nối với bảng khách có mã trùng làm nhân doanh thu",
+    "v3_pass": false,
+    "v3_detail": "small: 6 dòng chỉ có ở bản gốc, 6 dòng chỉ có ở bản mới",
+    "random_diff": 50,
+    "random_errors": 0
+   },
+   {
+    "id": "eq_filter_count_vs_sum_case",
+    "label": "equivalent",
+    "labeled_by": "ai_proxy",
+    "trap": "COUNT FILTER và SUM(CASE) ép cùng kiểu",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 0,
+    "random_errors": 0
+   },
+   {
+    "id": "eq_de_morgan_with_nulls",
+    "label": "equivalent",
+    "labeled_by": "ai_proxy",
+    "trap": "De Morgan vẫn đúng với logic ba giá trị (NULL)",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 0,
+    "random_errors": 0
+   },
+   {
+    "id": "eq_in_list_vs_or",
+    "label": "equivalent",
+    "labeled_by": "ai_proxy",
+    "trap": "IN danh sách và OR",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 0,
+    "random_errors": 0
+   },
+   {
+    "id": "eq_count_distinct_vs_subquery",
+    "label": "equivalent",
+    "labeled_by": "ai_proxy",
+    "trap": "count(distinct) bỏ NULL",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 0,
+    "random_errors": 0
+   },
+   {
+    "id": "eq_avg_vs_sum_over_count_col",
+    "label": "equivalent",
+    "labeled_by": "ai_proxy",
+    "trap": "AVG = SUM / COUNT(cột) (cùng bỏ NULL)",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 0,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_sum_distinct",
+    "label": "different",
+    "labeled_by": "ai_proxy",
+    "trap": "dòng trùng — SUM(DISTINCT) bỏ các số tiền bằng nhau",
+    "v3_pass": false,
+    "v3_detail": "small: 8 dòng chỉ có ở bản gốc, 8 dòng chỉ có ở bản mới",
+    "random_diff": 51,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_count_distinct_null_bucket",
+    "label": "different",
+    "labeled_by": "ai_proxy",
+    "trap": "null — coalesce biến NULL thành một nhóm được đếm",
+    "v3_pass": false,
+    "v3_detail": "small: 1 dòng chỉ có ở bản gốc, 1 dòng chỉ có ở bản mới",
+    "random_diff": 91,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_timezone_shift",
+    "label": "different",
+    "labeled_by": "ai_proxy",
+    "trap": "múi giờ — cộng 7 giờ đổi ngày của đơn sau 17:00",
+    "v3_pass": false,
+    "v3_detail": "small: Khác số dòng: 3 ≠ 4",
+    "random_diff": 108,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_median_vs_quantile_disc",
+    "label": "different",
+    "labeled_by": "ai_proxy",
+    "trap": "làm tròn — median nội suy, quantile_disc lấy giá trị có thật",
+    "v3_pass": false,
+    "v3_detail": "small: 3 dòng chỉ có ở bản gốc, 3 dòng chỉ có ở bản mới",
+    "random_diff": 92,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_window_range_vs_rows",
+    "label": "different",
+    "labeled_by": "ai_proxy",
+    "trap": "thứ tự trùng — khung mặc định RANGE gộp các dòng cùng giờ, ROWS thì không",
+    "v3_pass": false,
+    "v3_detail": "small: 25 dòng chỉ có ở bản gốc, 25 dòng chỉ có ở bản mới",
+    "random_diff": 53,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_string_agg_order",
+    "label": "different",
+    "labeled_by": "ai_proxy",
+    "trap": "thứ tự không xác định — string_agg không ORDER BY",
+    "v3_pass": false,
+    "v3_detail": "small: 8 dòng chỉ có ở bản gốc, 8 dòng chỉ có ở bản mới",
+    "random_diff": 83,
+    "random_errors": 0
+   },
+   {
+    "id": "diff_trim_whitespace",
+    "label": "different",
+    "labeled_by": "ai_proxy",
+    "trap": "khoảng trắng — chỉ khác khi dữ liệu có ' paid ' (dữ liệu thử KHÔNG có → không đo được)",
+    "v3_pass": true,
+    "v3_detail": "giống hệt mọi bộ",
+    "random_diff": 0,
+    "random_errors": 0
+   }
+  ],
+  "rules": [
+   {
+    "id": "rq_order_in_subquery",
+    "source": "rules",
+    "applied": "drop_subquery_order_by",
+    "compared": 120,
+    "mismatched": 0
+   },
+   {
+    "id": "rq_order_in_subquery",
+    "source": "sqlglot",
+    "applied": "sqlglot.optimizer",
+    "compared": 120,
+    "mismatched": 0
+   },
+   {
+    "id": "rq_distinct_star",
+    "source": "sqlglot",
+    "applied": "sqlglot.optimizer",
+    "compared": 120,
+    "mismatched": 0
+   },
+   {
+    "id": "rq_self_union",
+    "source": "rules",
+    "applied": "self_union_to_distinct",
+    "compared": 120,
+    "mismatched": 0
+   },
+   {
+    "id": "rq_self_union",
+    "source": "sqlglot",
+    "applied": "sqlglot.optimizer",
+    "compared": 120,
+    "mismatched": 0
+   },
+   {
+    "id": "rq_union_same_table",
+    "source": "rules",
+    "applied": "union_to_union_all",
+    "compared": 79,
+    "mismatched": 0
+   },
+   {
+    "id": "rq_union_same_table",
+    "source": "sqlglot",
+    "applied": "sqlglot.optimizer",
+    "compared": 120,
+    "mismatched": 0
+   },
+   {
+    "id": "rq_range_to_equality",
+    "source": "rules",
+    "applied": "range_to_equality",
+    "compared": 120,
+    "mismatched": 0
+   },
+   {
+    "id": "rq_range_to_equality",
+    "source": "sqlglot",
+    "applied": "sqlglot.optimizer",
+    "compared": 120,
+    "mismatched": 0
+   },
+   {
+    "id": "rq_cast_equality",
+    "source": "sqlglot",
+    "applied": "sqlglot.optimizer",
+    "compared": 120,
+    "mismatched": 0
+   },
+   {
+    "id": "rq_rownumber_dedupe",
+    "source": "rules",
+    "applied": "rownumber_to_constant",
+    "compared": 21,
+    "mismatched": 0
+   },
+   {
+    "id": "rq_rownumber_dedupe",
+    "source": "sqlglot",
+    "applied": "sqlglot.optimizer",
+    "compared": 120,
+    "mismatched": 0
+   },
+   {
+    "id": "rq_filter_after_join",
+    "source": "sqlglot",
+    "applied": "sqlglot.optimizer",
+    "compared": 120,
+    "mismatched": 0
+   }
+  ],
+  "invariants": [
+   {
+    "id": "inv_sum_count_by_customer",
+    "datasets": 120,
+    "shuffle_bad": 0,
+    "double_bad": 0,
+    "comparator_bad": 0
+   },
+   {
+    "id": "inv_revenue_by_day_paid",
+    "datasets": 120,
+    "shuffle_bad": 0,
+    "double_bad": 0,
+    "comparator_bad": 0
+   }
+  ],
+  "random_datasets": 120,
+  "random_seed": 20261005
+ },
+ "v3": {
+  "equivalent": 17,
+  "different": 21,
+  "caught": 19,
+  "missed": [
+   "diff_limit_order_ties",
+   "diff_trim_whitespace"
+  ],
+  "false_blocks": [],
+  "label_conflicts": [
+   "diff_trim_whitespace"
+  ]
+ },
+ "v2_raw": [
+  {
+   "base": "revenue_3_sources",
+   "sanity": "pipeline gốc đạt (3/3 test đạt)",
+   "rows": [
+    {
+     "id": "sum_to_avg",
+     "description": "Đổi SUM → AVG khi tính doanh thu",
+     "file": "models/marts/fct_daily_revenue.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": true,
+     "by": "V2: assert_fct_daily_revenue_reconciles",
+     "detail": "test.p113_pipeline.assert_fct_daily_revenue_reconciles [fail]: Got 30 results, configured to fail if != 0",
+     "applied": true,
+     "base": "revenue_3_sources"
+    },
+    {
+     "id": "drop_where",
+     "description": "Bỏ WHERE lọc trạng thái (tính cả đơn hủy/hoàn)",
+     "file": "models/marts/fct_daily_revenue.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": true,
+     "by": "V2: assert_fct_daily_revenue_reconciles",
+     "detail": "test.p113_pipeline.assert_fct_daily_revenue_reconciles [fail]: Got 27 results, configured to fail if != 0",
+     "applied": true,
+     "base": "revenue_3_sources"
+    },
+    {
+     "id": "widen_filter",
+     "description": "Lọc sai trạng thái (tính cả đơn hoàn tiền)",
+     "file": "models/marts/fct_daily_revenue.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": true,
+     "by": "V2: assert_fct_daily_revenue_reconciles",
+     "detail": "test.p113_pipeline.assert_fct_daily_revenue_reconciles [fail]: Got 20 results, configured to fail if != 0",
+     "applied": true,
+     "base": "revenue_3_sources"
+    },
+    {
+     "id": "drop_dedup",
+     "description": "Bỏ khử trùng đơn (tương đương bỏ DISTINCT) — bỏ cả hai lớp UNION và QUALIFY",
+     "file": "models/marts/fct_daily_revenue.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": true,
+     "by": "V2: assert_fct_daily_revenue_reconciles",
+     "detail": "test.p113_pipeline.assert_fct_daily_revenue_reconciles [fail]: Got 5 results, configured to fail if != 0",
+     "applied": true,
+     "base": "revenue_3_sources"
+    },
+    {
+     "id": "swap_columns",
+     "description": "Đổi chỗ hai cột (số đơn ↔ doanh thu)",
+     "file": "models/marts/fct_daily_revenue.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": true,
+     "by": "V2: assert_fct_daily_revenue_reconciles",
+     "detail": "test.p113_pipeline.assert_fct_daily_revenue_reconciles [fail]: Got 30 results, configured to fail if != 0",
+     "applied": true,
+     "base": "revenue_3_sources"
+    },
+    {
+     "id": "count_distinct_id",
+     "description": "Đếm đơn theo mã không kèm nguồn (chỉ sai khi có mã trùng giữa các nguồn)",
+     "file": "models/marts/fct_daily_revenue.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": false,
+     "by": "—",
+     "detail": "3/3 test đạt",
+     "applied": true,
+     "base": "revenue_3_sources"
+    },
+    {
+     "id": "count_non_null",
+     "description": "Đếm đơn bằng count(cột tiền) — bỏ sót đơn thiếu số tiền",
+     "file": "models/marts/fct_daily_revenue.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": true,
+     "by": "V2: assert_fct_daily_revenue_reconciles",
+     "detail": "test.p113_pipeline.assert_fct_daily_revenue_reconciles [fail]: Got 2 results, configured to fail if != 0",
+     "applied": true,
+     "base": "revenue_3_sources"
+    },
+    {
+     "id": "drop_source",
+     "description": "Quên một nguồn khi gộp (bỏ website)",
+     "file": "models/marts/fct_daily_revenue.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": true,
+     "by": "V2: assert_fct_daily_revenue_reconciles",
+     "detail": "test.p113_pipeline.assert_fct_daily_revenue_reconciles [fail]: Got 30 results, configured to fail if != 0",
+     "applied": true,
+     "base": "revenue_3_sources"
+    },
+    {
+     "id": "date_format_swap",
+     "description": "Đọc ngày sai định dạng (dd/mm ↔ mm/dd)",
+     "file": "models/staging/stg_shopee_orders.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": true,
+     "by": "V2: assert_fct_daily_revenue_reconciles, not_null_fct_daily_revenue_order_date.b774bf86f4",
+     "detail": "test.p113_pipeline.assert_fct_daily_revenue_reconciles [fail]: Got 37 results, configured to fail if != 0",
+     "applied": true,
+     "base": "revenue_3_sources"
+    },
+    {
+     "id": "money_parse_bug",
+     "description": "Không bỏ dấu chấm ở số tiền \"1.075.000\"",
+     "file": "models/staging/stg_shopee_orders.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": true,
+     "by": "V2: assert_fct_daily_revenue_reconciles",
+     "detail": "test.p113_pipeline.assert_fct_daily_revenue_reconciles [fail]: Got 27 results, configured to fail if != 0",
+     "applied": true,
+     "base": "revenue_3_sources"
+    },
+    {
+     "id": "date_shift",
+     "description": "Lệch ngày một ngày (sai múi giờ)",
+     "file": "models/staging/stg_tiki_orders.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": true,
+     "by": "V2: assert_fct_daily_revenue_reconciles",
+     "detail": "test.p113_pipeline.assert_fct_daily_revenue_reconciles [fail]: Got 31 results, configured to fail if != 0",
+     "applied": true,
+     "base": "revenue_3_sources"
+    },
+    {
+     "id": "status_mapping_bug",
+     "description": "Ánh xạ trạng thái sai ('paid' không được coi là hoàn tất)",
+     "file": "models/staging/stg_website_orders.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": true,
+     "by": "V2: assert_fct_daily_revenue_reconciles",
+     "detail": "test.p113_pipeline.assert_fct_daily_revenue_reconciles [fail]: Got 30 results, configured to fail if != 0",
+     "applied": true,
+     "base": "revenue_3_sources"
+    },
+    {
+     "id": "union_all_control",
+     "description": "Đối chứng: UNION → UNION ALL (bước khử trùng phía sau vẫn xử lý trùng, kết quả không đổi)",
+     "file": "models/marts/fct_daily_revenue.sql",
+     "equivalent": true,
+     "labeled_by": "author",
+     "caught": false,
+     "by": "—",
+     "detail": "3/3 test đạt",
+     "applied": true,
+     "base": "revenue_3_sources"
+    },
+    {
+     "id": "drop_coalesce_zero",
+     "description": "Bỏ coalesce(…, 0): ngày mà mọi đơn đều thiếu tiền cho doanh thu NULL thay vì 0",
+     "file": "models/marts/fct_daily_revenue.sql",
+     "equivalent": false,
+     "labeled_by": "ai_proxy",
+     "caught": false,
+     "by": "—",
+     "detail": "3/3 test đạt",
+     "applied": true,
+     "base": "revenue_3_sources"
+    },
+    {
+     "id": "dedup_tiebreak_lost",
+     "description": "Khử trùng không có thứ tự phụ: giữ ngẫu nhiên một bản ghi trùng (có thể bản thiếu tiền)",
+     "file": "models/marts/fct_daily_revenue.sql",
+     "equivalent": false,
+     "labeled_by": "ai_proxy",
+     "caught": false,
+     "by": "—",
+     "detail": "3/3 test đạt",
+     "applied": true,
+     "base": "revenue_3_sources"
+    },
+    {
+     "id": "dedup_keeps_null_amount",
+     "description": "Khử trùng ưu tiên bản ghi thiếu tiền (nulls first) → doanh thu thấp hơn",
+     "file": "models/marts/fct_daily_revenue.sql",
+     "equivalent": false,
+     "labeled_by": "ai_proxy",
+     "caught": false,
+     "by": "—",
+     "detail": "3/3 test đạt",
+     "applied": true,
+     "base": "revenue_3_sources"
+    },
+    {
+     "id": "dedup_ignores_source",
+     "description": "Khử trùng chỉ theo mã đơn, quên nguồn → mất đơn khác nguồn trùng mã",
+     "file": "models/marts/fct_daily_revenue.sql",
+     "equivalent": false,
+     "labeled_by": "ai_proxy",
+     "caught": false,
+     "by": "—",
+     "detail": "3/3 test đạt",
+     "applied": true,
+     "base": "revenue_3_sources"
+    },
+    {
+     "id": "control_reorder_columns",
+     "description": "Đối chứng: đổi thứ tự hai cột đầu ra (giữ tên)",
+     "file": "models/marts/fct_daily_revenue.sql",
+     "equivalent": true,
+     "labeled_by": "ai_proxy",
+     "caught": false,
+     "by": "—",
+     "detail": "3/3 test đạt",
+     "applied": true,
+     "base": "revenue_3_sources"
+    },
+    {
+     "id": "control_where_true",
+     "description": "Đối chứng: thêm điều kiện luôn đúng 1 = 1",
+     "file": "models/marts/fct_daily_revenue.sql",
+     "equivalent": true,
+     "labeled_by": "ai_proxy",
+     "caught": false,
+     "by": "—",
+     "detail": "3/3 test đạt",
+     "applied": true,
+     "base": "revenue_3_sources"
+    }
+   ]
+  },
+  {
+   "base": "join_g06",
+   "sanity": "pipeline gốc đạt (3/3 test đạt)",
+   "rows": [
+    {
+     "id": "join_left_to_inner",
+     "description": "Đổi LEFT JOIN → INNER JOIN (mất đơn hoàn tất không có dòng hàng)",
+     "file": "models/marts/fct_daily_sales.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": false,
+     "by": "—",
+     "detail": "3/3 test đạt",
+     "applied": true,
+     "base": "join_g06"
+    },
+    {
+     "id": "join_key_self",
+     "description": "Sai khóa nối: o.order_id = o.order_id (thành nối chéo)",
+     "file": "models/marts/fct_daily_sales.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": true,
+     "by": "V2: assert_fct_daily_sales_reconciles",
+     "detail": "test.p113_pipeline.assert_fct_daily_sales_reconciles [fail]: Got 2 results, configured to fail if != 0",
+     "applied": true,
+     "base": "join_g06"
+    },
+    {
+     "id": "join_fanout",
+     "description": "Nối trước khi gộp dòng hàng → nhân bản doanh thu đơn có nhiều sản phẩm",
+     "file": "models/marts/fct_daily_sales.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": true,
+     "by": "V2: assert_fct_daily_sales_reconciles",
+     "detail": "test.p113_pipeline.assert_fct_daily_sales_reconciles [fail]: Got 1 result, configured to fail if != 0",
+     "applied": true,
+     "base": "join_g06"
+    },
+    {
+     "id": "sum_to_avg",
+     "description": "SUM → AVG ở doanh thu",
+     "file": "models/marts/fct_daily_sales.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": true,
+     "by": "V2: assert_fct_daily_sales_reconciles",
+     "detail": "test.p113_pipeline.assert_fct_daily_sales_reconciles [fail]: Got 1 result, configured to fail if != 0",
+     "applied": true,
+     "base": "join_g06"
+    },
+    {
+     "id": "drop_where",
+     "description": "Bỏ WHERE status = 'completed' (tính cả đơn hủy)",
+     "file": "models/marts/fct_daily_sales.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": true,
+     "by": "V2: assert_fct_daily_sales_reconciles",
+     "detail": "test.p113_pipeline.assert_fct_daily_sales_reconciles [fail]: Got 1 result, configured to fail if != 0",
+     "applied": true,
+     "base": "join_g06"
+    },
+    {
+     "id": "wrong_column",
+     "description": "Đổi cột: số sản phẩm cộng price_vnd thay vì qty",
+     "file": "models/marts/fct_daily_sales.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": true,
+     "by": "V2: assert_fct_daily_sales_reconciles",
+     "detail": "test.p113_pipeline.assert_fct_daily_sales_reconciles [fail]: Got 2 results, configured to fail if != 0",
+     "applied": true,
+     "base": "join_g06"
+    },
+    {
+     "id": "add_distinct_count",
+     "description": "Thêm DISTINCT sai: đếm đơn theo số tiền khác nhau (sai khi hai đơn cùng ngày cùng tổng tiền)",
+     "file": "models/marts/fct_daily_sales.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": false,
+     "by": "—",
+     "detail": "3/3 test đạt",
+     "applied": true,
+     "base": "join_g06"
+    },
+    {
+     "id": "count_items_not_orders",
+     "description": "Đếm số sản phẩm thay vì số đơn",
+     "file": "models/marts/fct_daily_sales.sql",
+     "equivalent": false,
+     "labeled_by": "author",
+     "caught": false,
+     "by": "—",
+     "detail": "3/3 test đạt",
+     "applied": true,
+     "base": "join_g06"
+    },
+    {
+     "id": "control_coalesce_inside",
+     "description": "Đối chứng: coalesce(sum(x), 0) → sum(coalesce(x, 0)) (cùng kết quả khi có GROUP BY)",
+     "file": "models/marts/fct_daily_sales.sql",
+     "equivalent": true,
+     "labeled_by": "author",
+     "caught": false,
+     "by": "—",
+     "detail": "3/3 test đạt",
+     "applied": true,
+     "base": "join_g06"
+    },
+    {
+     "id": "control_rename_cte",
+     "description": "Đối chứng: đổi tên CTE item_totals → qty_per_order",
+     "file": "models/marts/fct_daily_sales.sql",
+     "equivalent": true,
+     "labeled_by": "author",
+     "caught": false,
+     "by": "—",
+     "detail": "3/3 test đạt",
+     "applied": true,
+     "base": "join_g06"
+    },
+    {
+     "id": "revenue_type_bigint",
+     "description": "Đổi kiểu doanh thu DOUBLE → BIGINT (sai hợp đồng kiểu trong spec, giá trị không đổi)",
+     "file": "models/marts/fct_daily_sales.sql",
+     "equivalent": false,
+     "labeled_by": "ai_proxy",
+     "caught": false,
+     "by": "—",
+     "detail": "3/3 test đạt",
+     "applied": true,
+     "base": "join_g06"
+    },
+    {
+     "id": "status_case_mismatch",
+     "description": "Lọc 'Completed' viết hoa trong khi dữ liệu là chữ thường → mất mọi đơn",
+     "file": "models/marts/fct_daily_sales.sql",
+     "equivalent": false,
+     "labeled_by": "ai_proxy",
+     "caught": true,
+     "by": "V2: assert_fct_daily_sales_reconciles",
+     "detail": "test.p113_pipeline.assert_fct_daily_sales_reconciles [fail]: Got 2 results, configured to fail if != 0",
+     "applied": true,
+     "base": "join_g06"
+    },
+    {
+     "id": "control_count_one",
+     "description": "Đối chứng: count(*) → count(1)",
+     "file": "models/marts/fct_daily_sales.sql",
+     "equivalent": true,
+     "labeled_by": "ai_proxy",
+     "caught": false,
+     "by": "—",
+     "detail": "3/3 test đạt",
+     "applied": true,
+     "base": "join_g06"
+    }
+   ]
+  }
+ ],
+ "v2": [
+  {
+   "base": "revenue_3_sources",
+   "sanity": "pipeline gốc đạt (3/3 test đạt)",
+   "real": 16,
+   "controls": 3,
+   "caught": 11,
+   "missed": [
+    "count_distinct_id",
+    "drop_coalesce_zero",
+    "dedup_tiebreak_lost",
+    "dedup_keeps_null_amount",
+    "dedup_ignores_source"
+   ],
+   "false_alarms": [],
+   "not_applied": []
+  },
+  {
+   "base": "join_g06",
+   "sanity": "pipeline gốc đạt (3/3 test đạt)",
+   "real": 10,
+   "controls": 3,
+   "caught": 6,
+   "missed": [
+    "join_left_to_inner",
+    "add_distinct_count",
+    "count_items_not_orders",
+    "revenue_type_bigint"
+   ],
+   "false_alarms": [],
+   "not_applied": []
+  }
+ ],
+ "self_check": [
+  {
+   "sabotage": "v0",
+   "what": "V0 Soát spec luôn đạt (bỏ kiểm điểm chưa rõ + trường bắt buộc)",
+   "targets": [
+    "tests/test_verifiers/test_spec_check.py"
+   ],
+   "intact": {
+    "failed": 0,
+    "summary": "16 passed in 0.07s"
+   },
+   "broken": {
+    "failed": 4,
+    "summary": "4 failed, 12 passed in 0.32s"
+   }
+  },
+  {
+   "sabotage": "v1",
+   "what": "V1 An toàn không tìm lệnh/hàm nguy hiểm",
+   "targets": [
+    "tests/test_verifiers/test_v1_redteam.py",
+    "tests/test_verifiers/test_safety_and_sandbox.py"
+   ],
+   "intact": {
+    "failed": 0,
+    "summary": "137 passed, 2 xfailed in 16.07s"
+   },
+   "broken": {
+    "failed": 27,
+    "summary": "27 failed, 110 passed, 2 xfailed in 15.90s"
+   }
+  },
+  {
+   "sabotage": "v2",
+   "what": "V2 Sandbox coi mọi lần dbt build là đạt",
+   "targets": [
+    "tests/test_verifiers/test_safety_and_sandbox.py"
+   ],
+   "intact": {
+    "failed": 0,
+    "summary": "16 passed in 15.13s"
+   },
+   "broken": {
+    "failed": 1,
+    "summary": "1 failed, 15 passed in 15.52s"
+   }
+  },
+  {
+   "sabotage": "v3",
+   "what": "V3 Đối chiếu luôn coi hai kết quả là giống",
+   "targets": [
+    "tests/test_optimizer/test_optimizer.py"
+   ],
+   "intact": {
+    "failed": 0,
+    "summary": "19 passed in 10.64s"
+   },
+   "broken": {
+    "failed": 2,
+    "summary": "2 failed, 17 passed in 14.88s"
+   }
+  }
+ ]
+}

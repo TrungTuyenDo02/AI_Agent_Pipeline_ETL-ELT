@@ -1,0 +1,10 @@
+# Ngân sách token PHẦN TĨNH của prompt mỗi node (system prompt + JSON Schema đầu ra), đếm bằng tiktoken o200k_base.
+# Đặt SAU khi đo (eval/results/prompt_tokens.md, 2026-10-05, prompt v2): số đo + ~10% chừa chỗ.
+# tests/test_prompts/test_budget.py fail nếu vượt. Muốn nâng ngân sách: ghi lý do và số đo mới vào WORKLOG.
+measured_on: 2026-10-05
+encoding: o200k_base
+static_tokens:
+  planner: 1200 # đo 1.163 ở planner v5 (v4: 1.150; v2: 1.079)
+  codegen: 680 # đo 607
+  testgen: 480 # đo 428
+  optimizer: 330 # đo 295

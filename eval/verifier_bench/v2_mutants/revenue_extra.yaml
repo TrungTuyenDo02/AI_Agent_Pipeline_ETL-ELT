@@ -1,0 +1,48 @@
+# Đột biến bổ sung cho pipeline "doanh thu 3 nguồn" (cùng pipeline gốc với eval/mutation/mutants.yaml).
+# Ca khó do Claude viết thay thành viên (labeled_by: ai_proxy, 2026-10-05) — KHÔNG phải người ngoài nhóm.
+
+base: revenue_3_sources
+mutants:
+  - id: drop_coalesce_zero
+    description: "Bỏ coalesce(…, 0): ngày mà mọi đơn đều thiếu tiền cho doanh thu NULL thay vì 0"
+    file: models/marts/fct_daily_revenue.sql
+    old: "cast(coalesce(sum(amount_vnd), 0) as bigint)"
+    new: "cast(sum(amount_vnd) as bigint)"
+    labeled_by: ai_proxy
+
+  - id: dedup_tiebreak_lost
+    description: "Khử trùng không có thứ tự phụ: giữ ngẫu nhiên một bản ghi trùng (có thể bản thiếu tiền)"
+    file: models/marts/fct_daily_revenue.sql
+    old: "order by order_date, amount_vnd desc nulls last, status"
+    new: "order by order_date"
+    labeled_by: ai_proxy
+
+  - id: dedup_keeps_null_amount
+    description: "Khử trùng ưu tiên bản ghi thiếu tiền (nulls first) → doanh thu thấp hơn"
+    file: models/marts/fct_daily_revenue.sql
+    old: "amount_vnd desc nulls last"
+    new: "amount_vnd asc nulls first"
+    labeled_by: ai_proxy
+
+  - id: dedup_ignores_source
+    description: "Khử trùng chỉ theo mã đơn, quên nguồn → mất đơn khác nguồn trùng mã"
+    file: models/marts/fct_daily_revenue.sql
+    old: "partition by source, order_id"
+    new: "partition by order_id"
+    labeled_by: ai_proxy
+
+  - id: control_reorder_columns
+    description: "Đối chứng: đổi thứ tự hai cột đầu ra (giữ tên)"
+    file: models/marts/fct_daily_revenue.sql
+    old: "count(*) as order_count,\n    cast(coalesce(sum(amount_vnd), 0) as bigint) as revenue_vnd"
+    new: "cast(coalesce(sum(amount_vnd), 0) as bigint) as revenue_vnd,\n    count(*) as order_count"
+    equivalent: true
+    labeled_by: ai_proxy
+
+  - id: control_where_true
+    description: "Đối chứng: thêm điều kiện luôn đúng 1 = 1"
+    file: models/marts/fct_daily_revenue.sql
+    old: "where status in ('completed')"
+    new: "where status in ('completed') and 1 = 1"
+    equivalent: true
+    labeled_by: ai_proxy

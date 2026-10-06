@@ -1,0 +1,47 @@
+/*
+ * Mọi màu của giao diện nằm ở file này (CLAUDE.md mục 7.1). Component KHÔNG viết mã hex.
+ * Bảng màu là GỢI Ý (mục 7.2), không phải mã màu chính thức của thương hiệu nào. Có mã chính thức → chỉ sửa file này.
+ * Mỗi biến: light-dark(<sáng>, <tối>). Chế độ do `color-scheme` quyết định: theo máy, hoặc nút chuyển đặt data-theme.
+ * Đổi màu xong chạy: npm run check:contrast (chữ/nền ≥ 4.5:1 cho mọi cặp dùng thật, cả sáng lẫn tối).
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* Bảng gợi ý mục 7.2 */
+  --bg: light-dark(#f4f6fa, #09121f);
+  --surface: light-dark(#ffffff, #111d30);
+  --text: light-dark(#0e1a2b, #e8eef8);
+  --muted: light-dark(#54627a, #9baac2);
+  --border: light-dark(#d5dce8, #243752);
+  --primary: light-dark(#1b4fd8, #6c95ff);
+  --primary-ink: light-dark(#ffffff, #09121f);
+  --ok: light-dark(#11795a, #3cc796);
+  --warn: light-dark(#a15c00, #f0b04a);
+  --fail: light-dark(#c0283a, #ff7080);
+
+  /* Bổ sung (dẫn xuất từ bảng trên, cùng tông) */
+  --surface-2: light-dark(#ebeff5, #172640);
+  --primary-soft: light-dark(#e4ebfc, #18294a);
+  --ok-soft: light-dark(#e1f2eb, #0e2b25);
+  --ok-ink: light-dark(#ffffff, #09121f);
+  --warn-soft: light-dark(#fbf0dc, #2e2412);
+  --fail-soft: light-dark(#fbe6e9, #36161f);
+  --layer-source: light-dark(#54627a, #9baac2);
+  --layer-staging: light-dark(#1b4fd8, #6c95ff);
+  --layer-mart: light-dark(#11795a, #3cc796);
+  --shadow-color: light-dark(rgb(14 26 43 / 8%), rgb(0 0 0 / 45%));
+
+  --shadow: 0 1px 2px var(--shadow-color), 0 2px 6px var(--shadow-color);
+  --radius: 10px;
+  --font: var(--font-sans), system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --mono: var(--font-mono), "Cascadia Code", Consolas, "Courier New", monospace;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}

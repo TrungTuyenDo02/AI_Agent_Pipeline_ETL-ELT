@@ -1,0 +1,116 @@
+{
+ "case": "g06_one_to_many_join",
+ "run_id": "7adeb19058",
+ "request_text": "Bảng orders (mỗi dòng một đơn, total_vnd là tổng tiền đơn) và order_items (mỗi dòng một sản phẩm của đơn, qty là số lượng). Mỗi ngày tính: order_count (số đơn completed), revenue_vnd (tổng total_vnd, mỗi đơn chỉ tính một lần), items_sold (tổng qty của các đơn đó). Chỉ đơn có status completed. Bảng đích fct_daily_sales, các cột: order_date (DATE), order_count, revenue_vnd, items_sold.",
+ "spec": {
+  "request_text": "Bảng orders (mỗi dòng một đơn, total_vnd là tổng tiền đơn) và order_items (mỗi dòng một sản phẩm của đơn, qty là số lượng). Mỗi ngày tính: order_count (số đơn completed), revenue_vnd (tổng total_vnd, mỗi đơn chỉ tính một lần), items_sold (tổng qty của các đơn đó). Chỉ đơn có status completed. Bảng đích fct_daily_sales, các cột: order_date (DATE), order_count, revenue_vnd, items_sold.",
+  "mode": "ELT",
+  "mode_reason": "Mặc định ELT: nạp dữ liệu thô vào kho rồi biến đổi bằng dbt.",
+  "sources": [
+   {
+    "name": "orders",
+    "kind": "csv",
+    "path": "eval/datasets/golden/g06_one_to_many_join/sources/orders.csv"
+   },
+   {
+    "name": "order_items",
+    "kind": "csv",
+    "path": "eval/datasets/golden/g06_one_to_many_join/sources/order_items.csv"
+   }
+  ],
+  "target": "fct_daily_sales",
+  "grain": [
+   "order_date"
+  ],
+  "output_columns": [
+   {
+    "name": "order_date",
+    "type": "DATE",
+    "description": "Ngày của đơn hàng",
+    "references": "orders.order_date"
+   },
+   {
+    "name": "order_count",
+    "type": "BIGINT",
+    "description": "Số đơn có trạng thái completed trong ngày",
+    "references": "orders.order_id"
+   },
+   {
+    "name": "revenue_vnd",
+    "type": "DOUBLE",
+    "description": "Tổng total_vnd của các đơn completed trong ngày, mỗi đơn chỉ tính một lần",
+    "references": "orders.total_vnd"
+   },
+   {
+    "name": "items_sold",
+    "type": "BIGINT",
+    "description": "Tổng qty của các sản phẩm thuộc các đơn completed trong ngày",
+    "references": "order_items.qty"
+   }
+  ],
+  "metrics": [
+   {
+    "name": "order_count",
+    "description": "Đếm số đơn completed theo order_date"
+   },
+   {
+    "name": "revenue_vnd",
+    "description": "Cộng total_vnd theo order_date, khử ảnh hưởng một-nhiều của order_items để mỗi đơn chỉ được tính một lần"
+   },
+   {
+    "name": "items_sold",
+    "description": "Cộng qty của order_items thuộc các đơn completed theo order_date"
+   }
+  ],
+  "filters": [
+   "Chỉ giữ các đơn trong orders có status = 'completed'"
+  ],
+  "unknowns": [],
+  "assumptions": [
+   "Đọc order_date từ chuỗi và chuyển sang kiểu DATE.",
+   "Chuyển qty, price_vnd và total_vnd từ chuỗi sang kiểu số phù hợp trước khi tính toán.",
+   "Kết hợp orders và order_items bằng order_id; tổng doanh thu được tính ở cấp đơn trước khi gộp theo ngày để tránh nhân doanh thu do một đơn có nhiều sản phẩm.",
+   "Đơn completed không có dòng order_items vẫn được tính vào order_count và revenue_vnd; phần đóng góp vào items_sold được xem là 0.",
+   "Các giá trị tiền tệ được giả định chỉ dùng một loại tiền là VND theo tên cột total_vnd và price_vnd."
+  ],
+  "questions": [],
+  "decisions": {},
+  "signals": {
+   "restricted_pii": false,
+   "non_tabular_source": false,
+   "tabular_source": true,
+   "small_subset_of_large": false
+  }
+ },
+ "code_files": {
+  "models/staging/stg_orders.sql": "{{ config(materialized='view') }}\n\nselect\n    trim(\"order_id\") as order_id,\n    try_cast(\"order_date\" as timestamp)::date as order_date,\n    lower(trim(\"status\")) as status,\n    try_cast(\"total_vnd\" as double) as total_vnd\nfrom {{ source('raw', 'orders') }}\n",
+  "models/staging/stg_order_items.sql": "{{ config(materialized='view') }}\n\nselect\n    trim(\"order_id\") as order_id,\n    trim(\"sku\") as sku,\n    try_cast(\"qty\" as bigint) as qty,\n    try_cast(\"price_vnd\" as double) as price_vnd\nfrom {{ source('raw', 'order_items') }}\n",
+  "models/marts/fct_daily_sales.sql": "{{ config(materialized='table') }}\n\nwith completed_orders as (\n    select\n        order_id,\n        order_date,\n        total_vnd\n    from {{ ref('stg_orders') }}\n    where status = 'completed'\n),\nitem_totals as (\n    select\n        order_id,\n        sum(qty)::bigint as items_sold\n    from {{ ref('stg_order_items') }}\n    group by order_id\n)\nselect\n    o.order_date,\n    count(*)::bigint as order_count,\n    sum(o.total_vnd)::double as revenue_vnd,\n    coalesce(sum(i.items_sold), 0)::bigint as items_sold\nfrom completed_orders o\nleft join item_totals i\n    on o.order_id = i.order_id\ngroup by o.order_date\n",
+  "dags/fct_daily_sales_dag.py": "from datetime import datetime\n\nfrom airflow import DAG\nfrom airflow.operators.bash import BashOperator\n\n\nwith DAG(\n    dag_id=\"fct_daily_sales_dag\",\n    start_date=datetime(2026, 1, 1),\n    schedule=None,\n    catchup=False,\n    tags=[\"dbt\", \"sales\"],\n) as dag:\n    start = BashOperator(\n        task_id=\"start\",\n        bash_command=\"echo 'Starting dbt build'\",\n    )\n\n    dbt_build = BashOperator(\n        task_id=\"dbt_build\",\n        bash_command=(\n            \"dbt build \"\n            \"--project-dir \\\"$DBT_PROJECT_DIR\\\" \"\n            \"--profiles-dir \\\"$DBT_PROFILES_DIR\\\"\"\n        ),\n        env={\n            \"DBT_PROJECT_DIR\": \"{{ var.value.dbt_project_dir }}\",\n            \"DBT_PROFILES_DIR\": \"{{ var.value.dbt_profiles_dir }}\",\n        },\n    )\n\n    end = BashOperator(\n        task_id=\"end\",\n        bash_command=\"echo 'dbt build completed'\",\n    )\n\n    start >> dbt_build >> end\n"
+ },
+ "optimizer": {
+  "sql": "with completed_orders as (\n    select\n        order_id,\n        order_date,\n        total_vnd\n    from main.stg_orders\n    where status = 'completed'\n),\nitem_totals as (\n    select\n        order_id,\n        sum(qty)::bigint as items_sold\n    from main.stg_order_items\n    group by order_id\n)\nselect\n    o.order_date,\n    count(*)::bigint as order_count,\n    sum(o.total_vnd)::double as revenue_vnd,\n    coalesce(sum(i.items_sold), 0)::bigint as items_sold\nfrom completed_orders o\nleft join item_totals i\n    on o.order_id = i.order_id\ngroup by o.order_date",
+  "findings": []
+ },
+ "retry_error": "",
+ "real_usage": [
+  {
+   "task": "planner",
+   "model": "gpt-5.6-luna",
+   "input_tokens": 1582,
+   "output_tokens": 992
+  },
+  {
+   "task": "codegen",
+   "model": "gpt-5.6-luna",
+   "input_tokens": 2364,
+   "output_tokens": 1638
+  },
+  {
+   "task": "testgen",
+   "model": "gpt-5.6-luna",
+   "input_tokens": 2207,
+   "output_tokens": 841
+  }
+ ]
+}

