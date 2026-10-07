@@ -1,0 +1,53 @@
+version: 2
+models:
+- name: students
+  columns:
+  - name: student_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('student')
+          field: student_id
+  - name: first_name
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('student')
+          field: f_name
+  - name: last_name
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('student')
+          field: l_name
+  - name: got_B_in_MLT_and_gpa_over3
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('registration')
+          field: grade, course.name, student.gpa
+  - name: has_the_highest_intelligence_UG
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('student')
+          field: intelligence, student.type
+  - name: is_under_supervision_of_most_popular_professor
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('RA')
+          field: student_id, RA.prof_id, prof.prof_id, prof.popularity
+  - name: GPA_based_on_registration
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('registration')
+          field: student_id, registration.grade
+  - name: num_courses_taken
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('registration')
+          field: student_id, registration.course_id

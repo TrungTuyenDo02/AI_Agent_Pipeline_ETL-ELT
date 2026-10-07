@@ -1,0 +1,14 @@
+{
+ "task": "pinterest",
+ "model": "pinterest_ads__ad_group_report",
+ "target": "pinterest_ads__ad_group_report",
+ "error": "Đã dừng ở bước cứu hộ theo yêu cầu của người dùng.",
+ "run_id": "0121e18a16",
+ "status": "failed",
+ "auto_answers": 1,
+ "fix_attempts": 3,
+ "rescue": 0,
+ "tokens": 59027,
+ "cost_usd": 0.023905000000000003,
+ "seconds": 134.1
+}

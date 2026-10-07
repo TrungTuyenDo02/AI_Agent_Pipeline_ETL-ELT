@@ -1,0 +1,24 @@
+{{ config(materialized='table') }}
+
+SELECT
+    CAST(AD_ID AS BIGINT) AS ad_id,
+    CAST(STAT_TIME_HOUR AS TIMESTAMP) AS stat_time_hour,
+    CAST(CLICKS AS BIGINT) AS clicks,
+    CAST(IMPRESSIONS AS BIGINT) AS impressions,
+    CAST(SPEND AS DOUBLE) AS spend,
+    CAST(REACH AS BIGINT) AS reach,
+    CAST(CONVERSION AS BIGINT) AS conversion,
+    CAST(LIKES AS BIGINT) AS likes,
+    CAST(COMMENTS AS BIGINT) AS comments,
+    CAST(SHARES AS BIGINT) AS shares,
+    CAST(PROFILE_VISITS AS BIGINT) AS profile_visits,
+    CAST(FOLLOWS AS BIGINT) AS follows,
+    CAST(VIDEO_WATCHED_2_S AS BIGINT) AS video_watched_2_s,
+    CAST(VIDEO_WATCHED_6_S AS BIGINT) AS video_watched_6_s,
+    CAST(VIDEO_VIEWS_P_25 AS BIGINT) AS video_views_p_25,
+    CAST(VIDEO_VIEWS_P_50 AS BIGINT) AS video_views_p_50,
+    CAST(VIDEO_VIEWS_P_75 AS BIGINT) AS video_views_p_75,
+    CAST(REAL_TIME_CONVERSION AS BIGINT) AS real_time_conversion,
+    CAST(TOTAL_PURCHASE_VALUE AS DOUBLE) AS total_purchase_value,
+    CAST(TOTAL_SALES_LEAD_VALUE AS DOUBLE) AS total_sales_lead_value
+FROM {{ source('raw', 'tiktok_ad_report_hourly') }}

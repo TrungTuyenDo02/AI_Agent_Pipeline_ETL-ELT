@@ -1,0 +1,9 @@
+version: 2
+sources:
+- name: raw
+  schema: raw
+  tables:
+  - name: campaign
+  - name: campaign_recipient
+  - name: campaign_recipient_activity
+  - name: unsubscribe

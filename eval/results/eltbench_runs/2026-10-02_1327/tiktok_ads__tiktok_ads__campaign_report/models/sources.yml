@@ -1,0 +1,8 @@
+version: 2
+sources:
+- name: raw
+  schema: raw
+  tables:
+  - name: tiktok_advertiser
+  - name: tiktok_campaign_history
+  - name: tiktok_campaign_report_hourly

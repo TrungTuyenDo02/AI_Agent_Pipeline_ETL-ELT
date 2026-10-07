@@ -1,0 +1,65 @@
+version: 2
+models:
+- name: amplitude__sessions
+  columns:
+  - name: unique_session_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: user_id, event.session_id
+  - name: user_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: user_id
+  - name: events_per_session
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: id
+  - name: session_started_at
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: event_time
+  - name: session_ended_at
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: event_time
+  - name: session_length_in_minutes
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: event_time
+  - name: session_started_at_day
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: event_time
+  - name: session_ended_at_day
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: event_time
+  - name: user_session_number
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: user_id, event.session_id, event.event_time
+  - name: is_first_user_session
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: user_id, event.session_id, event.event_time

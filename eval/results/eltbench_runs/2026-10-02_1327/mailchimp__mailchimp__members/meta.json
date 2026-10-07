@@ -1,0 +1,14 @@
+{
+ "task": "mailchimp",
+ "model": "mailchimp__members",
+ "target": "mailchimp__members",
+ "error": "",
+ "run_id": "a103fe222f",
+ "status": "approved",
+ "auto_answers": 2,
+ "fix_attempts": 0,
+ "rescue": 0,
+ "tokens": 47015,
+ "cost_usd": 0.020382,
+ "seconds": 105.4
+}

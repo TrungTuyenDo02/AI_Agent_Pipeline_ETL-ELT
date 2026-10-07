@@ -1,0 +1,53 @@
+version: 2
+models:
+- name: asana__team
+  columns:
+  - name: team_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('team')
+          field: id
+  - name: team_name
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('team')
+          field: name
+  - name: number_of_open_tasks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: id, task.completed
+  - name: number_of_assigned_open_tasks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: id, task.completed, task.assignee_id
+  - name: number_of_tasks_completed
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: id, task.completed
+  - name: number_of_active_projects
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('project')
+          field: id, project.archived
+  - name: active_projects
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('project')
+          field: name, project.archived
+  - name: number_of_archived_projects
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('project')
+          field: id, project.archived

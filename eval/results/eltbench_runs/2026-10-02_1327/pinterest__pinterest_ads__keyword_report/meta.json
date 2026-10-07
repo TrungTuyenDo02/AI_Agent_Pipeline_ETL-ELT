@@ -1,0 +1,14 @@
+{
+ "task": "pinterest",
+ "model": "pinterest_ads__keyword_report",
+ "target": "pinterest_ads__keyword_report",
+ "error": "",
+ "run_id": "4e2acc5f84",
+ "status": "approved",
+ "auto_answers": 2,
+ "fix_attempts": 0,
+ "rescue": 0,
+ "tokens": 51813,
+ "cost_usd": 0.021709,
+ "seconds": 118.7
+}

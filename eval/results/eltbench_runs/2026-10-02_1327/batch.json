@@ -1,0 +1,5 @@
+{
+ "date": "2026-10-02",
+ "provider_model": "openai/planner=gpt-5.6-luna, codegen=gpt-5.6-luna, testgen=gpt-5.6-luna, optimizer=gpt-5.6-terra",
+ "backfilled_from": "eval/results/eltbench_agent.md"
+}

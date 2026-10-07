@@ -1,0 +1,22 @@
+version: 2
+models:
+- name: tiktok_ads__ad_group_report
+  columns:
+  - name: date_day
+    data_tests:
+    - not_null
+  - name: advertiser_id
+    data_tests:
+    - not_null
+  - name: ad_group_id
+    data_tests:
+    - not_null
+  - name: ad_group_name
+    data_tests:
+    - not_null
+  - name: category
+    data_tests:
+    - not_null
+  - name: gender
+    data_tests:
+    - not_null

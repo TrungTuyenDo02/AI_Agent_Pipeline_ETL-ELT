@@ -1,0 +1,14 @@
+{
+ "task": "amplitude",
+ "model": "amplitude__user_enhanced",
+ "target": "amplitude__user_enhanced",
+ "error": "",
+ "run_id": "27b49e45a7",
+ "status": "approved",
+ "auto_answers": 2,
+ "fix_attempts": 0,
+ "rescue": 0,
+ "tokens": 25141,
+ "cost_usd": 0.010437,
+ "seconds": 64.3
+}

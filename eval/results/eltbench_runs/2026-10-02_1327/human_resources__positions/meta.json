@@ -1,0 +1,14 @@
+{
+ "task": "human_resources",
+ "model": "positions",
+ "target": "positions",
+ "error": "",
+ "run_id": "cd3954f49e",
+ "status": "approved",
+ "auto_answers": 2,
+ "fix_attempts": 0,
+ "rescue": 0,
+ "tokens": 17057,
+ "cost_usd": 0.00952,
+ "seconds": 85.6
+}

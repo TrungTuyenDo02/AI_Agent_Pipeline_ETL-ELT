@@ -1,0 +1,14 @@
+{
+ "task": "tiktok_ads",
+ "model": "tiktok_ads__advertiser_report",
+ "target": "tiktok_ads__advertiser_report",
+ "error": "",
+ "run_id": "3bea8dfc50",
+ "status": "approved",
+ "auto_answers": 3,
+ "fix_attempts": 0,
+ "rescue": 0,
+ "tokens": 81150,
+ "cost_usd": 0.049291,
+ "seconds": 147.4
+}

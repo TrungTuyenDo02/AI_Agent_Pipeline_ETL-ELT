@@ -1,0 +1,12 @@
+version: 2
+sources:
+- name: raw
+  schema: raw
+  tables:
+  - name: application
+  - name: interview
+  - name: opportunity
+  - name: posting
+  - name: posting_interview
+  - name: requisition
+  - name: requisition_posting

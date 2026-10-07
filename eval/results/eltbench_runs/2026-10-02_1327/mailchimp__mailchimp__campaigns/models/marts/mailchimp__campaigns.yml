@@ -1,0 +1,227 @@
+version: 2
+models:
+- name: mailchimp__campaigns
+  columns:
+  - name: campaign_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: id
+  - name: segment_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: segment_id
+  - name: create_timestamp
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: create_time
+  - name: send_timestamp
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: send_time
+  - name: list_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: list_id
+  - name: reply_to_email
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: reply_to
+  - name: campaign_type
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: type
+  - name: title
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: title
+  - name: archive_url
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: archive_url
+  - name: authenticate
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: authenticate
+  - name: auto_footer
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: auto_footer
+  - name: auto_tweet
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: auto_tweet
+  - name: clicktale
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: clicktale
+  - name: content_type
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: content_type
+  - name: drag_and_drop
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: drag_and_drop
+  - name: fb_comments
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: fb_comments
+  - name: from_name
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: from_name
+  - name: google_analytics
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: google_analytics
+  - name: inline_css
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: inline_css
+  - name: long_archive_url
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: long_archive_url
+  - name: status
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: status
+  - name: subject_line
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: subject_line
+  - name: template_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: template_id
+  - name: timewarp
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: timewarp
+  - name: to_name
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: to_name
+  - name: track_ecomm_360
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: track_ecomm_360
+  - name: track_goals
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: track_goals
+  - name: track_html_clicks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: track_html_clicks
+  - name: track_opens
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: track_opens
+  - name: track_text_clicks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: track_text_clicks
+  - name: use_conversation
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: use_conversation
+  - name: sends
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign_recipient')
+          field: campaign_id
+  - name: opens
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign_recipient_activity')
+          field: action, campaign_recipient_activity.campaign_id
+  - name: clicks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign_recipient_activity')
+          field: action, campaign_recipient_activity.campaign_id
+  - name: unique_opens
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign_recipient_activity')
+          field: action, campaign_recipient_activity.campaign_id, campaign_recipient_activity.member_id
+  - name: unique_clicks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign_recipient_activity')
+          field: action, campaign_recipient_activity.campaign_id, campaign_recipient_activity.member_id
+  - name: unsubscribes
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('unsubscribe')
+          field: campaign_id

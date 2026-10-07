@@ -1,0 +1,10 @@
+version: 2
+sources:
+- name: raw
+  schema: raw
+  tables:
+  - name: automation
+  - name: automation_email
+  - name: automation_recipient
+  - name: automation_recipient_activity
+  - name: unsubscribe

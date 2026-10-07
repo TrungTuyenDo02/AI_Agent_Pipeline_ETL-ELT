@@ -1,0 +1,10 @@
+version: 2
+sources:
+- name: raw
+  schema: raw
+  tables:
+  - name: RA
+  - name: course
+  - name: prof
+  - name: registration
+  - name: student

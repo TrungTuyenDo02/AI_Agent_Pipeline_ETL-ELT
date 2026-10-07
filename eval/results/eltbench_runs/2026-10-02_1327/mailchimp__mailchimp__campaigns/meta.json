@@ -1,0 +1,14 @@
+{
+ "task": "mailchimp",
+ "model": "mailchimp__campaigns",
+ "target": "mailchimp__campaigns",
+ "error": "",
+ "run_id": "10f5dcacf2",
+ "status": "approved",
+ "auto_answers": 0,
+ "fix_attempts": 0,
+ "rescue": 0,
+ "tokens": 33102,
+ "cost_usd": 0.013377,
+ "seconds": 73.9
+}

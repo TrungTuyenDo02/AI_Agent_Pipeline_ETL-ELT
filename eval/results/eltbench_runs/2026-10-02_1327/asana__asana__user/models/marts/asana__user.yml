@@ -1,0 +1,48 @@
+version: 2
+models:
+- name: asana__user
+  columns:
+  - name: user_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('user')
+          field: id
+  - name: email
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('user')
+          field: email
+  - name: user_name
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('user')
+          field: name
+  - name: number_of_open_tasks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: id, task.assignee_id, task.completed
+  - name: number_of_tasks_completed
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: id, task.completed_by_id, task.completed
+  - name: number_of_projects_owned
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('project')
+          field: id, project.owner_id, project.archived
+  - name: number_of_projects_currently_assigned_to
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('project')
+          field: id, project.archived, project_task.project_id, project_task.task_id,
+            task.id, task.assignee_id, task.completed

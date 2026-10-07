@@ -1,0 +1,117 @@
+version: 2
+models:
+- name: pinterest_ads__keyword_report
+  columns:
+  - name: date_day
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('keyword_report')
+          field: date
+  - name: advertiser_name
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('advertiser_history')
+          field: name
+  - name: advertiser_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('keyword_report')
+          field: advertiser_id
+  - name: campaign_name
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('campaign_history')
+          field: name
+  - name: campaign_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('keyword_report')
+          field: campaign_id
+  - name: ad_group_name
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('keyword_report')
+          field: ad_group_name
+  - name: ad_group_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('keyword_report')
+          field: ad_group_id
+  - name: keyword_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('keyword_report')
+          field: keyword_id
+  - name: match_type
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('keyword_history')
+          field: match_type
+  - name: parent_type
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('keyword_history')
+          field: parent_type
+  - name: keyword_value
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('keyword_history')
+          field: value
+  - name: spend
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('keyword_report')
+          field: spend_in_micro_dollar
+  - name: clicks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('keyword_report')
+          field: clickthrough_1, keyword_report.clickthrough_2
+  - name: impressions
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('keyword_report')
+          field: impression_1, keyword_report.impression_2
+  - name: total_conversions
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('keyword_report')
+          field: total_conversions
+  - name: total_conversions_quantity
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('keyword_report')
+          field: total_conversions_quantity
+  - name: total_conversions_value
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('keyword_report')
+          field: total_conversions_value_in_micro_dollar

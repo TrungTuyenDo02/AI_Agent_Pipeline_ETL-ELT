@@ -1,0 +1,84 @@
+version: 2
+models:
+- name: mailchimp__campaign_recipients
+  columns:
+  - name: campaign_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: id
+  - name: member_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('campaign_recipient')
+          field: member_id
+  - name: list_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign_recipient')
+          field: list_id
+  - name: segment_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: segment_id
+  - name: opens
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign_recipient_activity')
+          field: action
+  - name: unique_opens
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign_recipient_activity')
+          field: action
+  - name: clicks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign_recipient_activity')
+          field: action
+  - name: unique_clicks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign_recipient_activity')
+          field: action
+  - name: was_opened
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign_recipient_activity')
+          field: action
+  - name: was_clicked
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign_recipient_activity')
+          field: action
+  - name: send_timestamp
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: send_time
+  - name: first_open_timestamp
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign_recipient_activity')
+          field: timestamp
+  - name: was_unsubscribed
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('unsubscribe')
+          field: campaign_id, unsubscribe.member_id

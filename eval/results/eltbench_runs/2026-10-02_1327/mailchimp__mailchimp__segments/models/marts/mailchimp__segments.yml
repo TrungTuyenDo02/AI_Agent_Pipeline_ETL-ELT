@@ -1,0 +1,128 @@
+version: 2
+models:
+- name: mailchimp__segments
+  columns:
+  - name: segment_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('segment')
+          field: id
+  - name: list_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('segment')
+          field: list_id
+  - name: list_name
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('list')
+          field: name
+  - name: member_count
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('segment')
+          field: member_count
+  - name: segment_name
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('segment')
+          field: name
+  - name: segment_type
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('segment')
+          field: type
+  - name: updated_timestamp
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('segment')
+          field: updated_at
+  - name: created_timestamp
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('segment')
+          field: created_at
+  - name: campaign_sends
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign')
+          field: status, campaign_recipient.campaign_id, campaign_recipient.member_id,
+            segment_member.segment_id
+  - name: campaign_opens
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign_recipient_activity')
+          field: action, campaign_recipient_activity.campaign_id, campaign_recipient_activity.member_id
+  - name: campaign_clicks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign_recipient_activity')
+          field: action, campaign_recipient_activity.campaign_id, campaign_recipient_activity.member_id
+  - name: campaign_unique_opens
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign_recipient_activity')
+          field: action, campaign_recipient_activity.campaign_id, campaign_recipient_activity.member_id
+  - name: campaign_unique_clicks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('campaign_recipient_activity')
+          field: action, campaign_recipient_activity.campaign_id, campaign_recipient_activity.member_id
+  - name: campaign_unsubscribes
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('unsubscribe')
+          field: campaign_id, unsubscribe.member_id, campaign.status
+  - name: automation_sends
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation_email')
+          field: status, automation_recipient.automation_email_id, automation_recipient.member_id,
+            segment_member.segment_id
+  - name: automation_opens
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation_recipient_activity')
+          field: action, automation_recipient_activity.automation_email_id, automation_recipient_activity.member_id
+  - name: automation_clicks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation_recipient_activity')
+          field: action, automation_recipient_activity.automation_email_id, automation_recipient_activity.member_id
+  - name: automation_unique_opens
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation_recipient_activity')
+          field: action, automation_recipient_activity.automation_email_id, automation_recipient_activity.member_id
+  - name: automation_unique_clicks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation_recipient_activity')
+          field: action, automation_recipient_activity.automation_email_id, automation_recipient_activity.member_id
+  - name: automation_unsubscribes
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation_recipient_activity')
+          field: action, automation_recipient_activity.automation_email_id, automation_recipient_activity.member_id

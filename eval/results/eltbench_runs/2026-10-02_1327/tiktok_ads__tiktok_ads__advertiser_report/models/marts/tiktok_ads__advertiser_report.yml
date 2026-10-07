@@ -1,0 +1,162 @@
+version: 2
+models:
+- name: tiktok_ads__advertiser_report
+  columns:
+  - name: date_day
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: STAT_TIME_HOUR
+  - name: advertiser_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_history')
+          field: ADVERTISER_ID
+  - name: advertiser_name
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_advertiser')
+          field: NAME
+  - name: currency
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_advertiser')
+          field: CURRENCY
+  - name: clicks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: CLICKS
+  - name: impressions
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: IMPRESSIONS
+  - name: spend
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: SPEND
+  - name: reach
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: REACH
+  - name: conversion
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: CONVERSION
+  - name: likes
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: LIKES
+  - name: comments
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: COMMENTS
+  - name: shares
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: SHARES
+  - name: profile_visits
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: PROFILE_VISITS
+  - name: follows
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: FOLLOWS
+  - name: video_watched_2_s
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: VIDEO_WATCHED_2_S
+  - name: video_watched_6_s
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: VIDEO_WATCHED_6_S
+  - name: video_views_p_25
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: VIDEO_VIEWS_P_25
+  - name: video_views_p_50
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: VIDEO_VIEWS_P_50
+  - name: video_views_p_75
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: VIDEO_VIEWS_P_75
+  - name: real_time_conversion
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: REAL_TIME_CONVERSION
+  - name: total_purchase_value
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: TOTAL_PURCHASE_VALUE
+  - name: total_sales_lead_value
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: TOTAL_SALES_LEAD_VALUE
+  - name: total_conversion_value
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: TOTAL_PURCHASE_VALUE, tiktok_ad_report_hourly.TOTAL_SALES_LEAD_VALUE
+  - name: daily_cpc
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: SPEND, tiktok_ad_report_hourly.CLICKS
+  - name: daily_cpm
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: SPEND, tiktok_ad_report_hourly.IMPRESSIONS
+  - name: daily_ctr
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tiktok_ad_report_hourly')
+          field: CLICKS, tiktok_ad_report_hourly.IMPRESSIONS

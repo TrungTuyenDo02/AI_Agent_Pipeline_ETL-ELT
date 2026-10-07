@@ -1,0 +1,107 @@
+version: 2
+models:
+- name: asana__task
+  columns:
+  - name: task_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: id
+  - name: assignee_user_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: assignee_id
+  - name: is_completed
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: completed
+  - name: completed_at
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: completed_at
+  - name: created_at
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: created_at
+  - name: due_date
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: due_on
+  - name: task_modified_at
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: modified_at
+  - name: task_description
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: name
+  - name: workspace_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: workspace_id
+  - name: days_open
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: created_at, task.completed_at
+  - name: is_currently_assigned
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: assignee_id
+  - name: has_been_assigned
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: assignee_id
+  - name: number_of_comments
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('story')
+          field: target_id
+  - name: number_of_followers
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task_follower')
+          field: task_id
+  - name: tags
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task_tag')
+          field: task_id, task_tag.tag_id, tag.id, tag.name
+  - name: number_of_tags
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task_tag')
+          field: task_id, task_tag.tag_id
+  - name: is_subtask
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: parent_id

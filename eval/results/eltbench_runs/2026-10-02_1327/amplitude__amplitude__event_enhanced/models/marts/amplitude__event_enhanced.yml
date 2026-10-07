@@ -1,0 +1,185 @@
+version: 2
+models:
+- name: amplitude__event_enhanced
+  columns:
+  - name: unique_event_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: id, event.device_id, event.client_event_time
+  - name: unique_session_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: user_id, event.session_id
+  - name: amplitude_user_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: user_id, event.amplitude_id
+  - name: event_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: id
+  - name: event_type
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: event_type
+  - name: event_time
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: client_event_time, event.server_received_time, event.client_upload_time
+  - name: unique_event_type_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: project_name, event.event_type_id, event_type.id
+  - name: event_type_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: event_type_id
+  - name: event_type_name
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event_type')
+          field: name
+  - name: session_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: session_id
+  - name: session_event_number
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: session_id, event_time
+  - name: user_event_number
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: user_id, event.amplitude_id, event_time
+  - name: group_types
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: groups
+  - name: user_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: user_id
+  - name: user_creation_time
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: user_creation_time
+  - name: amplitude_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: amplitude_id
+  - name: app
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: app
+  - name: project_name
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: project_name
+  - name: client_event_time
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: client_event_time
+  - name: client_upload_time
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: client_upload_time
+  - name: server_received_time
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: server_received_time
+  - name: server_upload_time
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: server_upload_time
+  - name: country
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: country
+  - name: data
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: data
+  - name: device_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: device_id
+  - name: ip_address
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: ip_address
+  - name: totals
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event_type')
+          field: totals
+  - name: value
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event_type')
+          field: value
+  - name: events_per_session
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: session_id
+  - name: user_session_number
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: user_id, event.amplitude_id, event.session_id, event_time

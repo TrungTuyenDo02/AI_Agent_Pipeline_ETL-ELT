@@ -1,0 +1,53 @@
+version: 2
+models:
+- name: courses
+  columns:
+  - name: course_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('course')
+          field: course_id
+  - name: name
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('course')
+          field: name
+  - name: credit
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('course')
+          field: credit
+  - name: num_students_got_A
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('registration')
+          field: grade
+  - name: per_of_students_highest_satisfaction_score_for_the_course
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('registration')
+          field: sat
+  - name: number_of_students_fail
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('registration')
+          field: grade
+  - name: percentage_of_UG
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('registration')
+          field: student_id, student.student_id, student.type
+  - name: average_satisfying_degree
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('registration')
+          field: sat

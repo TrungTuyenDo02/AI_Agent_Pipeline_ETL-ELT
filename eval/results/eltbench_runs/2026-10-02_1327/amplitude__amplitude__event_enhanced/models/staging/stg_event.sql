@@ -1,0 +1,20 @@
+select
+    cast(device_id as varchar) as device_id,
+    cast(id as bigint) as id,
+    cast(server_upload_time as timestamp) as server_upload_time,
+    cast(amplitude_id as bigint) as amplitude_id,
+    cast(app as bigint) as app,
+    cast(client_event_time as timestamp) as client_event_time,
+    cast(client_upload_time as timestamp) as client_upload_time,
+    cast(country as varchar) as country,
+    cast(data as varchar) as data,
+    cast(event_type as varchar) as event_type,
+    cast(event_type_id as bigint) as event_type_id,
+    cast(groups as varchar) as groups,
+    cast(ip_address as varchar) as ip_address,
+    cast(project_name as bigint) as project_name,
+    cast(server_received_time as timestamp) as server_received_time,
+    cast(session_id as bigint) as session_id,
+    cast(user_creation_time as timestamp) as user_creation_time,
+    cast(user_id as varchar) as user_id
+from {{ source('raw', 'event') }}

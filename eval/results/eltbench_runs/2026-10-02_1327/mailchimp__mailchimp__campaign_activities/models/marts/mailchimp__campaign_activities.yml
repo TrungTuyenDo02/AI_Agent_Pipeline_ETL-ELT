@@ -1,0 +1,34 @@
+version: 2
+models:
+- name: mailchimp__campaign_activities
+  columns:
+  - name: action_type
+    data_tests:
+    - not_null
+  - name: campaign_id
+    data_tests:
+    - not_null
+  - name: member_id
+    data_tests:
+    - not_null
+  - name: list_id
+    data_tests:
+    - not_null
+  - name: activity_timestamp
+    data_tests:
+    - not_null
+  - name: ip_address
+    data_tests:
+    - not_null
+  - name: url
+    data_tests:
+    - not_null
+  - name: activity_id
+    data_tests:
+    - not_null
+  - name: email_id
+    data_tests:
+    - not_null
+  - name: send_timestamp
+    data_tests:
+    - not_null

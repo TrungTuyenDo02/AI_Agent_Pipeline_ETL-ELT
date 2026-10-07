@@ -1,0 +1,14 @@
+{
+ "task": "lever",
+ "model": "lever__posting_enhanced",
+ "target": "lever__posting_enhanced",
+ "error": "",
+ "run_id": "4a5636e364",
+ "status": "approved",
+ "auto_answers": 3,
+ "fix_attempts": 0,
+ "rescue": 0,
+ "tokens": 68521,
+ "cost_usd": 0.023902000000000003,
+ "seconds": 130.3
+}

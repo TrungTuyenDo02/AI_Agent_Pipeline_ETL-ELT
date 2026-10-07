@@ -1,0 +1,14 @@
+{
+ "task": "lever",
+ "model": "lever__requisition_enhanced",
+ "target": "lever__requisition_enhanced",
+ "error": "Đã dừng ở bước cứu hộ theo yêu cầu của người dùng.",
+ "run_id": "adbd61371d",
+ "status": "failed",
+ "auto_answers": 1,
+ "fix_attempts": 2,
+ "rescue": 0,
+ "tokens": 62831,
+ "cost_usd": 0.023927,
+ "seconds": 125.3
+}

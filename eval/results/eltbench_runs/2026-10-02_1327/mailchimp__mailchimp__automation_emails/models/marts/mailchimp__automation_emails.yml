@@ -1,0 +1,7 @@
+version: 2
+models:
+- name: mailchimp__automation_emails
+  columns:
+  - name: automation_email_id
+    data_tests:
+    - not_null

@@ -1,0 +1,14 @@
+{
+ "task": "mailchimp",
+ "model": "mailchimp__campaign_activities",
+ "target": "mailchimp__campaign_activities",
+ "error": "Đã dừng ở bước cứu hộ theo yêu cầu của người dùng.",
+ "run_id": "a0667b092d",
+ "status": "failed",
+ "auto_answers": 1,
+ "fix_attempts": 3,
+ "rescue": 0,
+ "tokens": 53985,
+ "cost_usd": 0.021782,
+ "seconds": 144.0
+}

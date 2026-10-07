@@ -1,0 +1,67 @@
+version: 2
+models:
+- name: mailchimp__automation_activities
+  columns:
+  - name: action_type
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('automation_recipient_activity')
+          field: action
+  - name: automation_email_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('automation_recipient_activity')
+          field: automation_email_id
+  - name: member_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('automation_recipient_activity')
+          field: member_id
+  - name: list_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('automation_recipient_activity')
+          field: list_id
+  - name: activity_timestamp
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('automation_recipient_activity')
+          field: timestamp
+  - name: ip_address
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('automation_recipient_activity')
+          field: ip
+  - name: url
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('automation_recipient_activity')
+          field: url
+  - name: automation_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('automation_email')
+          field: automation_id
+  - name: segment_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('automation')
+          field: segment_id

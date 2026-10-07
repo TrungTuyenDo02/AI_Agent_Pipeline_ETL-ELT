@@ -1,0 +1,124 @@
+version: 2
+models:
+- name: pinterest_ads__ad_group_report
+  columns:
+  - name: date_day
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('ad_group_report')
+          field: date
+  - name: advertiser_name
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('advertiser_history')
+          field: name
+  - name: advertiser_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('ad_group_report')
+          field: advertiser_id
+  - name: campaign_name
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('campaign_history')
+          field: name
+  - name: campaign_status
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('campaign_history')
+          field: status
+  - name: campaign_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('ad_group_report')
+          field: campaign_id
+  - name: ad_group_name
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('ad_group_report')
+          field: ad_group_name
+  - name: ad_group_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('ad_group_report')
+          field: ad_group_id
+  - name: created_at
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('ad_group_history')
+          field: created_time
+  - name: start_time
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('ad_group_history')
+          field: start_time
+  - name: end_time
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('ad_group_history')
+          field: end_time
+  - name: ad_group_status
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('ad_group_report')
+          field: ad_group_status
+  - name: spend
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('ad_group_report')
+          field: spend_in_micro_dollar
+  - name: clicks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('ad_group_report')
+          field: clickthrough_1, ad_group_report.clickthrough_2
+  - name: impressions
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('ad_group_report')
+          field: impression_1, ad_group_report.impression_2
+  - name: total_conversions
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('ad_group_report')
+          field: total_conversions
+  - name: total_conversions_quantity
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('ad_group_report')
+          field: total_conversions_quantity
+  - name: total_conversions_value
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('ad_group_report')
+          field: total_conversions_value_in_micro_dollar

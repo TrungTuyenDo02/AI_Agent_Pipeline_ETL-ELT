@@ -1,0 +1,9 @@
+version: 2
+sources:
+- name: raw
+  schema: raw
+  tables:
+  - name: advisedBy
+  - name: course
+  - name: person
+  - name: taught_by

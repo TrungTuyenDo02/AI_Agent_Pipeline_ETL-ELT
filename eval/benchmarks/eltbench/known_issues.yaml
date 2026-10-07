@@ -1,0 +1,13 @@
+# Lỗi của chính benchmark (không phải lỗi agent): đề (data_model.yaml) yêu cầu cột mà bảng đúng không có.
+# Agent làm đúng đề vẫn bị chấm "thừa cột". Báo cáo in hai số: GỒM các model này (chấm nghiêm) và KHÔNG GỒM.
+# Câu kiểm tra gốc (evaluation/*.sql) là `SELECT *` nên benchmark gốc cũng chấm nghiêm.
+# Ghi nhận bởi: author (đối chiếu data_model.yaml với dòng tiêu đề ground_truth/*.csv), 2026-10-07.
+issues:
+  - task: amplitude
+    model: amplitude__event_enhanced
+    columns_in_spec_not_in_truth: [unique_event_id, unique_event_type_id]
+    note: data_model.yaml dòng 5 và 26 mô tả hai cột này; ground_truth không có.
+  - task: cs_semester
+    model: students
+    columns_in_spec_not_in_truth: [gpa_based_on_registration]
+    note: data_model.yaml dòng 17 (GPA_based_on_registration); ground_truth không có.

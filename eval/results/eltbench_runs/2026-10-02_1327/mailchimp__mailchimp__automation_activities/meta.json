@@ -1,0 +1,14 @@
+{
+ "task": "mailchimp",
+ "model": "mailchimp__automation_activities",
+ "target": "mailchimp__automation_activities",
+ "error": "",
+ "run_id": "860e2f5150",
+ "status": "approved",
+ "auto_answers": 1,
+ "fix_attempts": 1,
+ "rescue": 0,
+ "tokens": 37124,
+ "cost_usd": 0.01379,
+ "seconds": 88.3
+}

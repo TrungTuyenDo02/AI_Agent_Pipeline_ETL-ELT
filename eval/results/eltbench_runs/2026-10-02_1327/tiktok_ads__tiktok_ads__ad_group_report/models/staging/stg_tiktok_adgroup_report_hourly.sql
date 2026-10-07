@@ -1,0 +1,22 @@
+select
+    cast("ADGROUP_ID" as bigint) as ad_group_id,
+    cast("STAT_TIME_HOUR" as timestamp) as stat_time_hour,
+    cast("VIDEO_VIEWS_P_75" as bigint) as video_views_p_75,
+    cast("IMPRESSIONS" as bigint) as impressions,
+    cast("COMMENTS" as bigint) as comments,
+    cast("CONVERSION" as bigint) as conversion,
+    cast("SHARES" as bigint) as shares,
+    cast("CLICKS" as bigint) as clicks,
+    cast("VIDEO_VIEWS_P_50" as bigint) as video_views_p_50,
+    cast("VIDEO_VIEWS_P_25" as bigint) as video_views_p_25,
+    cast("REACH" as bigint) as reach,
+    cast("PROFILE_VISITS" as bigint) as profile_visits,
+    cast("VIDEO_WATCHED_2_S" as bigint) as video_watched_2_s,
+    cast("FOLLOWS" as bigint) as follows,
+    cast("VIDEO_WATCHED_6_S" as bigint) as video_watched_6_s,
+    cast("SPEND" as double) as spend,
+    cast("LIKES" as bigint) as likes,
+    cast("REAL_TIME_CONVERSION" as bigint) as real_time_conversion,
+    cast("TOTAL_PURCHASE_VALUE" as double) as total_purchase_value,
+    cast("TOTAL_SALES_LEAD_VALUE" as double) as total_sales_lead_value
+from {{ source('raw', 'tiktok_adgroup_report_hourly') }}

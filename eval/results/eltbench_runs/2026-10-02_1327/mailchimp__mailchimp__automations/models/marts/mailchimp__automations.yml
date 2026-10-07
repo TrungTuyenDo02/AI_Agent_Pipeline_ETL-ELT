@@ -1,0 +1,95 @@
+version: 2
+models:
+- name: mailchimp__automations
+  columns:
+  - name: automation_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('automation')
+          field: id
+  - name: list_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation')
+          field: list_id
+  - name: segment_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation')
+          field: segment_id
+  - name: segment_text
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation')
+          field: segment_text
+  - name: started_timestamp
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation')
+          field: start_time
+  - name: created_timestamp
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation')
+          field: create_time
+  - name: status
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation')
+          field: status
+  - name: title
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation')
+          field: title
+  - name: trigger_settings
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation')
+          field: trigger_settings
+  - name: sends
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation_recipient')
+          field: automation_email_id
+  - name: opens
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation_recipient_activity')
+          field: action
+  - name: clicks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation_recipient_activity')
+          field: action
+  - name: unique_opens
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation_recipient_activity')
+          field: action, automation_recipient_activity.member_id
+  - name: unique_clicks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('automation_recipient_activity')
+          field: action, automation_recipient_activity.member_id
+  - name: unsubscribes
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('unsubscribe')
+          field: member_id

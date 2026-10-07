@@ -1,0 +1,14 @@
+{
+ "task": "amplitude",
+ "model": "amplitude__event_enhanced",
+ "target": "amplitude__event_enhanced",
+ "error": "Đã dừng ở bước cứu hộ theo yêu cầu của người dùng.",
+ "run_id": "1406360252",
+ "status": "failed",
+ "auto_answers": 2,
+ "fix_attempts": 3,
+ "rescue": 0,
+ "tokens": 69942,
+ "cost_usd": 0.031503,
+ "seconds": 197.0
+}

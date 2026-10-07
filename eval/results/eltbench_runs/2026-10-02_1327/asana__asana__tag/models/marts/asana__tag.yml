@@ -1,0 +1,41 @@
+version: 2
+models:
+- name: asana__tag
+  columns:
+  - name: tag_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('tag')
+          field: id
+  - name: tag_name
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tag')
+          field: name
+  - name: created_at
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('tag')
+          field: created_at
+  - name: number_of_open_tasks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: completed
+  - name: number_of_assigned_open_tasks
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: completed, task.assignee_id
+  - name: number_of_tasks_completed
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('task')
+          field: completed

@@ -1,0 +1,9 @@
+version: 2
+sources:
+- name: raw
+  schema: raw
+  tables:
+  - name: ad_group_history
+  - name: ad_group_report
+  - name: advertiser_history
+  - name: campaign_history

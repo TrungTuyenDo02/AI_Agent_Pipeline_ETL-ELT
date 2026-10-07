@@ -1,0 +1,125 @@
+version: 2
+models:
+- name: lever__posting_enhanced
+  columns:
+  - name: job_commitment
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('posting')
+          field: categories_commitment
+  - name: job_location
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('posting')
+          field: categories_location
+  - name: job_team
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('posting')
+          field: categories_team
+  - name: content_description
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('posting')
+          field: content_description
+  - name: created_at
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('posting')
+          field: created_at
+  - name: creator_user_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('posting')
+          field: creator_id
+  - name: posting_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('posting')
+          field: id
+  - name: owner_user_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('posting')
+          field: owner_id
+  - name: current_state
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('posting')
+          field: state
+  - name: job_title
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('posting')
+          field: text
+  - name: updated_at
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('posting')
+          field: updated_at
+  - name: count_referred_applications
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('application')
+          field: type
+  - name: count_posting_applications
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('application')
+          field: type
+  - name: count_manual_user_applications
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('application')
+          field: type
+  - name: count_opportunities
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('application')
+          field: opportunity_id
+  - name: count_open_opportunities
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('opportunity')
+          field: archived_at
+  - name: count_interviews
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('posting_interview')
+          field: interview_id
+  - name: count_interviewees
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('interview')
+          field: opportunity_id
+  - name: count_requisitions
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('requisition_posting')
+          field: requisition_id
+  - name: has_requisition
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('requisition_posting')
+          field: requisition_id

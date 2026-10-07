@@ -1,0 +1,10 @@
+version: 2
+models:
+- name: mailchimp__members
+  columns:
+  - name: member_id
+    data_tests:
+    - not_null
+  - name: list_id
+    data_tests:
+    - not_null

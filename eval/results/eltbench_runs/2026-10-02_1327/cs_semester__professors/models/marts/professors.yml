@@ -1,0 +1,7 @@
+version: 2
+models:
+- name: professors
+  columns:
+  - name: prof_id
+    data_tests:
+    - not_null

@@ -1,0 +1,14 @@
+{
+ "task": "asana",
+ "model": "asana__team",
+ "target": "asana__team",
+ "error": "",
+ "run_id": "e869faae19",
+ "status": "approved",
+ "auto_answers": 2,
+ "fix_attempts": 0,
+ "rescue": 0,
+ "tokens": 36087,
+ "cost_usd": 0.041224000000000004,
+ "seconds": 100.9
+}

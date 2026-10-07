@@ -1,0 +1,53 @@
+version: 2
+models:
+- name: positions
+  columns:
+  - name: position_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('position')
+          field: positionID, employee.positionID
+  - name: position_title
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('position')
+          field: positiontitle
+  - name: education_required
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('position')
+          field: educationrequired
+  - name: num_poor_performing_employees
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('employee')
+          field: performance
+  - name: num_female_employees
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('employee')
+          field: gender
+  - name: per_salary_over_20000
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('employee')
+          field: salary
+  - name: avg_salary
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('employee')
+          field: salary
+  - name: has_maximum_salary_no_more_than_70000
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('position')
+          field: maxsalary

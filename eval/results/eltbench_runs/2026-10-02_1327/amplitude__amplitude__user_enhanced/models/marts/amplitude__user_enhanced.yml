@@ -1,0 +1,47 @@
+version: 2
+models:
+- name: amplitude__user_enhanced
+  columns:
+  - name: amplitude_user_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: user_id, event.amplitude_id
+  - name: user_created_at
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: event_time
+  - name: first_session_at
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: event_time
+  - name: last_session_at
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: event_time
+  - name: total_events_per_user
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: id
+  - name: total_sessions_per_user
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: session_id
+  - name: average_session_length_in_minutes
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('event')
+          field: session_id, event.event_time

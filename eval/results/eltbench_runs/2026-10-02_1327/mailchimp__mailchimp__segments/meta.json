@@ -1,0 +1,14 @@
+{
+ "task": "mailchimp",
+ "model": "mailchimp__segments",
+ "target": "mailchimp__segments",
+ "error": "",
+ "run_id": "0e2f3b45bc",
+ "status": "approved",
+ "auto_answers": 3,
+ "fix_attempts": 0,
+ "rescue": 0,
+ "tokens": 89254,
+ "cost_usd": 0.08781900000000001,
+ "seconds": 222.3
+}

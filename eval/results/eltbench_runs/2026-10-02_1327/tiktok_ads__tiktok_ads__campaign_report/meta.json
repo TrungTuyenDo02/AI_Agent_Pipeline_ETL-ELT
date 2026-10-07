@@ -1,0 +1,14 @@
+{
+ "task": "tiktok_ads",
+ "model": "tiktok_ads__campaign_report",
+ "target": "tiktok_ads__campaign_report",
+ "error": "Đã dừng ở bước cứu hộ theo yêu cầu của người dùng.",
+ "run_id": "5d089955ef",
+ "status": "failed",
+ "auto_answers": 3,
+ "fix_attempts": 3,
+ "rescue": 0,
+ "tokens": 90044,
+ "cost_usd": 0.035951000000000004,
+ "seconds": 204.4
+}

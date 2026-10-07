@@ -1,0 +1,29 @@
+version: 2
+models:
+- name: lever__requisition_enhanced
+  columns:
+  - name: creator_user_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('user')
+          field: id
+  - name: hiring_manager_user_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('user')
+          field: id
+  - name: requisition_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('requisition')
+          field: id
+  - name: owner_user_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('user')
+          field: id

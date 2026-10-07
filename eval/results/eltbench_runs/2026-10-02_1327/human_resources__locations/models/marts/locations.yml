@@ -1,0 +1,7 @@
+version: 2
+models:
+- name: locations
+  columns:
+  - name: location_id
+    data_tests:
+    - not_null

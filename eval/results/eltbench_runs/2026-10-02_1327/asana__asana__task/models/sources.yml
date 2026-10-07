@@ -1,0 +1,10 @@
+version: 2
+sources:
+- name: raw
+  schema: raw
+  tables:
+  - name: story
+  - name: tag
+  - name: task
+  - name: task_follower
+  - name: task_tag
