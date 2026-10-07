@@ -68,4 +68,25 @@ Việc treo: chấm agent trên ELT-Bench (cần khóa LLM), chạy Docker (ổ 
 
 ---
 
+## 2026-10-07
+
+| Member | Task | Status | Output | Time |
+|--------|------|--------|--------|------|
+| TrungTuyenDo02 | B1 — sửa bộ chấm ELT-Bench (`gt_compare.py`, 0 token): thời gian đưa về một dạng ở cả hai bên (UTC, mili giây, giờ 2 chữ số, múi `+0000`/`+07`); ô VARIANT xuất JSON (`"regular"`, chữ `null`); số nguyên so bằng (sai số tương đối làm lọt ID±1 — kiểm ngược bắt được); báo cột lệch + 3 dòng mẫu; `known_issues.yaml` (2 model đề lệch đáp án) → in hai số gồm/không gồm; cột `gt_rows`; ghi rõ J1 chọn `options[0]`; `--mode selfcheck` | ✅ Done | Tự kiểm **34/34** (trước 28/34); kiểm ngược (đổi 1 ô) **34/34** (trước 28/34); reference 3/3; golden reference 11/11 (không đổi). `make ci`: 560 passed, 2 xfailed, độ phủ 92,17% | ~2 giờ |
+| TrungTuyenDo02 | B2 — lưu đầu ra mỗi lần chạy (`eval/results/eltbench_runs/<đợt>/<task>__<model>/`: `output.parquet`, `models/`, `meta.json`), điểm luôn tính từ file đã lưu; `--regrade <đợt>`; `backfill_runs.py` lấy lại đợt 2026-10-02 từ workspace cũ (ghép theo nguyên văn yêu cầu + khung giờ, trạng thái khớp báo cáo cũ) | ✅ Done | Chấm lại đợt 2026-10-02 (openai gpt-5.6-luna/terra, n=1 lần chạy, 0 token): **7/34 → 11/34** (gồm lỗi benchmark); không gồm 2 model lỗi benchmark: 11/32; 17/34 bảng đúng ≤ 5 dòng (khớp 8/17). Thêm 4 ca đúng do lỗi VARIANT: `mailchimp__campaigns/automations/automation_emails`, `twilio__account_overview`. 5 bảng lỗi giờ lẻ giây vẫn sai vì cột khác (agent sai thật hoặc đề mơ hồ — B3 phân loại) | ~1 giờ |
+
+---
+
+## 2026-10-08
+
+| Member | Task | Status | Output | Time |
+|--------|------|--------|--------|------|
+| TrungTuyenDo02 | Giao diện theo mẫu `ai-agent-studio` (chỉ lấy bố cục/phong cách, không lấy số giả của mẫu; giữ Next.js + `tokens.css`, không thêm Tailwind/lucide): khung kính trên nền gradient, thanh điều hướng dạng viên thuốc (Agent Studio / Lần chạy / Dữ liệu nguồn / Sổ lỗi), chuông = lần chạy đang chờ bạn (dữ liệu thật), trang `/runs` riêng; màn lần chạy 2 cột: bước 1 yêu cầu · 2 J1 · 3 kế hoạch J1b · 4 theo dõi trực tiếp | chỉ số đo được · sơ đồ nguồn → dbt → bảng đích · console | ✅ Done | Chụp màn hình (Edge headless, mock chậm 12 s/lượt): sáng, tối, 500px. `npm run lint/typecheck/format:check/build` đạt; tương phản **27 cặp × 2 chế độ = 54/54 ≥ 4,5:1** (thêm 10 cặp mới) | — |
+| TrungTuyenDo02 | Chờ LLM lâu: backend phát sự kiện **node bắt đầu** thật (`stream_mode=["updates","tasks"]`), `RunDetail.current` = node đang chạy + giây đã chạy + **trung vị thời gian đo thật** các lần trước (`data/node_timings.json`, cần ≥ 3 mẫu, không thì không ước lượng) + câu "đang làm" ghép từ state thật (`src/agents/activity.py`, ghi rõ là mô tả, không phải log đo). Web: thẻ đang chạy có đồng hồ, thanh ước lượng (vô định khi chưa đủ mẫu), câu mô tả gõ dần, khung xương kế hoạch, tiêu đề tab + thông báo trình duyệt khi cần bạn | ✅ Done | `tests/test_agents/test_live_progress.py` 10 test. `make ci`: **570 passed, 2 xfailed, độ phủ 92,28%**. Chưa đo với LLM thật (thời gian thường lệ sẽ có sau ≥ 3 lần chạy mỗi node) | — |
+
+| TrungTuyenDo02 | Giao diện phong cách "kính trên trời" theo ảnh mẫu người dùng gửi: nền bầu trời → chân trời ấm (CSS, không dùng ảnh), thanh biểu tượng dọc (thành thanh dưới trên điện thoại), thanh kính nổi (LLM, model, chế độ duyệt, chuông, người dùng, "Yêu cầu mới"), mọi thẻ thành kính mờ bo 28px; trang chủ hero chữ lớn nét mảnh, thẻ kính Bước 1 + số lần chạy/đã duyệt THẬT, thẻ "Lần chạy gần nhất" số đo thật. Sửa trùng tên lớp `.stage` với đường ống E/V/J | ✅ Done | Chụp màn hình sáng/tối trên dữ liệu thật. lint, typecheck, format, build đạt; tương phản 34 cặp × 2 chế độ = 68/68 ≥ 4,5:1 | — |
+| TrungTuyenDo02 | Giao diện theo mẫu dashboard (ảnh 2): thanh trên (logo · tab có icon · tìm lần chạy · chuông · avatar có menu người dùng/giao diện), thanh thao tác nhanh dọc, trang chủ: hero ngắn + nút "Bắt đầu ngay", thẻ Tổng quan (lần chạy, đã duyệt, chờ bạn, tỉ lệ duyệt/kết thúc — số thật), Lần chạy gần đây (icon, nhãn trạng thái có biểu tượng, thời gian tương đối), Yêu cầu mới, Hoạt động mới nhất. Bớt chữ ở màn lần chạy (tiêu đề bước, mô tả, console, ước lượng → tooltip). Mượt hơn: bỏ `backdrop-filter` trên thẻ lớn, hỏi API chỉ vẽ lại khi dữ liệu đổi, một nguồn `/runs` dùng chung (trước 3 nơi tự hỏi) | ✅ Done | Chụp màn hình trên dữ liệu thật. lint, typecheck, format, build đạt; tương phản 68/68 | — |
+| TrungTuyenDo02 | Giảm token đầu ra LLM: prompt Planner v6 (quy tắc 13 giới hạn kế hoạch/giả định). Đo trước bằng dữ liệu golden v5: plan + assumptions = 59% phần chữ Planner sinh. Chạy lại golden 12 ca bằng LLM thật | ✅ Done | `eval/results/planner_v6_output.md`: đúng **12/12 = 12/12**; token đầu ra/lượt Planner **1.155 → 825 (−29%)**; plan 338 → 210, assumptions 174 → 86 token. Mỗi bản 1 lần chạy: chưa đủ kết luận về tổng chi phí (0,0843 → 0,0540 USD, có phần do optimizer). Chi phí đo ~0,054 USD. `make ci`: 570 passed, 2 xfailed, độ phủ 92,28% | — |
+---
+
 <!-- Format: copy block trên cho mỗi ngày làm việc -->

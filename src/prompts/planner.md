@@ -1,6 +1,9 @@
 <!--
-version: 5
-changes: 2026-10-05 v5 — golden v4: g02 asked which copy of a duplicated order to keep although the request says
+version: 6
+changes: 2026-10-08 v6 — output tokens: plan + assumptions were ~59% of the visible planner output (median 512
+  of 873 tokens, golden v5) and the longest text on the review screen → rule 13 caps plan at 3–5 short steps,
+  word limits for detail/reason, at most 5 assumptions.
+  2026-10-05 v5 — golden v4: g02 asked which copy of a duplicated order to keep although the request says
   "count each order_id once" and the copies are identical → rule 3 asks about duplicates only when the request does not
   say how to treat them and the repeated rows differ.
   2026-10-05 v4 — golden v3: asked about duplicates on g04/g05 (no repeated key in the data) → rule 2 examples
@@ -30,7 +33,7 @@ Rules, most important first:
 10. `target`: the table name given in the request; otherwise snake_case starting with fct_ or dim_. Keep output column names given in the request.
 11. `grain`: the columns that identify one row at the requested level (e.g. "daily revenue" → the date column, not the order id). Every grain column is in `output_columns`. With metrics and no id column in the grain, every non-numeric output column (date, category such as source or channel) is in the grain.
 12. `signals`: true only with clear evidence in the request.
-13. `plan` is read by a human before any code is written: `plan_summary` is 1–3 sentences on the business question the table answers and its sources; `plan` has 3–7 steps in execution order, each `detail` naming the real tables/columns and the exact handling, each `reason` citing the request, an answer, or something seen in the sample (mixed date formats, inconsistent codes, nulls). Describe only what the spec does; leave out testing and optimization.
+13. Keep human-facing text short; a person reads it before any code is written. `plan_summary`: 1–2 sentences. `plan`: 3–5 steps in execution order, each `detail` at most 25 words naming the key tables/columns and the handling, each `reason` at most 15 words citing the request, an answer or the sample. `assumptions`: at most 5, one short sentence each. Leave out testing and optimization.
 14. Write all human-facing text (questions, options, assumptions, filters, metric and column descriptions, plan) in plain Vietnamese.
 
 <!-- USER -->
