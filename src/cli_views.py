@@ -9,7 +9,7 @@ from rich.prompt import IntPrompt, Prompt
 from rich.syntax import Syntax
 from rich.table import Table
 
-from src.agents.progress import StepEvent
+from src.agents.progress import NodeStart, StepEvent
 from src.agents.tools.sql_tools import DIALECT
 from src.models.evidence import ErrorEntry
 from src.models.schemas import RunRecord
@@ -39,8 +39,10 @@ def simulated_banner() -> None:
     )
 
 
-def print_event(event: StepEvent) -> None:
-    """Một dòng tiến trình: ✓/✗, tên bước, thời gian, token, chi tiết."""
+def print_event(event: StepEvent | NodeStart) -> None:
+    """Một dòng tiến trình: ✓/✗, tên bước, thời gian, token, chi tiết. Sự kiện "bắt đầu node" không in."""
+    if isinstance(event, NodeStart):
+        return
     mark = "[green]✓[/]" if event.ok else "[red]✗[/]"
     tokens = f"{event.tokens} tok" if event.tokens else ""
     console.print(f" {mark} {event.label:<20} [dim]{event.seconds:>6.2f}s {tokens:>9}[/]  {event.detail}")

@@ -42,6 +42,8 @@ async def test_full_flow_single_de_role(client: AsyncClient, seeded_sources: Pat
     run_id = await _create_and_answer(client, "an")
     detail = (await client.get(f"{API}/runs/{run_id}")).json()
     assert detail["record"]["status"] == "waiting_review" and detail["busy"] is False
+    assert detail["current"] is None  # rảnh: không có node nào đang chạy
+    assert all("finished_at" in e for e in detail["events"])
     assert detail["spec"]["target"] == "fct_daily_revenue" and detail["evidence"]["measured"]
     assert detail["spec"]["plan"] and detail["spec"]["plan_summary"]  # kế hoạch đã duyệt vẫn xem lại được
     assert any(e["node"] == "sandbox_run" and e["ok"] for e in detail["events"])

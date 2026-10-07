@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from src.agents import runner
 from src.agents.nodes.clarify import valid_answers
 from src.agents.runner import ResumeRequest, RunStateError
-from src.agents.stages import pipeline_stages
+from src.agents.stages import pipeline_stages, stage_of
 from src.api.deps import CurrentUser, current_user, run_or_404
 from src.api.requests import Accepted, AnswerBody, CreateRunBody, PlanBody, RescueBody, RunDetail, RunFiles
 from src.models.schemas import RunRecord
@@ -51,20 +51,30 @@ def get_run(run_id: str) -> RunDetail:
     busy = jobs.busy(run_id)
     pending = None if busy else runner.pending_interrupt(run_id)
     events = jobs.events(run_id)
+    current = jobs.current(run_id) if busy else None
+    if current:
+        current["stage"] = stage_of(current["node"])
     return RunDetail(
         record=record,
         busy=busy,
         pending=pending,
         events=events,
-        spec={k: spec.get(k) for k in SPEC_FIELDS},
+        spec={
+            **{k: spec.get(k) for k in SPEC_FIELDS},
+            "sources": [{"name": s.get("name"), "kind": s.get("kind")} for s in spec.get("sources", [])],  # bỏ path
+        },
         answered=values.get("answered", []),
         evidence=values.get("evidence", {}),
         optimization=values.get("optimization", {}),
         sandbox=values.get("sandbox", {}),
         code_notes=values.get("code_notes", []),
         test_notes=values.get("test_notes", []),
-        stages=[s.model_dump() for s in pipeline_stages(values, events, pending, str(record.status), busy)],
+        stages=[
+            s.model_dump()
+            for s in pipeline_stages(values, events, pending, str(record.status), busy, (current or {}).get("node"))
+        ],
         usage=usage_breakdown(values.get("llm_usage", [])),
+        current=current,
     )
 
 

@@ -1,6 +1,10 @@
 """Mô tả ngắn gọn từng bước (✓/✗ + chi tiết) để in tiến trình cho người không rành kỹ thuật."""
 
-from pydantic import BaseModel
+import time
+
+from pydantic import BaseModel, Field
+
+from src.agents.activity import activity_for
 
 NODE_LABELS = {
     "planner": "E1 Lập kế hoạch",
@@ -22,6 +26,20 @@ NODE_LABELS = {
     "finalize": "Hoàn tất",
     "fail": "Dừng",
 }
+
+
+class NodeStart(BaseModel):
+    """Một node vừa BẮT ĐẦU chạy (từ stream_mode="tasks" của LangGraph): để web hiện "đang làm gì, bao lâu rồi"."""
+
+    node: str
+    label: str
+    started_at: float = Field(default_factory=time.time)  # epoch giây (máy chủ)
+    activity: list[str] = []  # mô tả việc đang làm, ghép từ state thật (src/agents/activity.py) — không phải log đo
+
+
+def node_started(node: str, state: dict) -> NodeStart:
+    """Sự kiện bắt đầu node, kèm mô tả việc đang làm từ state đầu vào của node."""
+    return NodeStart(node=node, label=NODE_LABELS.get(node, node), activity=activity_for(node, state))
 
 
 class StepEvent(BaseModel):

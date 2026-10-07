@@ -1,7 +1,8 @@
 """Trạng thái từng nút E/V/J của một lần chạy cho "đường ống tiến trình" trên web (U9, mục 7.3-3).
 
-Chỉ suy ra từ dữ liệu thật: nhật ký bước (`events`, chỉ có trong phiên máy chủ đang chạy), state đã lưu ở checkpoint,
-câu hỏi đang chờ người và trạng thái lần chạy. Không đoán: thiếu dữ liệu thì nút ở trạng thái "chờ".
+Chỉ suy ra từ dữ liệu thật: nhật ký bước (`events`, chỉ có trong phiên máy chủ đang chạy), node đang chạy (sự kiện
+"bắt đầu node" của LangGraph), state đã lưu ở checkpoint, câu hỏi đang chờ người và trạng thái lần chạy.
+Không đoán: thiếu dữ liệu thì nút ở trạng thái "chờ".
 """
 
 from pydantic import BaseModel
@@ -69,12 +70,18 @@ def _from_events(nodes: tuple[str, ...], events: list[dict]) -> tuple[str, str] 
     return ("passed" if last.get("ok") else "failed"), str(last.get("detail", ""))
 
 
-def _running_stage(events: list[dict], ids: list[str]) -> str | None:
-    """Nút kế tiếp sau bước vừa xong; V1/V2 lỗi thì về E3 (vòng sửa)."""
+def stage_of(node: str) -> str | None:
+    """Nút trên đường ống chứa node graph `node`."""
+    return next((s[0] for s in STAGES if node in s[4]), None)
+
+
+def _running_stage(events: list[dict], ids: list[str], current_node: str | None = None) -> str | None:
+    """Nút đang chạy: theo node đang chạy thật nếu biết; nếu không, nút kế tiếp sau bước vừa xong (V1/V2 lỗi → E3)."""
+    if current_node and (found := stage_of(current_node)):
+        return found
     if not events:
         return ids[0]
-    node = events[-1].get("node")
-    stage = next((s[0] for s in STAGES if node in s[4]), None)
+    stage = stage_of(str(events[-1].get("node")))
     if stage is None:
         return None
     if stage in FIX_LOOP and not events[-1].get("ok"):
@@ -85,11 +92,13 @@ def _running_stage(events: list[dict], ids: list[str]) -> str | None:
     return next((s for s in later if s not in ("clarify", "rescue")), None)
 
 
-def pipeline_stages(values: dict, events: list[dict], pending: dict | None, status: str, busy: bool) -> list[Stage]:
+def pipeline_stages(
+    values: dict, events: list[dict], pending: dict | None, status: str, busy: bool, current_node: str | None = None
+) -> list[Stage]:
     """Danh sách nút theo đúng thứ tự luồng thật, mỗi nút có trạng thái từ dữ liệu thật."""
     human = PENDING_STAGE.get((pending or {}).get("kind", "")) if not busy else None
     ids = [s[0] for s in STAGES]
-    running = _running_stage(events, ids) if busy else None
+    running = _running_stage(events, ids, current_node) if busy else None
     stages: list[Stage] = []
     for stage_id, code, label, kind, nodes, optional in STAGES:
         found = _from_events(nodes, events) or _from_values(stage_id, values, status)

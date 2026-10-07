@@ -3,37 +3,85 @@
 Các lần chạy được xếp hàng **lần lượt trên một luồng**: checkpointer SQLite dùng chung một kết nối nên không chạy
 song song (đủ cho bản demo một DE). Tiến trình từng bước giữ trong bộ nhớ (mất khi khởi động lại; trạng thái và
 kết quả vẫn nằm trong store/checkpointer).
+
+Ngoài các bước đã xong, hàng đợi giữ **node đang chạy** (lúc bắt đầu + mô tả việc đang làm) và **thời gian đo thật**
+của mỗi node qua các lần chạy (file JSON cạnh store) để web ước lượng "thường mất khoảng bao lâu". Chưa đủ mẫu thì
+không ước lượng.
 """
 
+import json
 import logging
+import statistics
 import threading
+import time
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
 from functools import lru_cache
+from pathlib import Path
 
-from src.agents.progress import StepEvent
+from src.agents.progress import NodeStart, StepEvent
 from src.agents.runner import PermissionDeniedError, RunOutcome, RunStateError
+from src.config import get_settings
 from src.models.schemas import RunStatus
 from src.services.store import get_store
 
 logger = logging.getLogger(__name__)
-EventSink = Callable[[StepEvent], None]
+EventSink = Callable[[StepEvent | NodeStart], None]
 Job = Callable[[EventSink], RunOutcome]
+TIMING_KEEP = 20  # số lần đo gần nhất giữ cho mỗi node
+TIMING_MIN_SAMPLES = 3  # ít hơn thì không ước lượng (trả None)
+
+
+class NodeTimings:
+    """Thời gian chạy đo thật của từng node (giây), lưu ra file để còn sau khi khởi động lại."""
+
+    def __init__(self, path: Path | None) -> None:
+        self._path = path
+        self._samples: dict[str, list[float]] = {}
+        if path and path.exists():
+            try:
+                loaded = json.loads(path.read_text(encoding="utf-8"))
+                self._samples = {k: [float(x) for x in v][-TIMING_KEEP:] for k, v in loaded.items()}
+            except (ValueError, TypeError, AttributeError):
+                logger.warning("node timings unreadable, starting empty", extra={"path": str(path)})
+
+    def add(self, node: str, seconds: float) -> None:
+        """Thêm một lần đo và ghi file (lỗi ghi file không làm hỏng lần chạy)."""
+        self._samples[node] = [*self._samples.get(node, []), round(seconds, 2)][-TIMING_KEEP:]
+        if self._path:
+            try:
+                self._path.parent.mkdir(parents=True, exist_ok=True)
+                self._path.write_text(json.dumps(self._samples), encoding="utf-8")
+            except OSError:
+                logger.warning("cannot save node timings", extra={"path": str(self._path)})
+
+    def typical(self, node: str) -> tuple[float | None, int]:
+        """(trung vị giây, số mẫu); trung vị là None khi chưa đủ mẫu."""
+        samples = self._samples.get(node, [])
+        return (round(statistics.median(samples), 1) if len(samples) >= TIMING_MIN_SAMPLES else None), len(samples)
 
 
 class JobQueue:
     """Một luồng nền chạy graph; lưu sự kiện từng bước theo run_id."""
 
-    def __init__(self) -> None:
+    def __init__(self, timings_path: Path | None = None) -> None:
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="p113-run")
         self._lock = threading.Lock()
         self._events: dict[str, list[dict]] = {}
         self._futures: dict[str, Future] = {}
+        self._current: dict[str, NodeStart] = {}
+        self._timings = NodeTimings(timings_path)
 
     def _record(self, run_id: str) -> EventSink:
-        def sink(event: StepEvent) -> None:
+        def sink(event: StepEvent | NodeStart) -> None:
             with self._lock:
-                self._events.setdefault(run_id, []).append(event.model_dump())
+                if isinstance(event, NodeStart):
+                    self._current[run_id] = event
+                    return
+                started = self._current.pop(run_id, None)
+                if started and started.node == event.node:  # đo đúng từ lúc node bắt đầu tới lúc xong
+                    self._timings.add(event.node, time.time() - started.started_at)
+                self._events.setdefault(run_id, []).append({**event.model_dump(), "finished_at": time.time()})
 
         return sink
 
@@ -47,6 +95,9 @@ class JobQueue:
             record = get_store().get_run(run_id)
             summary = {**(record.summary if record else {}), "error": "Có lỗi nội bộ khi chạy nền. Xem log."}
             get_store().update_run(run_id, RunStatus.FAILED, summary)
+        finally:
+            with self._lock:
+                self._current.pop(run_id, None)  # dừng ở J1/J2 hoặc lỗi: không còn node nào đang chạy
 
     def submit(self, run_id: str, job: Job) -> None:
         """Đánh dấu đang chạy rồi đưa vào hàng đợi."""
@@ -58,6 +109,20 @@ class JobQueue:
         """Các bước đã chạy của lần chạy (theo thứ tự)."""
         with self._lock:
             return list(self._events.get(run_id, []))
+
+    def current(self, run_id: str) -> dict | None:
+        """Node đang chạy: tên, lúc bắt đầu, đã chạy bao lâu, thường mất bao lâu (đo thật), việc đang làm."""
+        with self._lock:
+            started = self._current.get(run_id)
+            if started is None:
+                return None
+            typical, samples = self._timings.typical(started.node)
+        return {
+            **started.model_dump(),
+            "elapsed_s": round(time.time() - started.started_at, 1),
+            "typical_s": typical,
+            "samples": samples,
+        }
 
     def busy(self, run_id: str) -> bool:
         """Lần chạy đang chạy hoặc đang xếp hàng."""
@@ -75,5 +140,5 @@ class JobQueue:
 
 @lru_cache
 def get_jobs() -> JobQueue:
-    """Hàng đợi dùng chung của tiến trình API."""
-    return JobQueue()
+    """Hàng đợi dùng chung của tiến trình API (thời gian từng node lưu cạnh store)."""
+    return JobQueue(get_settings().store_path.parent / "node_timings.json")

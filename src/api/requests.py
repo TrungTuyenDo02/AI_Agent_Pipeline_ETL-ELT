@@ -70,6 +70,9 @@ class RunDetail(BaseModel):
     test_notes: list[str]
     stages: list[dict] = []  # đường ống E/V/J: trạng thái từng nút từ dữ liệu thật (src/agents/stages.py)
     usage: dict = {}  # token/chi phí/thời gian LLM theo node + tỉ lệ trúng cache (services/cost.usage_breakdown)
+    # node đang chạy: {node, label, stage, started_at, elapsed_s, typical_s, samples, activity}; None khi rảnh.
+    # typical_s là trung vị thời gian ĐO THẬT các lần trước (None khi chưa đủ mẫu); activity là mô tả, không phải log đo.
+    current: dict | None = None
 
 
 class RunFiles(BaseModel):

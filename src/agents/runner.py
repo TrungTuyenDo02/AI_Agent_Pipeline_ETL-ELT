@@ -15,7 +15,7 @@ from langgraph.types import Command
 from pydantic import BaseModel
 
 from src.agents.graph import build_graph
-from src.agents.progress import StepEvent, describe
+from src.agents.progress import NodeStart, StepEvent, describe, node_started
 from src.config import get_settings
 from src.models.evidence import ReviewDecision
 from src.models.schemas import RunStatus
@@ -23,7 +23,7 @@ from src.services.llm import LLMCallError, LLMConfigError
 from src.services.store import get_store
 
 logger = logging.getLogger(__name__)
-EventCallback = Callable[[StepEvent], None]
+EventCallback = Callable[[StepEvent | NodeStart], None]  # NodeStart: node bắt đầu; StepEvent: node xong
 INTERRUPT_STATUS = {
     "clarify": RunStatus.WAITING_CLARIFICATION,
     "plan": RunStatus.WAITING_PLAN,
@@ -78,7 +78,11 @@ def _stream(run_id: str, payload: object, on_event: EventCallback | None) -> str
     """Chạy graph tới điểm dừng kế tiếp; trả về thông báo lỗi (rỗng nếu không lỗi)."""
     last = time.perf_counter()
     try:
-        for chunk in get_graph().stream(payload, _config(run_id), stream_mode="updates"):
+        for mode, chunk in get_graph().stream(payload, _config(run_id), stream_mode=["updates", "tasks"]):
+            if mode == "tasks":  # "tasks" có `input` khi node bắt đầu, có `result` khi node xong (bỏ qua)
+                if on_event and "input" in chunk and isinstance(chunk["input"], dict):
+                    on_event(node_started(chunk["name"], chunk["input"]))
+                continue
             for node, update in chunk.items():
                 if node == "__interrupt__":
                     continue
