@@ -2,73 +2,121 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode, SVGProps } from "react";
 
 import { API_URL } from "@/lib/api";
 
 import { useApp } from "./AppContext";
-import { Topbar } from "./Topbar";
+import { BookIcon, DatabaseIcon, DocIcon, HomeIcon, ListIcon, PlusIcon, SparkIcon } from "./icons";
+import { NotificationBell } from "./NotificationBell";
+import { RunSearch } from "./RunSearch";
+import { AvatarMenu, ModeBadges, ThemeButton } from "./Topbar";
 
-const NAV = [
-  { href: "/", label: "Lần chạy", hint: "Tạo yêu cầu, theo dõi, duyệt" },
-  { href: "/catalog", label: "Dữ liệu nguồn", hint: "Bảng, schema, khóa nối" },
-  { href: "/errors", label: "Sổ lỗi", hint: "Duyệt bài học cho agent" },
+// Bố cục theo mẫu: thanh trên (logo · tab · tìm · chuông · avatar), thanh thao tác nhanh dọc, thẻ kính trên bầu trời.
+type IconType = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
+const NAV: { href: string; label: string; icon: IconType }[] = [
+  { href: "/", label: "Trang chủ", icon: HomeIcon },
+  { href: "/runs", label: "Lần chạy", icon: ListIcon },
+  { href: "/catalog", label: "Dữ liệu nguồn", icon: DatabaseIcon },
+  { href: "/errors", label: "Sổ lỗi", icon: BookIcon },
 ];
 
 function isActive(pathname: string, href: string): boolean {
-  if (href === "/") return pathname === "/" || pathname.startsWith("/runs");
-  return pathname.startsWith(href);
+  return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
-function Sidebar() {
+function TopBar() {
   const pathname = usePathname();
-  const { status } = useApp();
   return (
-    <aside className="sidebar">
+    <header className="topbar">
       <Link href="/" className="brand">
-        <span className="brand-mark" aria-hidden>
-          P
-        </span>
-        <span>
-          <strong>P-113</strong>
-          <small>Pipeline Agent</small>
-        </span>
+        <SparkIcon size={22} className="brand-spark" />
+        <span>P-113 Agent Studio</span>
       </Link>
-      <nav aria-label="Điều hướng chính">
-        {NAV.map((item) => (
+      <nav className="nav-pills" aria-label="Điều hướng chính">
+        {NAV.map(({ href, label, icon: Glyph }) => (
           <Link
-            key={item.href}
-            href={item.href}
-            className={isActive(pathname, item.href) ? "nav-item active" : "nav-item"}
-            aria-current={isActive(pathname, item.href) ? "page" : undefined}
+            key={href}
+            href={href}
+            className={isActive(pathname, href) ? "nav-pill active" : "nav-pill"}
+            aria-current={isActive(pathname, href) ? "page" : undefined}
           >
-            <span>{item.label}</span>
-            <small>{item.hint}</small>
+            <Glyph size={16} />
+            <span>{label}</span>
           </Link>
         ))}
       </nav>
-      <div className="sidebar-foot">
-        <small>{status?.agent ?? "P-113 Pipeline Agent"}</small>
-        <small className="mono" suppressHydrationWarning>
-          API: {API_URL}
-        </small>
+      <div className="topbar-tools">
+        <RunSearch />
+        <NotificationBell />
+        <AvatarMenu />
       </div>
+    </header>
+  );
+}
+
+function Rail() {
+  const pathname = usePathname();
+  return (
+    <aside className="rail" aria-label="Thao tác nhanh">
+      <Link
+        href="/"
+        className={pathname === "/" ? "rail-btn active" : "rail-btn"}
+        aria-label="Trang chủ"
+        data-tip="Trang chủ"
+      >
+        <HomeIcon size={18} />
+      </Link>
+      <Link href="/#request" className="rail-btn" aria-label="Yêu cầu mới" data-tip="Yêu cầu mới">
+        <PlusIcon size={18} />
+      </Link>
+      <a
+        href={`${API_URL}/docs`}
+        target="_blank"
+        rel="noreferrer"
+        className="rail-btn"
+        aria-label="Tài liệu API (mở tab mới)"
+        data-tip="Tài liệu API"
+      >
+        <DocIcon size={18} />
+      </a>
+      <ThemeButton />
     </aside>
+  );
+}
+
+function Footer() {
+  const { status, statusError } = useApp();
+  return (
+    <footer className="footer">
+      <span className="row">
+        <span className={statusError ? "dot fail" : status ? "dot ok" : "dot"} aria-hidden />
+        {statusError ? "Mất kết nối API" : status ? (status.agent ?? "API") : "Đang kiểm tra API…"}
+      </span>
+      <ModeBadges />
+    </footer>
   );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="shell">
+    <div className="page">
+      <div className="sky" aria-hidden>
+        <span className="sky-glow" />
+        <span className="sky-orb" />
+      </div>
       <a href="#main" className="skip-link">
         Bỏ qua tới nội dung
       </a>
-      <Sidebar />
-      <div className="workspace">
-        <Topbar />
-        <main id="main" className="content">
-          {children}
-        </main>
+      <div className="frame">
+        <TopBar />
+        <div className="body">
+          <Rail />
+          <main id="main" className="content">
+            {children}
+          </main>
+        </div>
+        <Footer />
       </div>
     </div>
   );

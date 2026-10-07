@@ -28,6 +28,23 @@ const PAIRS = [
   ["warn", "surface", "chữ cảnh báo trên thẻ"],
   ["fail", "fail-soft", "nhãn lỗi, hộp lỗi"],
   ["fail", "surface", "nút từ chối (viền), chữ lỗi"],
+  ["text", "frame", "chữ trên khung kính (tiêu đề trang, thanh điều hướng)"],
+  ["muted", "frame", "chữ phụ trên khung kính, chân trang"],
+  ["primary", "frame", "tab điều hướng đang chọn"],
+  ["primary-ink", "accent", "chữ trên logo gradient"],
+  ["console-text", "console-bg", "dòng log trong console"],
+  ["console-muted", "console-bg", "giờ, nhãn phụ trong console"],
+  ["console-ok", "console-bg", "nhãn OK trong console"],
+  ["console-fail", "console-bg", "nhãn LỖI trong console"],
+  ["console-info", "console-bg", "nhãn bước trong console"],
+  ["console-live", "console-bg", "dòng 'đang làm' (mô tả, không phải log đo)"],
+  ["text", "glass-solid", "chữ trong thẻ kính"],
+  ["muted", "glass-solid", "chữ phụ trong thẻ kính"],
+  ["primary", "glass-solid", "liên kết, số lớn trong thẻ kính"],
+  ["hero-ink", "sky-mid", "tiêu đề lớn trên bầu trời"],
+  ["hero-ink", "sky-top", "tiêu đề lớn ở mép trên bầu trời"],
+  ["hero-ink", "horizon", "chữ hero gần chân trời"],
+  ["rail-ink", "rail", "biểu tượng thanh điều hướng dọc đang chọn"],
 ];
 
 function parseTokens(css) {

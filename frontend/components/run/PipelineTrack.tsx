@@ -54,14 +54,17 @@ export function PipelineTrack() {
         ))}
       </ol>
       <div className="pipeline-legend">
-        <span>
-          <i className="e" />E agent thực thi
+        <span title="E: agent thực thi (gọi LLM)">
+          <i className="e" />
+          Agent
         </span>
-        <span>
-          <i className="v" />V code kiểm chứng (0 token)
+        <span title="V: code kiểm chứng, 0 token">
+          <i className="v" />
+          Code kiểm
         </span>
-        <span>
-          <i className="j" />J con người quyết định
+        <span title="J: con người quyết định">
+          <i className="j" />
+          Bạn
         </span>
       </div>
     </section>

@@ -50,7 +50,7 @@ async function errorMessage(response: Response): Promise<string> {
   return `Máy chủ trả lỗi ${response.status}. Vui lòng thử lại.`;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function rawRequest(path: string, init?: RequestInit): Promise<string> {
   const user = loadUser();
   let response: Response;
   try {
@@ -63,7 +63,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(`Không kết nối được máy chủ API (${API_URL}). Hãy kiểm tra backend đang chạy.`, 0);
   }
   if (!response.ok) throw new ApiError(await errorMessage(response), response.status);
-  return (await response.json()) as T;
+  return response.text();
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  return JSON.parse(await rawRequest(path, init)) as T;
+}
+
+/** GET trả nguyên văn JSON (để bỏ qua cập nhật khi dữ liệu không đổi — tránh vẽ lại cả trang mỗi lần hỏi). */
+export function apiGetText(path: string): Promise<string> {
+  return rawRequest(path);
 }
 
 export function apiGet<T>(path: string): Promise<T> {

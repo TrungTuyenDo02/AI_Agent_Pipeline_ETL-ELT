@@ -1,25 +1,41 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { apiPost, messageOf } from "@/lib/api";
 import type { Accepted } from "@/lib/types";
 
+import { ArrowRightIcon } from "./icons";
 import { ErrorBox } from "./ui";
 
+// Nhãn ngắn trên nút gợi ý; bấm vào điền câu yêu cầu đầy đủ.
 const EXAMPLES = [
-  "Gộp đơn hàng 3 nguồn, tính doanh thu ngày",
-  "Doanh thu theo ngày và theo nguồn bán, chỉ tính đơn đã giao",
-  "Số đơn và giá trị trung bình mỗi đơn theo tháng",
+  { label: "Doanh thu ngày, 3 nguồn", text: "Gộp đơn hàng 3 nguồn, tính doanh thu ngày" },
+  { label: "Theo nguồn bán", text: "Doanh thu theo ngày và theo nguồn bán, chỉ tính đơn đã giao" },
+  { label: "Giá trị đơn theo tháng", text: "Số đơn và giá trị trung bình mỗi đơn theo tháng" },
 ];
 
 export function CreateRunForm() {
   const router = useRouter();
+  const box = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const tooShort = text.trim().length < 5;
+
+  // "Bắt đầu ngay" / "Yêu cầu mới" trỏ tới #request: đưa con trỏ vào ô nhập
+  useEffect(() => {
+    const focus = () => {
+      if (window.location.hash === "#request") box.current?.focus();
+    };
+    const first = setTimeout(focus, 0);
+    window.addEventListener("hashchange", focus);
+    return () => {
+      clearTimeout(first);
+      window.removeEventListener("hashchange", focus);
+    };
+  }, []);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -36,34 +52,42 @@ export function CreateRunForm() {
   }
 
   return (
-    <form onSubmit={submit} className="stack" style={{ gap: 10 }}>
-      <label htmlFor="request" className="sr-only">
+    <form onSubmit={submit} className="request-form">
+      <label htmlFor="request-text" className="sr-only">
         Yêu cầu pipeline
       </label>
       <textarea
-        id="request"
+        id="request-text"
+        ref={box}
         rows={3}
         maxLength={4000}
-        placeholder="Mô tả bằng lời thường: cần bảng gì, từ nguồn nào, tính chỉ số gì… Agent sẽ hỏi lại nếu chưa rõ."
+        placeholder="Ví dụ: gộp đơn hàng 3 nguồn, tính doanh thu ngày"
+        title="Ctrl + Enter để gửi. Agent chỉ chạy trong sandbox DuckDB."
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) void submit(e);
         }}
       />
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <div className="chips" aria-label="Ví dụ">
+      <div className="request-actions">
+        <div className="chips" aria-label="Gợi ý">
           {EXAMPLES.map((example) => (
-            <button key={example} type="button" className="chip" onClick={() => setText(example)}>
-              {example}
+            <button
+              key={example.label}
+              type="button"
+              className="chip"
+              aria-pressed={text === example.text}
+              title={example.text}
+              onClick={() => setText(example.text)}
+            >
+              {example.label}
             </button>
           ))}
         </div>
-        <button type="submit" className="btn primary" disabled={tooShort || sending}>
-          {sending ? "Đang gửi…" : "Gửi yêu cầu"}
+        <button type="submit" className="btn dark pill-btn" disabled={tooShort || sending}>
+          {sending ? "Đang gửi…" : "Gửi"} <ArrowRightIcon size={15} />
         </button>
       </div>
-      <small className="muted">Ctrl + Enter để gửi. Agent chỉ chạy trong sandbox DuckDB, không đụng production.</small>
       {error && <ErrorBox message={error} />}
     </form>
   );

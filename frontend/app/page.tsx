@@ -1,20 +1,15 @@
-import { CreateRunForm } from "@/components/CreateRunForm";
-import { RunsTable } from "@/components/RunsTable";
-import { Card } from "@/components/ui";
+import { ActivityFeed, Hero, NewRequestCard, RecentRunsCard, SystemOverview } from "@/components/home/Dashboard";
 
 export default function HomePage() {
   return (
-    <>
-      <div className="page-head">
-        <div>
-          <h1>Lần chạy</h1>
-          <p>Mô tả pipeline cần làm → agent lập kế hoạch, sinh dbt + DAG, chạy thử sandbox, tối ưu → bạn duyệt.</p>
-        </div>
+    <div className="dashboard">
+      <Hero />
+      <SystemOverview />
+      <RecentRunsCard />
+      <div className="dash-side">
+        <NewRequestCard />
+        <ActivityFeed />
       </div>
-      <Card title="Yêu cầu mới">
-        <CreateRunForm />
-      </Card>
-      <RunsTable />
-    </>
+    </div>
   );
 }
