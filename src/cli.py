@@ -14,7 +14,7 @@ from src.config import get_settings
 from src.logging_config import setup_logging
 from src.services.tracing import configure_tracing
 
-ROLES = ("de", "engineer", "reviewer")  # mặc định `de`; engineer/reviewer khi bật REQUIRE_SEPARATE_REVIEWER
+ROLES = ("engineer", "reviewer")  # CLI chạy trên máy chủ (người có quyền vào máy); web dùng tài khoản đăng nhập
 
 
 def _add_identity(parser: argparse.ArgumentParser, default_role: str) -> None:
@@ -31,17 +31,17 @@ def _run_parsers(sub: argparse._SubParsersAction) -> None:
     )
     run.add_argument("--auto-answer", action="store_true", help="Tự chọn đáp án đầu tiên ở J1 (chỉ dùng cho test/demo)")
     run.add_argument("--auto-approve", action="store_true", help="Tự duyệt ở J2 (CHỈ dùng cho test/eval)")
-    _add_identity(run, "de")
+    _add_identity(run, "engineer")
     review = sub.add_parser("review", help="Xem diff, bằng chứng và duyệt")
     review.add_argument("run_id", help="id lần chạy, hoặc `latest`")
     review.add_argument("--approve", action="store_true")
     review.add_argument("--reject", action="store_true")
     review.add_argument("--note", default="", help="Ghi chú khi từ chối")
     review.add_argument("--full", action="store_true", help="Hiện toàn bộ nội dung file")
-    _add_identity(review, "de")
+    _add_identity(review, "reviewer")
     answer = sub.add_parser("answer", help="Trả lời câu hỏi làm rõ của một lần chạy đang chờ")
     answer.add_argument("run_id")
-    _add_identity(answer, "de")
+    _add_identity(answer, "engineer")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -69,7 +69,7 @@ def build_parser() -> argparse.ArgumentParser:
     errors.add_argument("--approve", type=int, metavar="ID")
     errors.add_argument("--fix", default="", help="Cách sửa (khi duyệt)")
     errors.add_argument("--discard", type=int, metavar="ID")
-    _add_identity(errors, "de")
+    _add_identity(errors, "reviewer")
     optimize = sub.add_parser("optimize", help="Chạy riêng E4 + V3 cho một file SQL")
     optimize.add_argument("--sql", required=True, type=Path)
     optimize.add_argument("--dataset", default="large", help="Bộ dữ liệu để đo tốc độ")
@@ -80,7 +80,16 @@ def build_parser() -> argparse.ArgumentParser:
         "eval-verifiers", help="Đo các bước V như máy dò (bỏ sót/báo nhầm, 0 token) → eval/results/verifier_report.md"
     )
     verifiers.add_argument("--quick", action="store_true", help="Bỏ phần chạy dbt thật (V2) và tự kiểm test")
+    _users_parser(sub)
     return parser
+
+
+def _users_parser(sub: argparse._SubParsersAction) -> None:
+    users = sub.add_parser("users", help="Tài khoản đăng nhập web: liệt kê, tạo, khóa/mở, tài khoản mẫu cho dev")
+    users.add_argument("action", choices=("list", "create", "lock", "unlock", "seed-dev"))
+    users.add_argument("--username", help="Tên đăng nhập (create/lock/unlock)")
+    users.add_argument("--name", default="", help="Tên hiển thị (create)")
+    users.add_argument("--role", choices=("engineer", "reviewer", "admin"), default="engineer", help="Vai trò (create)")
 
 
 def configure(args: argparse.Namespace) -> None:

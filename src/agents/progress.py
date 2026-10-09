@@ -5,6 +5,7 @@ import time
 from pydantic import BaseModel, Field
 
 from src.agents.activity import activity_for
+from src.services.schema_watch import SchemaReport
 
 NODE_LABELS = {
     "planner": "E1 Lập kế hoạch",
@@ -13,6 +14,7 @@ NODE_LABELS = {
     "spec_check": "V0 Soát đặc tả",
     "ingest": "E0 Nhận nguồn",
     "profiler": "P  Soi dữ liệu",
+    "schema_guard": "Vs Soát cấu trúc nguồn",
     "mock_data": "E2 Dữ liệu thử",
     "codegen": "E3 Sinh code",
     "testgen": "E3b Sinh test",
@@ -108,6 +110,7 @@ def _detail_default(node: str, update: dict) -> tuple[bool, str]:
         "ingest": lambda u: ", ".join(f"{k}: {v} dòng" for k, v in u.get("row_counts", {}).items()),
         "profiler": lambda u: f"{len(u.get('profile', {}))} bảng",
         "mock_data": lambda u: ", ".join(u.get("datasets", {})),
+        "schema_guard": lambda u: SchemaReport.model_validate(u.get("schema_report") or {}).summary()[:120],
         "codegen": lambda u: f"{len(u.get('code_files', {}))} file",
         "testgen": lambda u: f"{len(u.get('test_files', {}))} file test",
         "planner": lambda u: (

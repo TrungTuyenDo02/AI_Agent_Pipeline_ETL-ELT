@@ -75,9 +75,8 @@ python -m src.cli review latest --reject --note "thêm cột nguồn"
 Màn duyệt có: đặc tả bằng lời, bảng **"Code đo | LLM nói"**, kết quả mẫu, báo cáo tối ưu (thời gian trước/sau,
 quyết định `applied`/`skipped`), diff code. Từ chối → agent sửa lại theo ghi chú rồi chờ duyệt lần nữa.
 
-Luật duyệt: mặc định chỉ có **một vai trò DE** — người tạo yêu cầu tự xem bằng chứng và duyệt. Muốn tách 2 người
-(ví dụ demo luồng Engineer/Reviewer), đặt `REQUIRE_SEPARATE_REVIEWER=true` trong `.env`: khi đó chỉ `--as reviewer`
-được duyệt và **người tạo yêu cầu không được tự duyệt** (`an` không duyệt được yêu cầu của `an`).
+Luật duyệt: chỉ vai trò **Reviewer** được duyệt hoặc từ chối (`--as reviewer`, mặc định của lệnh `review`); Engineer
+tạo yêu cầu (`--as engineer`, mặc định của `run`). Reviewer được duyệt cả yêu cầu do chính mình tạo.
 
 ### 2.4 Lệnh khác
 
@@ -138,9 +137,10 @@ Cách dùng (một DE làm từ đầu đến cuối):
 5. Tab **Cấu trúc dữ liệu**: sơ đồ bảng raw → staging → mart, bấm vào bảng để xem schema, quan hệ, khóa nối.
 6. Duyệt xong → **Tải gói code (.zip)** → chép vào repo dbt của đội → mở Pull Request để CI/CD chạy.
 
-Thanh trên cùng: nhãn **Chế độ mô phỏng** (mock) hoặc **LLM thật**, chế độ duyệt, ô tên người dùng (chữ không dấu),
-chọn giao diện sáng/tối. Khi bật `REQUIRE_SEPARATE_REVIEWER=true` có thêm ô vai trò Engineer/Reviewer; người tạo yêu
-cầu không tự duyệt được (để demo đúng đề 2 vai trò).
+Mở web sẽ vào trang **Đăng nhập** (tài khoản do Admin cấp; tạo mẫu cho dev: `python -m src.cli users seed-dev`).
+Avatar góc phải: tên, vai trò, giao diện sáng/tối, nhãn **Mô phỏng**/**LLM thật**, nút **Đăng xuất** (phiên mất hiệu lực
+ở máy chủ ngay). Nút của vai trò khác bị khóa kèm lời nhắc; backend vẫn chặn (403). Admin có thêm mục **Người dùng**:
+cấp tài khoản, đổi vai trò, khóa/mở, đặt lại mật khẩu (mọi phiên của người đó bị thu hồi).
 
 Web và CLI dùng chung kho dữ liệu `data/` khi chạy bằng `make run`: lần chạy tạo ở terminal cũng thấy trên web.
 

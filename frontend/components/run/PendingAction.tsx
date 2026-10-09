@@ -2,9 +2,11 @@
 
 import { useState, type FormEvent } from "react";
 
-import type { ClarifyQuestion } from "@/lib/types";
+import type { ClarifyQuestion, SchemaReport } from "@/lib/types";
 
-import { ErrorBox } from "../ui";
+import { useHasRole } from "../AppContext";
+import { RoleNote } from "../Topbar";
+import { Checkbox, ErrorBox } from "../ui";
 import { useRun } from "./RunContext";
 
 // Form cho các điểm dừng cần người: J1 trả lời câu hỏi làm rõ, cứu hộ. (J1b: PlanReview; J2: màn duyệt.)
@@ -15,6 +17,7 @@ export function ClarifyForm({ unknowns, questions }: { unknowns: string[]; quest
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const complete = questions.every((q) => answers[q.id]);
+  const engineer = useHasRole("engineer");
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -25,6 +28,7 @@ export function ClarifyForm({ unknowns, questions }: { unknowns: string[]; quest
 
   return (
     <form onSubmit={submit}>
+      <RoleNote need="engineer" />
       {unknowns.length > 0 && (
         <div className="alert info" style={{ marginBottom: 12 }}>
           <span>Agent chưa rõ: {unknowns.join("; ")}</span>
@@ -53,7 +57,7 @@ export function ClarifyForm({ unknowns, questions }: { unknowns: string[]; quest
       ))}
       {error && <ErrorBox message={error} />}
       <div className="row" style={{ justifyContent: "flex-end", marginTop: 8 }}>
-        <button type="submit" className="btn primary" disabled={!complete || sending}>
+        <button type="submit" className="btn primary" disabled={!complete || sending || !engineer}>
           {sending ? "Đang gửi…" : "Gửi câu trả lời"}
         </button>
       </div>
@@ -66,6 +70,7 @@ export function RescueForm({ error, attempts }: { error: string; attempts: numbe
   const [hint, setHint] = useState("");
   const [sending, setSending] = useState(false);
   const [failure, setFailure] = useState("");
+  const engineer = useHasRole("engineer");
 
   async function send(action: "retry" | "abort") {
     setSending(true);
@@ -75,17 +80,91 @@ export function RescueForm({ error, attempts }: { error: string; attempts: numbe
 
   return (
     <div className="stack" style={{ gap: 10 }}>
+      <RoleNote need="engineer" />
       <p>Agent đã sửa {attempts} lần nhưng vẫn lỗi. Lỗi cuối (do V-node đo):</p>
       <pre>{error || "(không có chi tiết)"}</pre>
       <label htmlFor="hint">Gợi ý cho agent (ví dụ: cột ngày ở nguồn Tiki dạng dd/mm/yyyy)</label>
       <textarea id="hint" value={hint} onChange={(e) => setHint(e.target.value)} maxLength={2000} />
       {failure && <ErrorBox message={failure} />}
       <div className="row" style={{ justifyContent: "flex-end" }}>
-        <button type="button" className="btn danger" disabled={sending} onClick={() => send("abort")}>
+        <button type="button" className="btn danger" disabled={sending || !engineer} onClick={() => send("abort")}>
           Dừng lần chạy
         </button>
-        <button type="button" className="btn primary" disabled={sending || !hint.trim()} onClick={() => send("retry")}>
+        <button
+          type="button"
+          className="btn primary"
+          disabled={sending || !engineer || !hint.trim()}
+          onClick={() => send("retry")}
+        >
           Gửi gợi ý và thử lại
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Mục 8: nguồn có cột bị xóa / nghi đổi tên. Engineer xác nhận từng cặp đổi tên (không tự đoán) hoặc dừng. */
+export function SchemaForm({ report }: { report: SchemaReport }) {
+  const { act } = useRun();
+  const engineer = useHasRole("engineer");
+  const [renames, setRenames] = useState<Record<string, string>>({});
+  const [sending, setSending] = useState(false);
+  const [failure, setFailure] = useState("");
+  const changes = report.changes.filter((c) => Object.keys(c.removed).length > 0);
+
+  async function send(action: "continue" | "abort") {
+    setSending(true);
+    setFailure(await act("/schema", { action, renames: action === "continue" ? renames : {} }));
+    setSending(false);
+  }
+
+  function toggle(oldName: string, newName: string, on: boolean) {
+    const next = { ...renames };
+    if (on) next[oldName] = newName;
+    else delete next[oldName];
+    setRenames(next);
+  }
+
+  return (
+    <div className="stack" style={{ gap: 12 }}>
+      <RoleNote need="engineer" />
+      <p>
+        Nguồn dữ liệu đã <strong>mất cột</strong> so với bản Reviewer duyệt lần trước. Agent không tự đoán cột nào đổi
+        tên: hãy xác nhận từng cặp, hoặc dừng để kiểm tra nguồn.
+      </p>
+      {changes.map((change) => (
+        <div key={change.source} className="schema-box">
+          <strong className="mono">{change.source}</strong>
+          <ul className="schema-cols">
+            {Object.entries(change.removed).map(([col, type]) => (
+              <li key={col}>
+                <span className="badge danger">− {col}</span> <span className="muted small">{type}</span>
+              </li>
+            ))}
+          </ul>
+          {change.rename_candidates.map(([oldName, newName]) => (
+            <Checkbox
+              key={`${oldName}-${newName}`}
+              checked={renames[oldName] === newName}
+              disabled={!engineer || sending}
+              onChange={(on) => toggle(oldName, newName, on)}
+            >
+              Đúng, <span className="mono">{oldName}</span> đã đổi tên thành <span className="mono">{newName}</span>
+            </Checkbox>
+          ))}
+        </div>
+      ))}
+      <small className="muted">
+        Chạy tiếp: mọi thay đổi cấu trúc và đề xuất sửa sẽ hiện lại cho Reviewer ở màn duyệt; cấu trúc mới chỉ thành
+        chuẩn khi Reviewer duyệt lần chạy.
+      </small>
+      {failure && <ErrorBox message={failure} />}
+      <div className="row" style={{ justifyContent: "flex-end" }}>
+        <button type="button" className="btn danger" disabled={sending || !engineer} onClick={() => send("abort")}>
+          Dừng lần chạy
+        </button>
+        <button type="button" className="btn primary" disabled={sending || !engineer} onClick={() => send("continue")}>
+          Xác nhận và chạy tiếp
         </button>
       </div>
     </div>

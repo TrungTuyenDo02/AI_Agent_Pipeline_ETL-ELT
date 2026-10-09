@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import type { PlanPending, PlanStep, Spec } from "@/lib/types";
 
+import { useHasRole } from "../AppContext";
+import { RoleNote } from "../Topbar";
 import { ErrorBox } from "../ui";
 import { useRun } from "./RunContext";
 
@@ -66,6 +68,7 @@ export function PlanReview({ pending }: { pending: PlanPending }) {
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const engineer = useHasRole("engineer");
 
   async function decide(decision: "approve" | "revise") {
     setSending(true);
@@ -75,6 +78,7 @@ export function PlanReview({ pending }: { pending: PlanPending }) {
 
   return (
     <div className="stack" style={{ gap: 14 }}>
+      <RoleNote need="engineer" />
       <p className="plan-summary">{pending.summary}</p>
       <div className="grid-2">
         <div>
@@ -105,12 +109,12 @@ export function PlanReview({ pending }: { pending: PlanPending }) {
         <button
           type="button"
           className="btn danger"
-          disabled={sending || !note.trim()}
+          disabled={sending || !engineer || !note.trim()}
           onClick={() => decide("revise")}
         >
           Yêu cầu sửa kế hoạch
         </button>
-        <button type="button" className="btn ok" disabled={sending} onClick={() => decide("approve")}>
+        <button type="button" className="btn ok" disabled={sending || !engineer} onClick={() => decide("approve")}>
           Đồng ý, sinh code
         </button>
       </div>

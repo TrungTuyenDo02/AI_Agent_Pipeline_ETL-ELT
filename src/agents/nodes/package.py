@@ -1,10 +1,13 @@
 """Gói "Pull Request" để duyệt: bằng chứng tách `measured` (code đo) và `claimed` (LLM nói)."""
 
+import json
 from pathlib import Path
 
 from src.agents.state import PipelineState
+from src.agents.tools.sql_tools import value_filters
 from src.models.evidence import Evidence, MeasuredItem
 from src.models.schemas import RunStatus
+from src.services.schema_watch import SchemaReport
 
 
 def _spec_items(state: PipelineState) -> list[MeasuredItem]:
@@ -49,6 +52,60 @@ def _run_items(state: PipelineState) -> list[MeasuredItem]:
     ]
 
 
+def spec_text(state: PipelineState) -> str:
+    """Mọi chữ người dùng/đặc tả đã nêu: giá trị lọc hợp lệ chỉ được lấy từ đây (mục 9)."""
+    answered = " ".join(f"{a.get('question', '')} {a.get('answer', '')}" for a in state.get("answered", []))
+    spec = json.dumps(state.get("spec", {}), ensure_ascii=False)
+    return " ".join([state.get("request_text", ""), answered, spec, *state.get("plan_feedback", [])])
+
+
+def find_value_filters(state: PipelineState) -> list[dict]:
+    """Điều kiện cứng theo giá trị trong các model (sắp theo file, dòng)."""
+    text = spec_text(state)
+    found = [
+        item
+        for path, sql in state.get("code_files", {}).items()
+        if path.startswith("models/") and path.endswith(".sql")
+        for item in value_filters(path, sql, text)
+    ]
+    return sorted(found, key=lambda f: (f["file"], f["line"]))
+
+
+def _data_rule_items(state: PipelineState, filters: list[dict]) -> list[MeasuredItem]:
+    """Mục 8–9: cấu trúc nguồn so với bản đã duyệt, số dòng vào/ra, điều kiện cứng theo giá trị."""
+    report = SchemaReport.model_validate(state.get("schema_report") or {"checked": False, "note": "Chưa soát."})
+    changed = any(c.added or c.removed or c.type_changed or c.new_values for c in report.changes)
+    items = [
+        MeasuredItem(
+            node="Vs Cấu trúc nguồn",
+            check="So với bản Reviewer đã duyệt",
+            result=report.summary(),
+            passed=(not changed) if report.checked else None,
+        )
+    ]
+    for rec in state.get("reconciliation", []):
+        dropped = rec["rows_in"] - rec["rows_out"]
+        note = "khớp" if dropped == 0 else (f"loại {dropped} dòng" if dropped > 0 else f"nhân thêm {-dropped} dòng")
+        items.append(
+            MeasuredItem(
+                node="V2 Đối chiếu số dòng",
+                check=f"{rec['source']} → {rec['model']}",
+                result=f"{rec['rows_in']} vào → {rec['rows_out']} ra ({note}; cần lý do ghi rõ nếu khác)",
+                passed=True if dropped == 0 else None,
+            )
+        )
+    outside = [f for f in filters if not f["in_spec"]]
+    items.append(
+        MeasuredItem(
+            node="Điều kiện theo giá trị",
+            check="So sánh cột với giá trị cụ thể (tô sáng ở màn duyệt)",
+            result=f"{len(filters)} điều kiện, {len(outside)} giá trị không có trong đặc tả/câu trả lời",
+            passed=True if not outside else None,
+        )
+    )
+    return items
+
+
 def _optimization_items(state: PipelineState) -> list[MeasuredItem]:
     report = state.get("optimization", {})
     if not report:
@@ -66,13 +123,14 @@ def _optimization_items(state: PipelineState) -> list[MeasuredItem]:
     return items
 
 
-def build_evidence(state: PipelineState) -> Evidence:
+def build_evidence(state: PipelineState, filters: list[dict] | None = None) -> Evidence:
     """Bằng chứng đầy đủ cho Reviewer."""
     claimed = [*state.get("code_notes", []), *state.get("test_notes", [])]
     explanation = state.get("optimization", {}).get("explanation")
     if explanation:
         claimed.append(f"Optimizer: {explanation}")
-    measured = _spec_items(state) + _run_items(state) + _optimization_items(state)
+    filters = find_value_filters(state) if filters is None else filters
+    measured = _spec_items(state) + _run_items(state) + _data_rule_items(state, filters) + _optimization_items(state)
     return Evidence(measured=measured, claimed=claimed)
 
 
@@ -107,6 +165,7 @@ def write_pr_description(state: PipelineState, evidence: Evidence) -> None:
 
 def package_node(state: PipelineState) -> dict:
     """Đóng gói bằng chứng, chuyển sang chờ duyệt."""
-    evidence = build_evidence(state)
+    filters = find_value_filters(state)
+    evidence = build_evidence(state, filters)
     write_pr_description(state, evidence)
-    return {"evidence": evidence.model_dump(), "status": RunStatus.WAITING_REVIEW.value}
+    return {"evidence": evidence.model_dump(), "value_filters": filters, "status": RunStatus.WAITING_REVIEW.value}

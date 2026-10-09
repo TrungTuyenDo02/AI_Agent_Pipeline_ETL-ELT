@@ -21,6 +21,7 @@ STATUS_TEXT = {
     "running": "đang chạy",
     "waiting_clarification": "chờ trả lời câu hỏi làm rõ",
     "waiting_plan_review": "chờ duyệt kế hoạch",
+    "waiting_schema": "chờ xác nhận cấu trúc nguồn thay đổi",
     "waiting_rescue": "chờ cứu hộ",
     "waiting_review": "chờ Reviewer duyệt",
     "approved": "đã duyệt",

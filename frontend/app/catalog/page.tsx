@@ -1,4 +1,5 @@
 import { CatalogScreen } from "@/components/catalog/CatalogScreen";
+import { SchemaWatchCard } from "@/components/home/Dashboard";
 
 export default function SourcesCatalogPage() {
   return (
@@ -13,6 +14,7 @@ export default function SourcesCatalogPage() {
           </p>
         </div>
       </div>
+      <SchemaWatchCard />
       <CatalogScreen
         path="/catalog/sources"
         emptyText="Chưa có dữ liệu nguồn. Chạy `python -m src.cli seed` để tạo dữ liệu mẫu."

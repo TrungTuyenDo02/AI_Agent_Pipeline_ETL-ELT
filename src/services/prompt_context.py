@@ -28,8 +28,9 @@ def spec_for_build(spec: dict) -> dict:
 
 
 def _column(info: dict) -> dict:
-    """Bỏ `nulls` (đã có null_pct), danh sách rỗng và `parse_failures` = 0."""
-    out = {k: v for k, v in info.items() if k != "nulls" and v not in ([], "", None)}
+    """Bỏ `nulls` (đã có null_pct), danh sách rỗng, `parse_failures` = 0 và `categories` (chỉ để so cấu trúc, mục 9:
+    LLM không được lấy danh sách giá trị từ dữ liệu làm giá trị hợp lệ)."""
+    out = {k: v for k, v in info.items() if k not in ("nulls", "categories") and v not in ([], "", None)}
     if out.get("parse_failures") == 0:
         out.pop("parse_failures")
     return out

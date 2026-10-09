@@ -1,6 +1,7 @@
 """Graph LangGraph của luồng P-113 (khớp sơ đồ kiến trúc):
 
-NL → E1 planner ⇄ J1 clarify → V0 spec_check → J1b plan_review (DE duyệt kế hoạch) → E0 ingest → P profiler → E2 mock_data → E3 codegen → E3b testgen
+NL → E1 planner ⇄ J1 clarify → V0 spec_check → J1b plan_review (DE duyệt kế hoạch) → E0 ingest → P profiler → Vs schema_guard (so cấu trúc với bản đã duyệt;
+xóa/đổi tên cột → Engineer xác nhận) → E2 mock_data → E3 codegen → E3b testgen
 → V1 safety → V2 sandbox_run (≤3 lần sửa, lỗi lặp → cứu hộ) → E4 optimizer ⇄ V3 compare → package → J2 review.
 """
 
@@ -23,6 +24,7 @@ from src.agents.nodes.rescue import rescue_node
 from src.agents.nodes.review import fail_node, finalize_node, review_node
 from src.agents.nodes.safety import safety_node
 from src.agents.nodes.sandbox_run import sandbox_run_node
+from src.agents.nodes.schema_guard import schema_guard_node
 from src.agents.nodes.spec_check import spec_check_node
 from src.agents.nodes.testgen import testgen_node
 from src.agents.state import PipelineState
@@ -34,6 +36,7 @@ NODES = {
     "plan_review": plan_review_node,
     "ingest": ingest_node,
     "profiler": profiler_node,
+    "schema_guard": schema_guard_node,
     "mock_data": mock_data_node,
     "codegen": codegen_node,
     "testgen": testgen_node,
@@ -52,6 +55,7 @@ CONDITIONAL = {
     "spec_check": routing.after_spec_check,
     "plan_review": routing.after_plan_review,
     "ingest": routing.after_ingest,
+    "schema_guard": routing.after_schema_guard,
     "safety": routing.after_safety,
     "sandbox_run": routing.after_sandbox,
     "rescue": routing.after_rescue,
@@ -62,7 +66,7 @@ CONDITIONAL = {
 EDGES = [
     (START, "planner"),
     ("clarify", "planner"),
-    ("profiler", "mock_data"),
+    ("profiler", "schema_guard"),
     ("mock_data", "codegen"),
     ("codegen", "testgen"),
     ("testgen", "safety"),

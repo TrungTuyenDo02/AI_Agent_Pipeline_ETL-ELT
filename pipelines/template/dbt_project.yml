@@ -16,3 +16,7 @@ models:
       +materialized: ephemeral
     marts:
       +materialized: table
+      # CLAUDE.md section 8: never let dbt silently ignore new columns. No effect on tables; if a mart becomes
+      # incremental, a schema change stops the build (fail) for a human to review. Keep comments ASCII: dbt reads
+      # this file with the OS locale encoding (cp1252 on Windows).
+      +on_schema_change: fail

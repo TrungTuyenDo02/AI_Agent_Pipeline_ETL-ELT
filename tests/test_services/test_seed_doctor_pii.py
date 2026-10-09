@@ -30,6 +30,10 @@ def test_seed_is_deterministic_and_dirty(tmp_path: Path):
 def test_mask_pii():
     assert mask_text("liên hệ khach12@example.com") == "liên hệ k***@example.com"
     assert mask_text("0912345678") == "091******78"
+    assert mask_text("0320.958027") == "032******27"  # có dấu ngăn: trước đây lọt qua bộ che
+    assert mask_text("SĐT 091 234 5678, 0912-345-678") == "SĐT 091******78, 091******78"
+    assert mask_text("+84 912 345 678") == "+8491******78"
+    assert mask_text("1.075.000") == "1.075.000" and mask_text("09/09/2026 11:45:00") == "09/09/2026 11:45:00"
     assert mask_rows([{"a": "x@y.com", "b": 1}]) == [{"a": "x***@y.com", "b": 1}]
 
 

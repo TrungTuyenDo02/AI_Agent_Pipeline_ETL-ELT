@@ -1,15 +1,14 @@
-"""Duyệt (J2): hàng đợi chờ duyệt, approve/reject theo luật `review_permission_error` (dùng chung với CLI)."""
+"""Duyệt (J2): hàng đợi chờ duyệt; chỉ vai trò Reviewer được approve/reject (luật chung với CLI ở runner)."""
 
-from typing import Annotated
-
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 
 from src.agents import runner
 from src.agents.runner import PermissionDeniedError, RunStateError
-from src.api.deps import CurrentUser, current_user, run_or_404
+from src.api.deps import FORBIDDEN, Reviewer, client_ip, run_or_404
 from src.api.requests import Accepted, ReviewBody
 from src.models.evidence import ReviewDecision
 from src.models.schemas import RunRecord, RunStatus
+from src.services import auth
 from src.services.jobs import get_jobs
 from src.services.store import get_store
 
@@ -23,7 +22,7 @@ async def review_queue() -> list[RunRecord]:
 
 
 @router.post("/runs/{run_id}/review", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
-def review(run_id: str, body: ReviewBody, user: Annotated[CurrentUser, Depends(current_user)]) -> Accepted:
+def review(run_id: str, body: ReviewBody, user: Reviewer, request: Request) -> Accepted:
     """Duyệt hoặc từ chối; từ chối kèm ghi chú → agent sửa lại rồi chờ duyệt lần nữa."""
     run_or_404(run_id)
     if body.decision == "reject" and not body.note.strip():
@@ -34,9 +33,10 @@ def review(run_id: str, body: ReviewBody, user: Annotated[CurrentUser, Depends(c
     try:
         runner.check_review(decision, user.role)
     except PermissionDeniedError as exc:
-        raise HTTPException(status_code=403, detail=str(exc)) from exc
+        raise HTTPException(status_code=403, detail=FORBIDDEN) from exc
     except RunStateError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    get_jobs().submit(run_id, lambda sink: runner.submit_review(decision, user.role, sink))
+    auth.audit(f"review.{body.decision}", user.name, target=run_id, ip=client_ip(request))
+    get_jobs().submit(run_id, lambda sink: runner.submit_review(decision, user.role, sink), actor=user.name)
     message = "Đã duyệt." if body.decision == "approve" else "Đã từ chối, agent đang sửa theo ghi chú."
     return Accepted(run_id=run_id, status="running", message=message)

@@ -4,6 +4,8 @@ Các lần chạy được xếp hàng **lần lượt trên một luồng**: ch
 song song (đủ cho bản demo một DE). Tiến trình từng bước giữ trong bộ nhớ (mất khi khởi động lại; trạng thái và
 kết quả vẫn nằm trong store/checkpointer).
 
+Bước sinh code (codegen) và chạy sandbox (sandbox_run) được ghi `audit_log` kèm người khởi động thao tác.
+
 Ngoài các bước đã xong, hàng đợi giữ **node đang chạy** (lúc bắt đầu + mô tả việc đang làm) và **thời gian đo thật**
 của mỗi node qua các lần chạy (file JSON cạnh store) để web ước lượng "thường mất khoảng bao lâu". Chưa đủ mẫu thì
 không ước lượng.
@@ -23,6 +25,7 @@ from src.agents.progress import NodeStart, StepEvent
 from src.agents.runner import PermissionDeniedError, RunOutcome, RunStateError
 from src.config import get_settings
 from src.models.schemas import RunStatus
+from src.services import auth
 from src.services.store import get_store
 
 logger = logging.getLogger(__name__)
@@ -30,6 +33,7 @@ EventSink = Callable[[StepEvent | NodeStart], None]
 Job = Callable[[EventSink], RunOutcome]
 TIMING_KEEP = 20  # số lần đo gần nhất giữ cho mỗi node
 TIMING_MIN_SAMPLES = 3  # ít hơn thì không ước lượng (trả None)
+AUDITED_NODES = {"codegen": "code.generate", "sandbox_run": "sandbox.run"}  # CLAUDE.md mục 7
 
 
 class NodeTimings:
@@ -72,7 +76,7 @@ class JobQueue:
         self._current: dict[str, NodeStart] = {}
         self._timings = NodeTimings(timings_path)
 
-    def _record(self, run_id: str) -> EventSink:
+    def _record(self, run_id: str, actor: str = "") -> EventSink:
         def sink(event: StepEvent | NodeStart) -> None:
             with self._lock:
                 if isinstance(event, NodeStart):
@@ -82,12 +86,15 @@ class JobQueue:
                 if started and started.node == event.node:  # đo đúng từ lúc node bắt đầu tới lúc xong
                     self._timings.add(event.node, time.time() - started.started_at)
                 self._events.setdefault(run_id, []).append({**event.model_dump(), "finished_at": time.time()})
+            if actor and event.node in AUDITED_NODES:  # ngoài khóa: ghi DB không chặn web hỏi tiến trình
+                outcome = "ok" if event.ok else "fail"
+                auth.audit(AUDITED_NODES[event.node], actor, target=run_id, outcome=outcome)
 
         return sink
 
-    def _run(self, run_id: str, job: Job) -> None:
+    def _run(self, run_id: str, job: Job, actor: str) -> None:
         try:
-            job(self._record(run_id))
+            job(self._record(run_id, actor))
         except (RunStateError, PermissionDeniedError) as exc:  # thao tác lặp (bấm 2 lần) hoặc trạng thái đã đổi
             logger.warning("job rejected", extra={"run_id": run_id, "error": str(exc)})
         except Exception:  # ranh giới luồng nền: không để luồng chết, đánh dấu lần chạy lỗi
@@ -99,11 +106,11 @@ class JobQueue:
             with self._lock:
                 self._current.pop(run_id, None)  # dừng ở J1/J2 hoặc lỗi: không còn node nào đang chạy
 
-    def submit(self, run_id: str, job: Job) -> None:
-        """Đánh dấu đang chạy rồi đưa vào hàng đợi."""
+    def submit(self, run_id: str, job: Job, actor: str = "") -> None:
+        """Đánh dấu đang chạy rồi đưa vào hàng đợi (`actor` = người khởi động, để ghi nhật ký kiểm toán)."""
         get_store().update_run(run_id, RunStatus.RUNNING)
         with self._lock:
-            self._futures[run_id] = self._executor.submit(self._run, run_id, job)
+            self._futures[run_id] = self._executor.submit(self._run, run_id, job, actor)
 
     def events(self, run_id: str) -> list[dict]:
         """Các bước đã chạy của lần chạy (theo thứ tự)."""

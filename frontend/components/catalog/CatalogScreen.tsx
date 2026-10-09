@@ -6,8 +6,10 @@ import { isGrouped, ownerOf } from "@/lib/diagram";
 import type { CatalogView, JoinInfo } from "@/lib/types";
 import { usePoll } from "@/lib/usePoll";
 
+import { useApp } from "../AppContext";
 import { Card, Empty, ErrorBox, Loading } from "../ui";
 import { CatalogDiagram } from "./CatalogDiagram";
+import { DataProfile } from "./DataProfile";
 import { SchemaPanel } from "./SchemaPanel";
 
 function JoinsTable({ joins }: { joins: JoinInfo[] }) {
@@ -95,15 +97,62 @@ function defaultTable(catalog: CatalogView): string {
   return best && degree(best.id) > 0 ? best.id : "";
 }
 
+type View = "profile" | "diagram";
+
 export function CatalogScreen({ path, emptyText }: { path: string; emptyText: string }) {
   const { data, error, loading, refresh } = usePoll<CatalogView>(path, null);
   const [picked, setPicked] = useState<string | null>(null);
+  const [view, setView] = useState<View>("profile");
+  // Hồ sơ dữ liệu có dòng xem trước → chỉ Engineer/Reviewer (backend cũng chặn); Admin xem sơ đồ cấu trúc.
+  const canSeeData = useApp().user?.role !== "admin";
   if (loading && !data) return <Loading text="Đang đọc cấu trúc dữ liệu (DuckDB + sqlglot)…" />;
   if (!data) return <ErrorBox message={error || "Không tải được cấu trúc dữ liệu."} onRetry={refresh} />;
   if (data.tables.length === 0) return <Empty>{emptyText}</Empty>;
   // Mặc định chọn sẵn bảng đích (mart), hoặc bảng nguồn có nhiều quan hệ nhất; bấm lại bảng đang chọn để bỏ chọn.
   const selected = picked ?? defaultTable(data);
   const toggle = (id: string) => setPicked(id === selected ? "" : id);
+  const shown = canSeeData ? view : "diagram";
+  return (
+    <>
+      {canSeeData && (
+        <div className="tabs" role="tablist" aria-label="Cách xem dữ liệu">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={shown === "profile"}
+            className={`tab${shown === "profile" ? " active" : ""}`}
+            onClick={() => setView("profile")}
+          >
+            Hồ sơ dữ liệu
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={shown === "diagram"}
+            className={`tab${shown === "diagram" ? " active" : ""}`}
+            onClick={() => setView("diagram")}
+          >
+            Sơ đồ quan hệ
+          </button>
+        </div>
+      )}
+      {shown === "profile" && <DataProfile catalog={data} base={path} initial={selected} />}
+      {shown === "diagram" && <DiagramView catalog={data} selected={selected} toggle={toggle} onSelect={setPicked} />}
+    </>
+  );
+}
+
+function DiagramView({
+  catalog: data,
+  selected,
+  toggle,
+  onSelect: setPicked,
+}: {
+  catalog: CatalogView;
+  selected: string;
+  toggle: (id: string) => void;
+  onSelect: (id: string) => void;
+}) {
   return (
     <>
       <div className="catalog-layout">

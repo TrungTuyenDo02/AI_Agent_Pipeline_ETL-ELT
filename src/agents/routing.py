@@ -34,6 +34,11 @@ def after_ingest(state: PipelineState) -> str:
     return "fail" if state.get("error") else "profiler"
 
 
+def after_schema_guard(state: PipelineState) -> str:
+    """Engineer chọn dừng khi nguồn bị xóa/đổi tên cột → fail; còn lại sinh dữ liệu thử."""
+    return "fail" if state.get("error") else "mock_data"
+
+
 def fix_route(state: PipelineState) -> str:
     """Sau lỗi V1/V2: cùng lỗi lặp 2 lần hoặc quá số lần sửa → cứu hộ; còn lại → Codegen sửa."""
     signatures = state.get("error_signatures", [])

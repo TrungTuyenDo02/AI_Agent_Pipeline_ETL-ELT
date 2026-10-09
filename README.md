@@ -1,9 +1,9 @@
 # P-113 — Agent viết & tối ưu pipeline ELT/ETL
 
-[![CI](https://github.com/AI20K-Build-Phase-Cohort-4/P-113/actions/workflows/ci.yml/badge.svg)](https://github.com/AI20K-Build-Phase-Cohort-4/P-113/actions/workflows/ci.yml)
+[![CI](https://github.com/TrungTuyenDo02/AI_Agent_Pipeline_ETL-ELT/actions/workflows/ci.yml/badge.svg)](https://github.com/TrungTuyenDo02/AI_Agent_Pipeline_ETL-ELT/actions/workflows/ci.yml)
 
-> Data engineer mất nhiều giờ viết lặp lại pipeline dbt/Airflow và dò query chậm → agent nhận yêu cầu bằng lời,
-> tự sinh model dbt + DAG Airflow, chạy thử trong sandbox DuckDB, đo và tối ưu query, rồi để Engineer duyệt trước khi merge.
+> Tóm tắt 1 câu: data engineer mất nhiều giờ viết lặp lại pipeline dbt/Airflow và dò query chậm → agent LangGraph nhận yêu cầu bằng lời,
+> sinh model dbt + DAG Airflow, chạy thử trong sandbox DuckDB, đo và tối ưu query, rồi để Reviewer duyệt trước khi merge.
 
 **Live URL:** chưa có (giai đoạn C) • **Video demo:** chưa có • **Hướng dẫn chạy chi tiết:** [docs/RUNBOOK.md](docs/RUNBOOK.md)
 
@@ -17,7 +17,7 @@ Chụp ở chế độ mô phỏng (`LLM_PROVIDER=mock`), dữ liệu giả lậ
 | **Duyệt kế hoạch J1b** (các bước + vì sao, trước khi sinh code) | **Tối ưu** (trước/sau, đối chiếu từng bộ dữ liệu) |
 | ![Duyệt kế hoạch](docs/screenshots/web_plan_review.png) | ![Tối ưu](docs/screenshots/web_optimize.png) |
 
-## Vấn đề
+## Vấn đề (Problem)
 
 - **Ai gặp:** data engineer (DE) trong đội dữ liệu; người không phải DE nhưng cần pipeline (vận hành, kinh doanh).
 - **Đau ở đâu:** mỗi yêu cầu kiểu "gộp đơn hàng 3 nguồn, tính doanh thu ngày" lại phải viết staging, mart, test, DAG
@@ -25,7 +25,7 @@ Chụp ở chế độ mô phỏng (`LLM_PROVIDER=mock`), dữ liệu giả lậ
 - **Vì sao công cụ hiện có chưa đủ:** trợ lý sinh code thường không chạy thử, không tự kiểm chứng kết quả, và tự báo "xong"
   mà không có bằng chứng — rủi ro cao nếu chạy thẳng trên production.
 
-## Giải pháp
+## Giải pháp (Solution)
 
 Nguyên tắc **J-E-V**: con người **phán đoán** (J), agent **thực thi** (E), code thuần **kiểm chứng** (V, 0 token).
 
@@ -38,10 +38,11 @@ Nguyên tắc **J-E-V**: con người **phán đoán** (J), agent **thực thi**
   trên 5 bộ dữ liệu và nhanh hơn ngưỡng; không đáng thì ghi "giữ nguyên" kèm lý do.
 - **Duyệt có bằng chứng:** Reviewer xem diff + bảng **"Code đo | LLM nói"**; người tạo yêu cầu không được tự duyệt.
 
-## Người dùng
+## Target User
 
-- **Chính:** DE bận rộn — xem code, diff, số đo.
-- **Phụ:** người không phải DE — mô tả nghiệp vụ, xem kế hoạch bằng lời và kết quả mẫu.
+- **Primary:** data engineer (DE) bận rộn — xem code, diff, số đo; đóng vai Engineer (tạo yêu cầu) hoặc Reviewer (duyệt).
+- **Secondary:** người không phải DE nhưng cần pipeline (vận hành, kinh doanh) — mô tả nghiệp vụ, xem kế hoạch bằng lời và kết quả mẫu.
+- **Quản trị (Admin):** cấp và khóa tài khoản. Phần mềm nội bộ, không có đăng ký tự do.
 
 ## Sơ đồ kiến trúc
 
@@ -61,21 +62,46 @@ mô tả từng khối + Mermaid: [ARCHITECTURE.md](ARCHITECTURE.md), [docs/arch
 | E4 Optimizer ⇄ V3 Đối chiếu | LLM + code | Đề xuất viết lại; đối chiếu hai chiều, đo tốc độ, quyết định applied/skipped |
 | Pull Request → J2 Reviewer | Người | Approve / từ chối kèm ghi chú (quay lại Coder) |
 
-## Tech stack
+## Tech Stack
 
-| Lớp | Công nghệ |
+| Layer | Technology |
 |---|---|
 | Agent | LangGraph 1.2 (interrupt + checkpointer SQLite), LangChain OpenAI |
 | LLM | `mock` (mặc định, không cần khóa); OpenAI theo từng bước (`gpt-5.6-luna` cho planner/codegen/testgen, `gpt-5.6-terra` cho optimizer); dự phòng Google Gemini `gemini-3.1-flash-lite` |
 | Sandbox | DuckDB 1.5, dbt-core 1.12 + dbt-duckdb, sqlglot 30 |
-| Backend | FastAPI + Uvicorn, SQLite (lần chạy, duyệt, sổ lỗi) |
+| Backend | FastAPI + Uvicorn, Python 3.11+ |
+| Database | PostgreSQL 16 (tài khoản, phiên, `audit_log`; SQLAlchemy 2 + Alembic) • SQLite (lần chạy, duyệt, sổ lỗi — chuyển sang PostgreSQL ở bước sau) |
 | Terminal | argparse + rich |
 | Frontend | Next.js 16 (App Router) + TypeScript, `@monaco-editor/react` (diff code), sơ đồ dữ liệu SVG tự vẽ |
 | DevOps | Docker multi-stage (backend + frontend standalone), docker compose, GitHub Actions (lint → test, frontend → build) |
 
-## Cài đặt và chạy
+## Quick Start
 
-### Terminal (giai đoạn A — không cần khóa API)
+```bash
+# 1. Clone repo
+git clone https://github.com/TrungTuyenDo02/AI_Agent_Pipeline_ETL-ELT.git
+cd AI_Agent_Pipeline_ETL-ELT
+
+# 2. Setup environment
+cp .env.example .env                  # Windows: Copy-Item .env.example .env
+# Điền các biến còn trống trong .env (chỉ cần khóa LLM khi dùng LLM thật; mặc định LLM_PROVIDER=mock)
+
+# 3. Install dependencies
+python -m venv .venv && source .venv/bin/activate     # Windows: .\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+
+# 4. Database (đăng nhập + nhật ký kiểm toán) và tài khoản mẫu
+docker compose up -d db               # PostgreSQL cục bộ
+alembic upgrade head
+python -m src.cli users seed-dev      # tài khoản mẫu an/binh/quantri, mật khẩu ngẫu nhiên in một lần
+
+# 5. Run development server
+uvicorn src.main:app --reload         # API http://localhost:8000/docs
+```
+
+### Chi tiết các cách chạy
+
+#### Terminal (giai đoạn A — không cần khóa API)
 
 ```powershell
 python -m venv .venv
@@ -95,7 +121,7 @@ python -m src.cli review latest --as reviewer --user binh
 python -m src.cli status
 ```
 
-### Web trên máy (giai đoạn B)
+#### Web trên máy (giai đoạn B)
 
 ```powershell
 python scripts/tasks.py run           # API ở http://localhost:8000 (make run)
@@ -114,7 +140,7 @@ Giao diện thiết kế cho laptop (≥1280px), vẫn dùng được trên màn
 | Cấu trúc dữ liệu | Sơ đồ raw → staging → mart, schema từng bảng (kiểu, % rỗng, khóa, trùng khóa), lineage, khóa JOIN |
 | Dữ liệu nguồn • Sổ lỗi | 19 bảng raw nhóm theo 8 hệ thống, số dòng, % rỗng, trùng khóa, khóa nối gợi ý kèm % dòng khớp • duyệt bài học cho agent |
 
-### Docker
+#### Docker
 
 ```powershell
 docker compose up --build             # web http://localhost:3000 • API http://localhost:8000/health
@@ -124,28 +150,36 @@ $env:LLM_PROVIDER="mock"; docker compose up --build   # ép chế độ mô ph�
 Dữ liệu của bản Docker nằm trong volume riêng (`backend-data`, `backend-workspaces`), tách với `data/` trên máy;
 lần đầu chạy API tự sinh dữ liệu mẫu.
 
-### Kiểm thử
+#### Kiểm thử
 
 ```powershell
 python scripts/tasks.py ci            # giống CI: ruff check → ruff format --check → pytest (độ phủ ≥ 60%)
 ```
 
-## Biến môi trường
+### Biến môi trường
 
 Xem giá trị mẫu trong [.env.example](.env.example). Chỉ cần đổi khi muốn dùng LLM thật.
 
-`LLM_PROVIDER`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `MODEL_NAME`, `MODEL_PLANNER`, `MODEL_CODEGEN`, `MODEL_TESTGEN`,
-`MODEL_OPTIMIZER`, `LLM_FALLBACK`, `GOOGLE_MODEL_NAME`, `LLM_TEMPERATURE`, `LLM_MAX_TOKENS`, `APP_ENV`, `APP_PORT`, `APP_HOST`,
-`CORS_ORIGINS`, `LOG_LEVEL`, `STORE_PATH`, `CHECKPOINT_PATH`, `SOURCES_DIR`, `WORKSPACES_DIR`, `SANDBOX_TIMEOUT_SEC`,
-`SANDBOX_MEMORY_LIMIT`, `MAX_FIX_ATTEMPTS`, `OPT_MIN_GAIN_PCT`, `OPT_RUNS_PER_MONTH`, `OPT_MAX_ATTEMPTS`,
-`MOCK_LARGE_ROWS`, `LANGCHAIN_TRACING_V2` / `LANGSMITH_TRACING`, `LANGCHAIN_API_KEY` / `LANGSMITH_API_KEY`,
-`LANGCHAIN_PROJECT`, `AI_LOG_SERVER`, `AI_LOG_API_KEY`, `AI_LOG_DIR`.
+`LLM_PROVIDER`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `MODEL_NAME`, `MODEL_PLANNER`, `MODEL_CODEGEN`, `MODEL_TESTGEN`, `MODEL_OPTIMIZER`, `LLM_FALLBACK`, `GOOGLE_MODEL_NAME`, `LLM_TEMPERATURE`, `LLM_MAX_TOKENS`, `LLM_STRUCTURED_OUTPUT`, `DATABASE_URL`, `MIGRATION_DATABASE_URL`, `TEST_DATABASE_URL`, `POSTGRES_PASSWORD`, `P113_MIGRATOR_PASSWORD`, `P113_APP_PASSWORD`, `SESSION_SECRET`, `SESSION_TTL_MINUTES`, `SESSION_COOKIE_SECURE`, `SESSION_COOKIE_SAMESITE`, `LOGIN_MAX_FAILURES`, `LOGIN_LOCK_MINUTES`, `FORCE_HTTPS`, `APP_ENV`, `APP_PORT`, `APP_HOST`, `CORS_ORIGINS`, `LOG_LEVEL`, `SANDBOX_TIMEOUT_SEC`, `SANDBOX_MEMORY_LIMIT`, `MAX_FIX_ATTEMPTS`, `OPT_MIN_GAIN_PCT`, `OPT_RUNS_PER_MONTH`, `OPT_MAX_ATTEMPTS`, `MOCK_LARGE_ROWS`, `LANGCHAIN_API_KEY`, `LANGCHAIN_PROJECT`, `AI_LOG_SERVER`, `AI_LOG_API_KEY`, `AI_LOG_DIR`.
 
-## API
+Bí mật (khóa API, mật khẩu, `SESSION_SECRET`) chỉ nằm trong `.env` (đã git-ignore) hoặc dịch vụ quản lý bí mật khi triển khai, không bao giờ vào Git hay log.
+
+## API Endpoints
 
 Swagger: <http://localhost:8000/docs>. Thao tác làm agent chạy tiếp trả `202` ngay (chạy nền, xếp hàng lần lượt);
-web hỏi `GET /runs/{id}` định kỳ để xem tiến trình. Người dùng lấy từ header `X-User` (mặc định `de`); `X-Role` chỉ
-dùng khi bật `REQUIRE_SEPARATE_REVIEWER`. Lỗi trả `detail` tiếng Việt, không lộ traceback.
+web hỏi `GET /runs/{id}` định kỳ để xem tiến trình. Mọi API (trừ `POST /auth/login`, `/auth/logout`, `/health`) cần
+đăng nhập (cookie phiên HttpOnly): chưa đăng nhập → `401`, sai vai trò → `403` (ghi `audit_log`). Thao tác ghi phải kèm
+header `X-Requested-With`. Lỗi trả `detail` tiếng Việt, không lộ traceback.
+
+Đăng nhập (tài khoản do doanh nghiệp cấp, không có đăng ký): `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`;
+Admin: `GET/POST /admin/users`, `PATCH /admin/users/{id}`, `GET /admin/audit`. Cấu trúc nguồn (mục 8): `GET /catalog/schema-changes` (kiểm lúc nhận), `POST /runs/{id}/schema` (Engineer xác nhận khi nguồn mất cột). Vai trò: **engineer** (tạo yêu cầu, trả lời, duyệt kế hoạch,
+cứu hộ), **reviewer** (duyệt/từ chối code, duyệt sổ lỗi), **admin** (quản lý tài khoản). Cài lần đầu:
+
+```bash
+docker compose up -d db                      # PostgreSQL cục bộ (điền mật khẩu trong .env trước, xem .env.example)
+alembic upgrade head                         # tài khoản migration (MIGRATION_DATABASE_URL)
+python -m src.cli users seed-dev             # tài khoản mẫu an/binh/quantri, mật khẩu ngẫu nhiên in một lần
+```
 
 | Method | Path | Mô tả |
 |---|---|---|
@@ -163,8 +197,10 @@ dùng khi bật `REQUIRE_SEPARATE_REVIEWER`. Lỗi trả `detail` tiếng Việt
 | GET/POST | `/api/v1/errors` • `/errors/{id}/approve` • `/errors/{id}/discard` | Sổ lỗi |
 | GET | `/api/v1/catalog/sources` | Bảng nguồn + schema + gợi ý khóa nối theo tên cột |
 | GET | `/api/v1/runs/{id}/catalog` | Cấu trúc một lần chạy: raw → staging → mart, kiểu cột, % rỗng, khóa, lineage, JOIN thật (0 token) |
+| GET | `/api/v1/catalog/sources/profile?table=` | Hồ sơ dữ liệu một bảng nguồn: chất lượng + phân bố từng cột, vấn đề, 50 dòng xem trước đã che PII (Engineer/Reviewer) |
+| GET | `/api/v1/runs/{id}/profile?table=&dataset=` | Như trên cho bảng của lần chạy, kể cả staging/mart do code AI sinh; `dataset` = sandbox / small / dirty / dupkeys / nullmoney / few / empty |
 
-## Cấu trúc thư mục
+## Project Structure
 
 ```
 src/
@@ -174,7 +210,7 @@ src/
     runner.py, progress.py                Chạy/tạm dừng/tiếp tục theo run_id, dòng tiến trình
     nodes/                                Mỗi node một file (planner, spec_check, ingest, ... , review)
     tools/                                sql_tools (sqlglot), duckdb_tools, dbt_tools, pii
-  api/                                    health, routes, runs
+  api/                                    health, auth (đăng nhập/đăng xuất, admin), routes, runs, reviews, catalog, error_book
   models/                                 Hợp đồng Pydantic: spec, evidence, schemas
   services/                               llm (+ llm_mock), store, error_memory, seed, doctor, cost, tracing,
                                           company/ (kho raw giả lập P113 Retail), catalog, source_catalog, export, jobs
@@ -182,10 +218,12 @@ src/
 pipelines/template/                       Dự án dbt mẫu; workspaces/ sinh lúc chạy (git-ignored)
 tests/                                    test_api, test_agents, test_verifiers, test_optimizer, test_services, test_cli
 docs/                                     RUNBOOK, adr/ (quyết định + sơ đồ), architecture_diagram.md, guide/
+migrations/, alembic.ini                  Alembic: bảng users, phiên, audit_log, ảnh chụp cấu trúc nguồn
+frontend/                                 Next.js: app/ (login, admin, catalog, run), components/
 scripts/                                  seed_data.py, tasks.py (thay make trên Windows), hook ghi log AI
 ```
 
-## Kết quả đánh giá
+## Kết quả đánh giá (Evaluation)
 
 Chỉ ghi số đã đo thật (2026-10-02, Windows, Python 3.11.9). Tổng hợp tự động: [eval/results/report.md](eval/results/report.md)
 (`make eval`). Cột "LLM thật" dùng **openai**: planner/codegen/testgen = `gpt-5.6-luna`, optimizer = `gpt-5.6-terra`.
@@ -214,8 +252,9 @@ Chỉ ghi số đã đo thật (2026-10-02, Windows, Python 3.11.9). Tổng hợ
 
 - Chưa chạy trên dữ liệu công ty thật; dùng kho raw giả lập của công ty bán lẻ "P113 Retail" (8 hệ thống, 19 bảng, bẩn có chủ đích, seed cố định — [docs/data-catalog.md](docs/data-catalog.md)).
 - Kết quả chạy bằng `mock` không phản ánh chất lượng mô hình thật; Planner/Coder mock được viết sẵn cho kịch bản doanh thu ngày.
-- Một vai trò DE (tự duyệt) theo quyết định của đội; bật `REQUIRE_SEPARATE_REVIEWER=true` để tách Engineer/Reviewer.
-- Bảo mật ở mức tối thiểu: người dùng/vai trò xác định bằng tham số CLI hoặc header `X-User`/`X-Role` (web), chưa có đăng nhập.
+- Chỉ Reviewer được duyệt; Reviewer được duyệt cả yêu cầu do mình tạo (người dùng chọn, ADR 0004).
+- Đăng nhập/nhật ký kiểm toán đã ở PostgreSQL; lần chạy, quyết định duyệt, sổ lỗi vẫn ở SQLite (chuyển ở bước sau).
+- CLI chạy trên máy chủ nên tin `--as/--user` (người vào được máy chủ đã có quyền cao hơn); web luôn dùng phiên đăng nhập.
 - Sandbox chỉ DuckDB local; gợi ý partition/cluster cho kho khác chỉ là gợi ý, không thực thi.
 - Chưa có Live URL (giai đoạn C). Web: các lần chạy xếp hàng lần lượt; nhật ký từng bước giữ trong bộ nhớ API (mất khi khởi động lại, kết quả vẫn còn); trình xem code Monaco tải từ CDN jsDelivr nên cần mạng.
 
@@ -246,24 +285,24 @@ bash scripts/_pyrun.sh scripts/log_manual.py --tool chatgpt --prompt "What you a
 
 Mỗi thành viên tự tạo `AI_LOG_API_KEY` tại [dashboard Phoenix](https://phoenix.note.transformerlabs.ai/api-keys) và điền vào `.env`.
 
-## Thành viên
-
-| Thành viên | Vai trò |
-|---|---|
-| TrungTuyenDo02 | Toàn bộ hệ thống |
-
-## Deliverables
+## Deliverables Checklist
 
 - [x] Source code (`src/`)
 - [x] README.md
-- [x] Sơ đồ kiến trúc (`docs/adr/architecture.png`, `docs/architecture_diagram.md`)
+- [x] Architecture diagram (`docs/adr/architecture.png`, `docs/architecture_diagram.md`)
 - [x] AI logs (hook tự động; LangSmith tùy chọn)
-- [ ] Live URL
+- [ ] Live URL / Deploy
 - [ ] Video demo (`docs/video-demo.md`)
 - [ ] Pitch deck (`presentation/`)
-- [x] Journal (`JOURNAL.md`)
+- [x] Weekly journal (`JOURNAL.md`)
 - [x] Worklog (`WORKLOG.md`)
 - [ ] Evaluation evidence (`eval/results/report.md`)
+
+## Team
+
+| Member | Role | Student ID |
+|--------|------|-----------|
+| TrungTuyenDo02 | Toàn bộ hệ thống | — |
 
 ## License
 

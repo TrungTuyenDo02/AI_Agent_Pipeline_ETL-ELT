@@ -34,9 +34,9 @@ def test_doctor_and_seed(capsys, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     assert "Python" in out and "shopee_orders.csv" in out
 
 
-def test_reviewer_role_cannot_create_request_in_separate_mode(capsys, separate_reviewer):
+def test_reviewer_role_cannot_create_request(capsys):
     assert main(["run", "--request", "x", "--as", "reviewer"]) == 2
-    assert "Reviewer" in capsys.readouterr().out
+    assert "Engineer" in capsys.readouterr().out
 
 
 def test_status_and_errors_listing(capsys):
@@ -47,15 +47,27 @@ def test_status_and_errors_listing(capsys):
     assert main(["errors"]) == 0
 
 
-def test_errors_approve_needs_reviewer_only_in_separate_mode(separate_reviewer):
+def test_errors_approve_needs_reviewer():
     assert main(["errors", "--approve", "1", "--as", "engineer"]) == 2
 
 
-def test_review_blocks_requester_and_wrong_role(capsys, separate_reviewer):
+def test_review_blocks_wrong_role(capsys):
     record = get_store().create_run("doanh thu", "alice")
-    assert main(["review", record.id, "--as", "reviewer", "--user", "alice"]) == 2
     assert main(["review", record.id, "--as", "engineer", "--user", "bob"]) == 2
-    assert "không được tự duyệt" in capsys.readouterr().out
+    assert "Chỉ vai trò Reviewer" in capsys.readouterr().out
+
+
+def test_users_seed_dev_prints_random_passwords_once(capsys):
+    from src.services import auth
+
+    assert main(["users", "seed-dev"]) == 0
+    first = capsys.readouterr().out
+    assert {"an", "binh", "quantri"} <= {u.username for u in auth.list_users()}
+    assert "mật khẩu" in first
+    assert main(["users", "seed-dev"]) == 0  # chạy lại: không tạo trùng, không in lại mật khẩu
+    assert "bỏ qua" in capsys.readouterr().out
+    assert main(["users", "lock", "--username", "an"]) == 0 and not auth.find_user("an").is_active
+    assert main(["users", "unlock", "--username", "an"]) == 0 and auth.find_user("an").is_active
 
 
 def test_optimize_without_datasets(tmp_path: Path, capsys):

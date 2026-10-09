@@ -16,9 +16,9 @@ API = "/api/v1"
 REQUEST = {"request_text": "Gộp đơn hàng 3 nguồn, tính doanh thu ngày"}
 
 
-async def _create_and_answer(client: AsyncClient, user: str) -> str:
-    """Tạo yêu cầu, trả lời J1 bằng lựa chọn đầu, đồng ý kế hoạch J1b, chờ tới bản duyệt; trả về run_id."""
-    created = await client.post(f"{API}/runs", json=REQUEST, headers={"X-User": user})
+async def _create_and_answer(client: AsyncClient) -> str:
+    """Engineer (client) tạo yêu cầu, trả lời J1 bằng lựa chọn đầu, đồng ý kế hoạch J1b, chờ tới bản duyệt."""
+    created = await client.post(f"{API}/runs", json=REQUEST)
     assert created.status_code == 202
     run_id = created.json()["run_id"]
     get_jobs().wait(run_id)
@@ -37,9 +37,9 @@ async def _create_and_answer(client: AsyncClient, user: str) -> str:
 
 
 @pytest.mark.slow
-async def test_full_flow_single_de_role(client: AsyncClient, seeded_sources: Path):
-    """Mặc định một vai trò DE: người tạo yêu cầu tự xem bằng chứng và duyệt."""
-    run_id = await _create_and_answer(client, "an")
+async def test_full_flow_engineer_then_reviewer(client: AsyncClient, login, seeded_sources: Path):
+    """Engineer tạo yêu cầu, Reviewer xem bằng chứng và duyệt; Engineer không duyệt được."""
+    run_id = await _create_and_answer(client)
     detail = (await client.get(f"{API}/runs/{run_id}")).json()
     assert detail["record"]["status"] == "waiting_review" and detail["busy"] is False
     assert detail["current"] is None  # rảnh: không có node nào đang chạy
@@ -56,33 +56,17 @@ async def test_full_flow_single_de_role(client: AsyncClient, seeded_sources: Pat
     assert f"p113-{run_id}/models/marts/fct_daily_revenue.sql" in names
     assert not any(n.endswith(".duckdb") or "/datasets/" in n or n.endswith("profiles.yml") for n in names)
     assert run_id in [r["id"] for r in (await client.get(f"{API}/reviews/queue")).json()]
-    review = await client.post(f"{API}/runs/{run_id}/review", json={"decision": "approve"}, headers={"X-User": "an"})
+    assert (await client.post(f"{API}/runs/{run_id}/review", json={"decision": "approve"})).status_code == 403
+    reviewer = await login("reviewer")
+    review = await reviewer.post(f"{API}/runs/{run_id}/review", json={"decision": "approve"})
     assert review.status_code == 202
     get_jobs().wait(run_id)
     assert (await client.get(f"{API}/runs/{run_id}")).json()["record"]["status"] == "approved"
 
 
 @pytest.mark.slow
-async def test_separate_reviewer_mode_blocks_self_approval(
-    client: AsyncClient, seeded_sources: Path, separate_reviewer
-):
-    run_id = await _create_and_answer(client, "an")
-    approve = {"decision": "approve"}
-    self_review = await client.post(
-        f"{API}/runs/{run_id}/review", json=approve, headers={"X-User": "an", "X-Role": "reviewer"}
-    )
-    assert self_review.status_code == 403 and "tự duyệt" in self_review.json()["detail"]
-    wrong_role = await client.post(f"{API}/runs/{run_id}/review", json=approve, headers={"X-User": "binh"})
-    assert wrong_role.status_code == 403
-    ok = await client.post(
-        f"{API}/runs/{run_id}/review", json=approve, headers={"X-User": "binh", "X-Role": "reviewer"}
-    )
-    assert ok.status_code == 202
-
-
-@pytest.mark.slow
 async def test_run_catalog_shows_tables_lineage_and_keys(client: AsyncClient, seeded_sources: Path):
-    run_id = await _create_and_answer(client, "an")
+    run_id = await _create_and_answer(client)
     catalog = (await client.get(f"{API}/runs/{run_id}/catalog")).json()
     tables = {t["id"]: t for t in catalog["tables"]}
     assert {"raw.shopee_orders", "main.stg_shopee_orders", "main.fct_daily_revenue"} <= set(tables)
@@ -92,6 +76,17 @@ async def test_run_catalog_shows_tables_lineage_and_keys(client: AsyncClient, se
     edges = {(e["source"], e["target"]) for e in catalog["lineage"]}
     assert ("raw.shopee_orders", "main.stg_shopee_orders") in edges
     assert ("main.stg_shopee_orders", "main.fct_daily_revenue") in edges
+    # Hồ sơ dữ liệu của bảng do code AI sinh: chạy được trên sandbox và trên bộ dữ liệu bẩn
+    mart = (await client.get(f"{API}/runs/{run_id}/profile", params={"table": "main.fct_daily_revenue"})).json()
+    assert mart["layer"] == "mart" and mart["rows"] > 0 and mart["keys"] == ["order_date"]
+    assert mart["duplicate_keys"] == 0 and len(mart["preview"]) == min(mart["rows"], 50)
+    assert {"sandbox", "dirty"} <= set(mart["datasets"]) and "large" not in mart["datasets"]
+    staging = await client.get(
+        f"{API}/runs/{run_id}/profile", params={"table": "main.stg_shopee_orders", "dataset": "dirty"}
+    )
+    assert staging.status_code == 200 and staging.json()["rows_in"] is not None
+    missing = await client.get(f"{API}/runs/{run_id}/profile", params={"table": "main.khong_co"})
+    assert missing.status_code == 404
 
 
 async def test_sources_catalog_suggests_join_keys(client: AsyncClient, monkeypatch: pytest.MonkeyPatch):
@@ -109,31 +104,53 @@ async def test_sources_catalog_suggests_join_keys(client: AsyncClient, monkeypat
     assert catalog["joins"][0]["how"] == "gợi ý" and "customer_id" in catalog["joins"][0]["left"]
 
 
+async def test_sources_profile_for_data_roles_only(login, monkeypatch: pytest.MonkeyPatch):
+    """Hồ sơ dữ liệu có dòng xem trước → Engineer/Reviewer xem được, Admin bị 403 (quyền hẹp)."""
+    from src.config import get_settings
+
+    golden = Path(__file__).resolve().parents[2] / "eval" / "datasets" / "golden" / "g09_customer_dimension" / "sources"
+    monkeypatch.setenv("SOURCES_DIR", str(golden))
+    get_settings.cache_clear()
+    try:
+        path, params = f"{API}/catalog/sources/profile", {"table": "customers"}
+        profile = (await (await login("reviewer")).get(path, params=params)).json()
+        admin = await (await login("admin")).get(path, params=params)
+        missing = await (await login("engineer")).get(path, params={"table": "khong_co"})
+    finally:
+        monkeypatch.undo()
+        get_settings.cache_clear()
+    assert profile["layer"] == "source" and profile["rows"] > 0 and profile["columns"]
+    assert all(len(row) == len(profile["columns"]) for row in profile["preview"])
+    assert admin.status_code == 403 and missing.status_code == 404
+
+
 @pytest.mark.parametrize(
-    ("method", "path", "body", "code"),
+    ("role", "method", "path", "body", "code"),
     [
-        ("get", "/runs/khong-co", None, 404),
-        ("get", "/runs/khong-co/catalog", None, 404),
-        ("get", "/runs/khong-co/download", None, 404),
-        ("post", "/runs", {"request_text": "x"}, 422),
-        ("post", "/runs/khong-co/review", {"decision": "approve"}, 404),
-        ("post", "/runs/khong-co/plan", {"decision": "approve"}, 404),
-        ("post", "/errors/999999/approve", {"fix": "x"}, 404),
+        ("engineer", "get", "/runs/khong-co", None, 404),
+        ("engineer", "get", "/runs/khong-co/catalog", None, 404),
+        ("engineer", "get", "/runs/khong-co/download", None, 404),
+        ("engineer", "post", "/runs", {"request_text": "x"}, 422),
+        ("reviewer", "post", "/runs/khong-co/review", {"decision": "approve"}, 404),
+        ("engineer", "post", "/runs/khong-co/plan", {"decision": "approve"}, 404),
+        ("reviewer", "post", "/errors/999999/approve", {"fix": "x"}, 404),
     ],
 )
-async def test_friendly_errors(client: AsyncClient, method: str, path: str, body: dict | None, code: int):
+async def test_friendly_errors(login, role: str, method: str, path: str, body: dict | None, code: int):
+    client = await login(role)
     response = await getattr(client, method)(f"{API}{path}", **({"json": body} if body is not None else {}))
     assert response.status_code == code
     assert isinstance(response.json()["detail"], str) and "Traceback" not in response.text
 
 
-async def test_review_requires_note_and_waiting_state(client: AsyncClient):
+async def test_review_requires_note_and_waiting_state(client: AsyncClient, login):
     from src.services.store import get_store
 
     run_id = get_store().create_run("doanh thu", "an").id
-    reject = await client.post(f"{API}/runs/{run_id}/review", json={"decision": "reject"})
+    reviewer = await login("reviewer")
+    reject = await reviewer.post(f"{API}/runs/{run_id}/review", json={"decision": "reject"})
     assert reject.status_code == 422 and "ghi chú" in reject.json()["detail"]
-    approve = await client.post(f"{API}/runs/{run_id}/review", json={"decision": "approve"})
+    approve = await reviewer.post(f"{API}/runs/{run_id}/review", json={"decision": "approve"})
     assert approve.status_code == 409  # chưa ở bước chờ duyệt
     answer = await client.post(f"{API}/runs/{run_id}/answers", json={"answers": {"q": "a"}})
     assert answer.status_code == 409
@@ -141,7 +158,7 @@ async def test_review_requires_note_and_waiting_state(client: AsyncClient):
 
 async def test_status_reports_review_mode(client: AsyncClient):
     data = (await client.get(f"{API}/status")).json()
-    assert data["simulated"] is True and data["require_separate_reviewer"] is False and data["models"] == "mock"
+    assert data["simulated"] is True and data["models"] == "mock"
 
 
 async def test_error_book_listing(client: AsyncClient):

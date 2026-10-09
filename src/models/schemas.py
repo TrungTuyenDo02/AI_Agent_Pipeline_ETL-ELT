@@ -11,6 +11,7 @@ class RunStatus(StrEnum):
     RUNNING = "running"
     WAITING_CLARIFICATION = "waiting_clarification"
     WAITING_PLAN = "waiting_plan_review"
+    WAITING_SCHEMA = "waiting_schema"
     WAITING_RESCUE = "waiting_rescue"
     WAITING_REVIEW = "waiting_review"
     APPROVED = "approved"

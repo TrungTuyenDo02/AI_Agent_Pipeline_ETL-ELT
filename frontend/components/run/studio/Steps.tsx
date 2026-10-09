@@ -7,7 +7,7 @@ import type { RunDetail, Stage } from "@/lib/types";
 import { CheckIcon } from "../../icons";
 import { StatusPill } from "../../StatusPill";
 import { Loading, StepCard } from "../../ui";
-import { ClarifyForm, RescueForm } from "../PendingAction";
+import { ClarifyForm, RescueForm, SchemaForm } from "../PendingAction";
 import { PlanReview } from "../PlanReview";
 import { useRun } from "../RunContext";
 import { SpecBody } from "../SpecCard";
@@ -203,6 +203,7 @@ export function TrackerStep({ detail }: { detail: RunDetail }) {
   const started = stages.some((s) => s.state !== "waiting");
   const done = detail.record.status === "approved";
   const rescue = detail.pending?.kind === "rescue" ? detail.pending : null;
+  const schema = detail.pending?.kind === "schema" ? detail.pending : null;
   return (
     <StepCard
       step={4}
@@ -213,7 +214,7 @@ export function TrackerStep({ detail }: { detail: RunDetail }) {
           <span className="badge info">
             <span className="pulse-dot" aria-hidden /> Agent đang chạy
           </span>
-        ) : rescue || detail.pending?.kind === "review" ? (
+        ) : rescue || schema || detail.pending?.kind === "review" ? (
           <NeedYou />
         ) : done ? (
           <DoneTag text="Đã duyệt" />
@@ -227,6 +228,11 @@ export function TrackerStep({ detail }: { detail: RunDetail }) {
             <TrackerRow key={stage.id} stage={stage} detail={detail} />
           ))}
         </ol>
+      )}
+      {schema && (
+        <div className="rescue-box">
+          <SchemaForm report={schema.report} />
+        </div>
       )}
       {rescue && (
         <div className="rescue-box">

@@ -14,6 +14,7 @@ STAGES: list[tuple[str, str, str, str, tuple[str, ...], bool]] = [
     ("spec_check", "V0", "Soát đặc tả", "V", ("spec_check",), False),
     ("plan_review", "J1b", "Duyệt kế hoạch", "J", ("plan_review",), False),
     ("prepare", "E0–E2", "Nạp và soi dữ liệu", "E", ("ingest", "profiler", "mock_data"), False),
+    ("schema", "Vs", "Soát cấu trúc nguồn", "V", ("schema_guard",), False),
     ("codegen", "E3", "Sinh code", "E", ("codegen",), False),
     ("testgen", "E3b", "Sinh test", "E", ("testgen",), False),
     ("safety", "V1", "Kiểm an toàn", "V", ("safety",), False),
@@ -23,7 +24,13 @@ STAGES: list[tuple[str, str, str, str, tuple[str, ...], bool]] = [
     ("compare", "V3", "Đối chiếu", "V", ("compare",), False),
     ("review", "J2", "Duyệt code", "J", ("review", "package", "finalize"), False),
 ]
-PENDING_STAGE = {"clarify": "clarify", "plan": "plan_review", "rescue": "rescue", "review": "review"}
+PENDING_STAGE = {
+    "clarify": "clarify",
+    "plan": "plan_review",
+    "schema": "schema",
+    "rescue": "rescue",
+    "review": "review",
+}
 FIX_LOOP = {"safety", "sandbox"}  # V1/V2 lỗi → quay về E3 sửa
 
 
@@ -50,6 +57,7 @@ def _from_values(stage_id: str, values: dict, status: str) -> tuple[str, str] | 
         if (values.get("plan_review") or {}).get("decision") == "approve"
         else None,
         "prepare": ("passed", f"{len(values['profile'])} bảng") if values.get("profile") else None,
+        "schema": ("passed", "") if values.get("schema_report") and values.get("code_files") else None,
         "codegen": ("passed", f"{len(values['code_files'])} file") if values.get("code_files") else None,
         "testgen": ("passed", f"{len(values['test_files'])} file test") if values.get("test_files") else None,
         "safety": (("passed" if safety["passed"] else "failed"), "") if "passed" in safety else None,

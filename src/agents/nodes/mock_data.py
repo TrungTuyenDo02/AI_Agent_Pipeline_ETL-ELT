@@ -30,6 +30,7 @@ class TableRecipe(BaseModel):
     key_numeric: bool = False
     money_columns: list[str] = []
     link_columns: dict[str, bool] = {}  # cột dạng khóa (nối giữa các bảng) → có phải kiểu số không
+    category_columns: list[str] = []  # cột phân loại (trạng thái, giới tính...) → bộ dirty cố ý làm bẩn
 
 
 def _src(recipe: TableRecipe) -> str:
@@ -70,8 +71,23 @@ def _numbered(recipe: TableRecipe) -> str:
     return f"WITH s AS (SELECT *, row_number() OVER (ORDER BY {order}) AS __rn FROM ({_small(recipe)}))"
 
 
+# Mục 9: cột phân loại bị làm bẩn theo đủ kiểu thường gặp — 'Male', 'male ', rỗng, giá trị lạ — để test bắt được
+# code chỉ đúng với giá trị đã thấy trong mẫu (lọc mất dòng thay vì đưa vào nhóm "không rõ").
+DIRTY_UNKNOWN = "gia_tri_la"
+
+
+def _dirty_category(column: str) -> str:
+    c = f'"{column}"'
+    return (
+        f"CASE __rn % 6 WHEN 1 THEN upper({c}) WHEN 2 THEN {c} || ' ' WHEN 3 THEN '' "
+        f"WHEN 4 THEN '{DIRTY_UNKNOWN}' ELSE {c} END AS {c}"
+    )
+
+
 def _dirty(recipe: TableRecipe) -> str:
-    nulls = ", ".join(f'CASE WHEN __rn % 7 = 0 THEN NULL ELSE "{c}" END AS "{c}"' for c in recipe.money_columns)
+    parts = [f'CASE WHEN __rn % 7 = 0 THEN NULL ELSE "{c}" END AS "{c}"' for c in recipe.money_columns]
+    parts += [_dirty_category(c) for c in recipe.category_columns if c not in recipe.money_columns]
+    nulls = ", ".join(parts)
     replace = f" REPLACE ({nulls})" if nulls else ""
     return (
         f"{_numbered(recipe)} SELECT * EXCLUDE (__rn){replace} FROM s "
@@ -142,6 +158,7 @@ def recipes_from_profile(profile: dict) -> list[TableRecipe]:
                 key_numeric=bool(key) and info["columns"][key]["type"] in NUMERIC_TYPES,
                 money_columns=info.get("money_columns", []),
                 link_columns=links,
+                category_columns=[c for c, col in info["columns"].items() if col.get("categories") and c != key],
             )
         )
     return recipes

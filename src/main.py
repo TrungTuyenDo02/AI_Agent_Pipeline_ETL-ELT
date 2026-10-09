@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.responses import JSONResponse
 
 from src.api.health import router as health_router
@@ -29,6 +30,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     warning = configure_tracing()
     if warning:
         logger.warning(warning)
+    if settings.missing_auth_settings:
+        logger.warning("login disabled: missing env", extra={"missing": settings.missing_auth_settings})
     if ensure_demo_sources(settings.sources_dir, settings.seed):
         logger.info("demo sources seeded", extra={"dir": str(settings.sources_dir)})
     logger.info("app starting", extra={"env": settings.app_env, "llm_provider": settings.llm_provider})
@@ -36,12 +39,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("app stopping")
 
 
+_production = get_settings().app_env == "production"
 app = FastAPI(
     title="P-113 Pipeline Agent",
     description="Agent sinh và tối ưu pipeline ELT/ETL (dbt + Airflow), chạy thử trong sandbox DuckDB.",
     version=APP_VERSION,
     lifespan=lifespan,
+    # Production không công khai sơ đồ API (/docs, /openapi.json)
+    docs_url=None if _production else "/docs",
+    redoc_url=None if _production else "/redoc",
+    openapi_url=None if _production else "/openapi.json",
 )
+if get_settings().force_https:  # triển khai thật: chỉ HTTPS (proxy phía trước phải gửi X-Forwarded-Proto)
+    app.add_middleware(HTTPSRedirectMiddleware)
 
 # Development: nhận thêm web mở bằng 127.0.0.1, cổng khác hoặc IP mạng nội bộ (thử trên điện thoại cùng Wi-Fi).
 # Production chỉ nhận đúng CORS_ORIGINS.

@@ -314,3 +314,56 @@ def expand_models(rendered: dict[str, str]) -> dict[str, str]:
     for _ in range(3):
         expanded = {name: inline_refs(sql, expanded) for name, sql in rendered.items()}
     return expanded
+
+
+# ---------- Mục 9: điều kiện cứng theo giá trị ----------
+
+VALUE_COMPARISONS = (exp.EQ, exp.NEQ, exp.In, exp.Like, exp.ILike)
+VALUE_CONTEXTS = ((exp.Where, "lọc"), (exp.Having, "lọc"), (exp.Join, "nối"), (exp.If, "phân nhóm"))
+
+
+def _context(node: exp.Expression) -> str:
+    """Điều kiện nằm ở đâu: WHERE/HAVING (lọc bỏ dòng), CASE WHEN (phân nhóm), JOIN ... ON (nối)."""
+    found = node.find_ancestor(*(kind for kind, _ in VALUE_CONTEXTS))
+    return next((label for kind, label in VALUE_CONTEXTS if isinstance(found, kind)), "khác")
+
+
+def _line_of(sql: str, value: str) -> int:
+    """Dòng (đếm từ 1) đầu tiên chứa giá trị trong file gốc; 0 nếu không tìm thấy."""
+    needle = f"'{value}'"
+    return next((i for i, line in enumerate(sql.splitlines(), 1) if needle in line), 0)
+
+
+def _mentioned(value: str, text: str) -> bool:
+    """Giá trị được nêu nguyên từ trong đặc tả ('shopee' không tính là có trong 'shopee_orders')."""
+    return re.search(rf"(?<!\w){re.escape(value.strip().lower())}(?!\w)", text) is not None
+
+
+def value_filters(path: str, sql: str, spec_text: str = "") -> list[dict]:
+    """Mọi so sánh cột với giá trị chuỗi cụ thể (`= 'x'`, `IN ('a','b')`, `LIKE`): để Reviewer xem từng điều kiện.
+
+    `in_spec` = giá trị có xuất hiện trong đặc tả/câu trả lời của người dùng; False = có thể suy từ dữ liệu mẫu.
+    Không parse được (ví dụ DAG) thì trả rỗng — V1 đã kiểm cú pháp riêng.
+    """
+    try:
+        tree = parse_single_select(render_dbt_sql(sql))
+    except SqlCheckError:
+        return []
+    spec_lower, found = spec_text.lower(), []
+    for node in tree.find_all(*VALUE_COMPARISONS):
+        literals = [lit.this for lit in node.find_all(exp.Literal) if lit.is_string]
+        column = node.find(exp.Column)
+        if not literals or column is None or isinstance(node.parent, VALUE_COMPARISONS):
+            continue
+        found.append(
+            {
+                "file": path,
+                "line": _line_of(sql, literals[0]),
+                "column": column.name,
+                "values": literals,
+                "context": _context(node),
+                "expression": node.sql(dialect=DIALECT)[:160],
+                "in_spec": all(_mentioned(v, spec_lower) for v in literals if v.strip()),
+            }
+        )
+    return found

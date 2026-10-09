@@ -7,6 +7,7 @@ const GLYPH: Record<RunStatus, string> = {
   running: "",
   waiting_clarification: "?",
   waiting_plan_review: "!",
+  waiting_schema: "!",
   waiting_rescue: "!",
   waiting_review: "!",
   approved: "✓",

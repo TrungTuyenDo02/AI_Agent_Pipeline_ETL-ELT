@@ -1,6 +1,8 @@
 """Xử lý từng lệnh CLI. Mỗi hàm trả mã thoát (0 = thành công)."""
 
 import argparse
+import getpass
+import secrets
 import subprocess
 import sys
 from collections.abc import Callable
@@ -29,9 +31,11 @@ from src.cli_views import (
 )
 from src.config import get_settings
 from src.models.evidence import ReviewDecision
+from src.services import auth
 from src.services.doctor import run_checks
 from src.services.error_memory import get_error_memory
 from src.services.llm import LLMCallError, LLMConfigError
+from src.services.schema_watch import SchemaReport
 from src.services.seed import SeedConfig, generate_sources
 from src.services.store import get_store
 
@@ -92,6 +96,13 @@ def _step(outcome: RunOutcome, args: argparse.Namespace) -> RunOutcome | None:
     if kind == "rescue":
         value = {"action": "abort"} if auto else ask_rescue(outcome.pending)
         return runner.resume_run(ResumeRequest(run_id=outcome.run_id, kind="rescue", value=value), print_event)
+    if kind == "schema":  # nguồn có cột bị xóa/đổi tên: đổi tên chỉ xác nhận trên web; ở đây chạy tiếp hoặc dừng
+        console.print(
+            f"[yellow]Cấu trúc nguồn thay đổi: {SchemaReport.model_validate(outcome.pending['report']).summary()}[/]"
+        )
+        go = auto or Prompt.ask("Chạy tiếp?", choices=["continue", "abort"], default="abort") == "continue"
+        value = {"action": "continue" if go else "abort", "by": args.user}
+        return runner.resume_run(ResumeRequest(run_id=outcome.run_id, kind="schema", value=value), print_event)
     if kind == "review" and getattr(args, "auto_approve", False):
         return _auto_review(outcome)
     return None
@@ -109,18 +120,18 @@ def _drive(outcome: RunOutcome, args: argparse.Namespace) -> int:
     if outcome.error:
         console.print(f"[red]{outcome.error}[/]")
     if outcome.status == "waiting_review":
-        who = " --as reviewer --user <tên>" if get_settings().require_separate_reviewer else ""
-        console.print(f"Xem bằng chứng và duyệt: [bold]python -m src.cli review {outcome.run_id}{who}[/]")
+        console.print(f"Xem bằng chứng và duyệt: [bold]python -m src.cli review {outcome.run_id} --user <tên>[/]")
     return 1 if outcome.status == "failed" else 0
 
 
 def cmd_run(args: argparse.Namespace) -> int:
     """Chạy luồng từ đầu, hỏi J1 ngay trong terminal."""
-    if get_settings().require_separate_reviewer and args.role == "reviewer":
-        console.print("[red]Vai trò Reviewer không tạo yêu cầu (--as engineer).[/]")
+    if args.role != "engineer":
+        console.print("[red]Chỉ vai trò Engineer tạo yêu cầu (--as engineer).[/]")
         return 2
     if get_settings().is_mock:
         simulated_banner()
+    auth.audit("run.create", args.user, detail={"via": "cli"})
     try:
         return _drive(runner.start_run(args.request, args.user, print_event), args)
     except (LLMConfigError, LLMCallError, RunStateError, PermissionDeniedError) as exc:
@@ -152,7 +163,7 @@ def _check_reviewer(args: argparse.Namespace) -> str:
     record = get_store().get_run(args.run_id)
     if record is None:
         return f"Không tìm thấy lần chạy {args.run_id}."
-    return runner.review_permission_error(args.role, args.user, record.requester)
+    return runner.review_permission_error(args.role)
 
 
 def _resolve_run_id(run_id: str) -> str:
@@ -179,6 +190,7 @@ def cmd_review(args: argparse.Namespace) -> int:
         return 0
     try:
         review = ReviewDecision(run_id=args.run_id, reviewer=args.user, decision=decision, note=note)
+        auth.audit(f"review.{decision}", args.user, target=args.run_id, detail={"via": "cli"})
         return _drive(runner.submit_review(review, args.role, print_event), args)
     except (PermissionDeniedError, RunStateError, LLMConfigError, LLMCallError) as exc:
         console.print(f"[red]{exc}[/]")
@@ -200,11 +212,10 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 
 def cmd_errors(args: argparse.Namespace) -> int:
-    """Sổ lỗi: liệt kê, duyệt, bỏ (bật REQUIRE_SEPARATE_REVIEWER thì chỉ Reviewer được duyệt/bỏ)."""
+    """Sổ lỗi: liệt kê, duyệt, bỏ (chỉ Reviewer được duyệt/bỏ)."""
     memory = get_error_memory()
-    separate = get_settings().require_separate_reviewer
-    if (args.approve or args.discard) and separate and args.role != "reviewer":
-        console.print("[red]Chỉ Reviewer được duyệt hoặc bỏ mục sổ lỗi (đang bật REQUIRE_SEPARATE_REVIEWER).[/]")
+    if (args.approve or args.discard) and args.role != "reviewer":
+        console.print("[red]Chỉ Reviewer được duyệt hoặc bỏ mục sổ lỗi (--as reviewer).[/]")
         return 2
     if args.approve:
         ok = memory.approve(args.approve, args.fix)
@@ -266,6 +277,70 @@ def cmd_eval_verifiers(args: argparse.Namespace) -> int:
     return subprocess.run(command, cwd=script.parents[2], check=False).returncode
 
 
+DEV_ACCOUNTS = (
+    ("an", "An (Engineer)", "engineer"),
+    ("binh", "Bình (Reviewer)", "reviewer"),
+    ("quantri", "Quản trị", "admin"),
+)
+
+
+def _seed_dev_users() -> int:
+    """Tài khoản mẫu cho dev: mật khẩu ngẫu nhiên in MỘT lần ra màn hình, không ghi vào file hay Git."""
+    if get_settings().app_env == "production":
+        console.print("[red]Không tạo tài khoản mẫu trên production.[/]")
+        return 2
+    for username, name, role in DEV_ACCOUNTS:
+        if auth.find_user(username):
+            console.print(f" [yellow]•[/] {username} đã có, bỏ qua")
+            continue
+        password = secrets.token_urlsafe(12)
+        auth.create_user(username, name, role, password)
+        console.print(f" [green]✓[/] {username} ({role}) mật khẩu: [bold]{password}[/]")
+    console.print(
+        "[dim]Mật khẩu chỉ hiện lần này. Quên thì: python -m src.cli users lock/unlock hoặc Admin đặt lại.[/]"
+    )
+    return 0
+
+
+def cmd_users(args: argparse.Namespace) -> int:
+    """Tài khoản đăng nhập web (cần DATABASE_URL đã chạy migration)."""
+    missing = get_settings().missing_auth_settings
+    if missing:
+        console.print(f"[red]Thiếu biến môi trường: {', '.join(missing)}. Điền vào .env rồi chạy lại.[/]")
+        return 2
+    if args.action == "seed-dev":
+        return _seed_dev_users()
+    if args.action == "list":
+        for user in auth.list_users():
+            state = "" if user.is_active else " [red](đã khóa)[/]"
+            console.print(f" {user.username:<16} {user.role:<9} {user.display_name}{state}")
+        return 0
+    if not args.username:
+        console.print("[red]Cần --username.[/]")
+        return 2
+    if args.action == "create":
+        password = getpass.getpass("Mật khẩu (ít nhất 12 ký tự): ")
+        if password != getpass.getpass("Nhập lại: "):
+            console.print("[red]Hai lần nhập không khớp.[/]")
+            return 2
+        try:
+            user = auth.create_user(args.username, args.name, args.role, password)
+        except ValueError as exc:
+            console.print(f"[red]{exc}[/]")
+            return 2
+        auth.audit("user.create", "cli", target=user.username, detail={"role": user.role, "via": "cli"})
+        console.print(f"[green]Đã tạo {user.username} ({user.role}).[/]")
+        return 0
+    user = auth.find_user(args.username)
+    if user is None:
+        console.print(f"[red]Không có tài khoản {args.username}.[/]")
+        return 1
+    auth.update_user(user.id, is_active=args.action == "unlock")
+    auth.audit(f"user.{args.action}", "cli", target=user.username, detail={"via": "cli"})
+    console.print(f"[green]Đã {'mở khóa' if args.action == 'unlock' else 'khóa'} {user.username}.[/]")
+    return 0
+
+
 COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     "doctor": cmd_doctor,
     "seed": cmd_seed,
@@ -277,4 +352,5 @@ COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     "optimize": cmd_optimize,
     "eval": cmd_eval,
     "eval-verifiers": cmd_eval_verifiers,
+    "users": cmd_users,
 }

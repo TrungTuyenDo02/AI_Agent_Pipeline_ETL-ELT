@@ -27,6 +27,7 @@ EventCallback = Callable[[StepEvent | NodeStart], None]  # NodeStart: node bắt
 INTERRUPT_STATUS = {
     "clarify": RunStatus.WAITING_CLARIFICATION,
     "plan": RunStatus.WAITING_PLAN,
+    "schema": RunStatus.WAITING_SCHEMA,
     "rescue": RunStatus.WAITING_RESCUE,
     "review": RunStatus.WAITING_REVIEW,
 }
@@ -176,19 +177,13 @@ def resume_run(request: ResumeRequest, on_event: EventCallback | None = None) ->
     return _finish(request.run_id, _stream(request.run_id, Command(resume=request.value), on_event))
 
 
-def review_permission_error(role: str, reviewer: str, requester: str) -> str:
+def review_permission_error(role: str) -> str:
     """Luật duyệt J2 (dùng chung cho CLI và API); chuỗi rỗng = được phép.
 
-    Mặc định một vai trò DE: người tạo yêu cầu tự xem bằng chứng và duyệt. REQUIRE_SEPARATE_REVIEWER=true:
-    chỉ vai trò reviewer được duyệt và phải khác người tạo yêu cầu.
+    Chỉ vai trò Reviewer được duyệt hoặc từ chối; Reviewer được duyệt cả yêu cầu do chính mình tạo (người dùng chọn
+    ngày 2026-10-08, xem docs/adr/0004). Không có đường tắt: Engineer/Admin đều bị chặn.
     """
-    if not get_settings().require_separate_reviewer:
-        return ""
-    if role != "reviewer":
-        return "Chỉ vai trò Reviewer mới được duyệt hoặc từ chối (đang bật REQUIRE_SEPARATE_REVIEWER)."
-    if reviewer.strip().lower() == requester.strip().lower():
-        return "Người tạo yêu cầu không được tự duyệt (đang bật REQUIRE_SEPARATE_REVIEWER)."
-    return ""
+    return "" if role == "reviewer" else "Chỉ vai trò Reviewer mới được duyệt hoặc từ chối."
 
 
 def check_review(decision: ReviewDecision, role: str) -> None:
@@ -196,7 +191,7 @@ def check_review(decision: ReviewDecision, role: str) -> None:
     record = get_store().get_run(decision.run_id)
     if record is None:
         raise RunStateError(f"Không tìm thấy lần chạy {decision.run_id}.")
-    problem = review_permission_error(role, decision.reviewer, record.requester)
+    problem = review_permission_error(role)
     if problem:
         raise PermissionDeniedError(problem)
     check_resumable(decision.run_id, "review")

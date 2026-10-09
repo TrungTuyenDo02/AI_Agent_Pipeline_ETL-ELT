@@ -1,22 +1,24 @@
-# ADR 0004 — Một vai trò DE, bước duyệt giữ nguyên
+# ADR 0004 — Vai trò và luật duyệt
 
-- Ngày: 2026-10-02 • Trạng thái: chấp nhận
+- Ngày: 2026-10-02 • Sửa: 2026-10-08 • Trạng thái: chấp nhận (bản sửa thay quyết định "một vai trò DE")
 
 ## Bối cảnh
 
-Đề bài nêu 2 vai trò (Engineer / Reviewer) và người tạo yêu cầu không tự duyệt. Người dùng chính của sản phẩm là Data
-Engineer (DE): thường một người vừa mô tả yêu cầu vừa kiểm tra code sinh ra.
+Bản đầu chọn một vai trò DE tự duyệt, có công tắc `REQUIRE_SEPARATE_REVIEWER`. Ngày 2026-10-08, CLAUDE.md bổ sung yêu
+cầu đăng nhập và phân quyền Engineer/Reviewer kiểm ở backend ("chỉ code đã được Reviewer duyệt mới được merge, không
+có đường tắt"). Hai quyết định mâu thuẫn nên đã hỏi lại người dùng.
 
-## Quyết định
+## Quyết định (người dùng chọn)
 
-- Mặc định chỉ một vai trò **DE**; người tạo yêu cầu được tự duyệt.
-- **Bước duyệt J2 giữ nguyên**: vẫn dừng ở bản duyệt, hiện diff, bằng chứng "Code đo | LLM nói", báo cáo tối ưu.
-  Agent không tự merge.
-- Công tắc `REQUIRE_SEPARATE_REVIEWER=true` bật lại luật 2 người (chỉ `reviewer` duyệt, khác người tạo) để demo
-  đúng mô tả đề bài khi cần.
-- Luật nằm ở một chỗ: `review_permission_error()` trong `src/agents/runner.py` (CLI và API dùng chung).
+- Đăng nhập bằng tài khoản nội bộ do doanh nghiệp cấp; mật khẩu băm argon2id; phiên phía máy chủ (cookie HttpOnly).
+- Ba vai trò: **engineer** (tạo yêu cầu, J1, J1b, cứu hộ), **reviewer** (J2 duyệt/từ chối, duyệt sổ lỗi),
+  **admin** (quản lý tài khoản, không duyệt code).
+- **Chỉ Reviewer được duyệt**; Reviewer **được** duyệt cả yêu cầu do mình tạo (không chọn đề xuất cấm tự duyệt).
+- Bỏ vai trò `de` và công tắc `REQUIRE_SEPARATE_REVIEWER`.
+- Luật nằm ở `review_permission_error()` trong `src/agents/runner.py` (CLI và API dùng chung); API kiểm thêm bằng
+  `require_role` ở `src/api/deps.py`.
 
 ## Hệ quả
 
-- Đơn giản cho DE dùng một mình; vẫn giữ HITL (con người quyết định trước khi merge).
-- Rủi ro: BTC chấm theo đề có 2 vai trò → khi demo nên trình bày công tắc này.
+- Demo đúng đề 2 vai trò; một người muốn vừa tạo vừa duyệt thì cần hai tài khoản (Engineer + Reviewer).
+- Muốn cấm tự duyệt sau này: thêm điều kiện so `reviewer` với `requester` trong `review_permission_error()` + test.

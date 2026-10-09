@@ -23,7 +23,7 @@ from src.agents.tools.duckdb_tools import (
     ingest_sources,
     read_catalog,
 )
-from src.services.catalog import CatalogView, ColumnInfo, JoinInfo, TableInfo
+from src.services.catalog import CatalogView, ColumnInfo, JoinInfo, TableInfo, TableProfile, profile_relation
 from src.services.company import read_manifest
 
 KEY_LIKE = re.compile(r"^(sku|.*_(id|code|ref))$", re.I)
@@ -136,8 +136,31 @@ def _cached_catalog(sources_dir: str, signature: tuple) -> CatalogView:
     return CatalogView(tables=tables, joins=joins)
 
 
+def _signature(sources_dir: Path) -> tuple:
+    files = sorted(sources_dir.glob("*")) if sources_dir.exists() else []
+    return tuple((p.name, p.stat().st_mtime_ns, p.stat().st_size) for p in files if p.is_file())
+
+
 def source_catalog(sources_dir: Path) -> CatalogView:
     """Bảng nguồn + hồ sơ dữ liệu + gợi ý quan hệ (nhớ kết quả tới khi file nguồn thay đổi)."""
-    files = sorted(sources_dir.glob("*")) if sources_dir.exists() else []
-    signature = tuple((p.name, p.stat().st_mtime_ns, p.stat().st_size) for p in files if p.is_file())
-    return _cached_catalog(str(sources_dir.resolve()), signature)
+    return _cached_catalog(str(sources_dir.resolve()), _signature(sources_dir))
+
+
+@lru_cache(maxsize=4)
+def _cached_profiles(sources_dir: str, signature: tuple) -> dict[str, TableProfile]:
+    catalog = _cached_catalog(sources_dir, signature)
+    sources = [s for s in discover_sources(Path(sources_dir)) if s.kind in ("csv", "json", "parquet", "sqlite")]
+    out = {}
+    with tempfile.TemporaryDirectory() as tmp:  # nạp tạm rồi xóa: không giữ thêm bản sao dữ liệu nguồn
+        db = Path(tmp) / "profile.duckdb"
+        ingest_sources(db, sources)
+        for table in catalog.tables:
+            keys = [c.name for c in table.columns if c.is_key]
+            result = profile_relation(db, f'{RAW_SCHEMA}."{table.name}"', keys)
+            out[table.name] = result.model_copy(update={"id": table.id, "name": table.name, "layer": "source"})
+    return out
+
+
+def source_profile(sources_dir: Path, table: str) -> TableProfile:
+    """Hồ sơ dữ liệu một bảng nguồn (KeyError nếu không có); đo mọi bảng một lượt rồi nhớ tới khi file đổi."""
+    return _cached_profiles(str(sources_dir.resolve()), _signature(sources_dir))[table]

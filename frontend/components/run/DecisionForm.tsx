@@ -4,30 +4,19 @@ import { useState } from "react";
 
 import { STATUS_LABELS } from "@/lib/format";
 
-import { useApp } from "../AppContext";
+import { useHasRole } from "../AppContext";
+import { RoleNote } from "../Topbar";
 import { Card, ErrorBox } from "../ui";
 import { useRun } from "./RunContext";
 
-function SeparateModeHint({ requester }: { requester: string }) {
-  const { user } = useApp();
-  if (user.role === "reviewer" && user.name !== requester) return null;
-  return (
-    <div className="alert warn">
-      <span>
-        Đang bật chế độ 2 người: cần vai trò Reviewer và khác người tạo yêu cầu ({requester}). Đổi ở thanh trên cùng.
-      </span>
-    </div>
-  );
-}
-
 export function DecisionForm() {
   const { detail, act } = useRun();
-  const { status } = useApp();
+  const reviewer = useHasRole("reviewer");
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   if (!detail) return null;
-  const waiting = detail.record.status === "waiting_review" && !detail.busy;
+  const waiting = detail.record.status === "waiting_review" && !detail.busy && reviewer;
 
   async function decide(decision: "approve" | "reject") {
     setSending(true);
@@ -49,7 +38,7 @@ export function DecisionForm() {
             </span>
           </div>
         )}
-        {waiting && status?.require_separate_reviewer && <SeparateModeHint requester={detail.record.requester} />}
+        {detail.record.status === "waiting_review" && <RoleNote need="reviewer" />}
         <label htmlFor="review-note">Ghi chú (bắt buộc khi từ chối — agent sẽ sửa theo ghi chú)</label>
         <textarea
           id="review-note"

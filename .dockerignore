@@ -20,6 +20,7 @@ docs/
 presentation/
 eval/
 frontend/
+*.zip
 .tmp/
 *.md
 # Prompt của agent là file .md nhưng cần lúc chạy

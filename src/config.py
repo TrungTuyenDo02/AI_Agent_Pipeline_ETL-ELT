@@ -51,8 +51,18 @@ class Settings(BaseSettings):
     # Gửi JSON Schema của đầu ra (structured output); false = quay về chế độ json_object cũ
     llm_structured_output: bool = True
 
-    # Duyệt (J2): mặc định 1 vai trò DE, tự duyệt được; true = bắt buộc Reviewer khác người tạo yêu cầu
-    require_separate_reviewer: bool = False
+    # Đăng nhập + cơ sở dữ liệu ứng dụng (PostgreSQL). Chuỗi kết nối và khóa CHỈ đọc từ biến môi trường / .env.
+    # DATABASE_URL = tài khoản ứng dụng (không phải superuser); MIGRATION_DATABASE_URL chỉ dùng khi chạy Alembic.
+    database_url: str = ""
+    migration_database_url: str = ""
+    db_app_role: str = Field(default="p113_app", pattern=r"^[a-z_][a-z0-9_]{0,62}$")  # migration cấp quyền cho role này
+    session_secret: str = ""  # ≥ 32 ký tự ngẫu nhiên; xoay vòng = mọi phiên cũ mất hiệu lực
+    session_ttl_minutes: int = Field(default=480, ge=5, le=1440)  # một ngày làm việc
+    session_cookie_secure: bool = True  # chỉ tắt khi thử qua IP mạng nội bộ bằng http
+    session_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
+    login_max_failures: int = Field(default=5, ge=1)
+    login_lock_minutes: int = Field(default=15, ge=1)
+    force_https: bool = False  # true khi triển khai: chuyển hướng HTTP → HTTPS
 
     # Lưu trữ
     data_dir: Path = Path("./data")
@@ -137,6 +147,12 @@ class Settings(BaseSettings):
     def has_langsmith_key(self) -> bool:
         """Đã có khóa LangSmith thật (chấp nhận cả tên LANGCHAIN_* lẫn LANGSMITH_*)."""
         return is_real_secret(self.langchain_api_key) or is_real_secret(self.langsmith_api_key)
+
+    @property
+    def missing_auth_settings(self) -> list[str]:
+        """Tên biến môi trường còn thiếu để bật đăng nhập (không bao giờ trả giá trị)."""
+        missing = [] if self.database_url else ["DATABASE_URL"]
+        return missing + ([] if len(self.session_secret) >= 32 else ["SESSION_SECRET"])
 
     @property
     def is_mock(self) -> bool:

@@ -127,6 +127,7 @@ ACTIVITIES: dict[str, Callable[[dict], list[str]]] = {
         f"Nạp {len(_sources(s))} nguồn vào sandbox DuckDB" if _sources(s) else "Nạp nguồn vào sandbox"
     ],
     "profiler": _quick("Soi dữ liệu nguồn bằng code: kiểu cột, % rỗng, khóa trùng, định dạng ngày/tiền"),
+    "schema_guard": _quick("So cấu trúc nguồn (cột, kiểu, giá trị phân loại) với bản Reviewer đã duyệt, bằng code"),
     "mock_data": _quick(f"Tạo {len(DATASET_NAMES)} bộ dữ liệu thử (seed cố định): {', '.join(DATASET_NAMES)}"),
     "safety": _quick("Kiểm an toàn bằng code: chặn lệnh ghi, hàm hệ thống, DAG gọi shell"),
     "sandbox_run": _quick("Ghi file đã qua V1 vào workspace, chạy `dbt build` + test trên DuckDB local"),

@@ -88,16 +88,11 @@ def test_codegen_reads_last_error_and_only_approved_hints():
     assert last_error({"safety": {"passed": True}, "sandbox": {"passed": False, "error": "dbt lỗi"}}) == "dbt lỗi"
 
 
-def test_review_decision_validation_blocks_self_approval_in_separate_mode(separate_reviewer):
-    assert validate_decision({"reviewer": "alice", "decision": "approve"}, "r1", "alice") is None
-    assert validate_decision({"reviewer": "bob", "decision": "maybe"}, "r1", "alice") is None
-
-
-def test_review_decision_allows_self_approval_by_default():
-    """Mặc định một vai trò DE: người tạo yêu cầu tự duyệt được."""
-    assert validate_decision({"reviewer": "alice", "decision": "approve"}, "r1", "alice").reviewer == "alice"
-    assert validate_decision({"reviewer": "bob", "decision": "maybe"}, "r1", "alice") is None
-    assert validate_decision({"reviewer": "bob", "decision": "approve"}, "r1", "alice").reviewer == "bob"
+def test_review_decision_validation():
+    """Node chỉ kiểm định dạng; quyền (chỉ Reviewer, được tự duyệt) kiểm ở API + runner trước khi tới đây."""
+    assert validate_decision({"reviewer": "alice", "decision": "approve"}, "r1").reviewer == "alice"
+    assert validate_decision({"reviewer": "bob", "decision": "maybe"}, "r1") is None
+    assert validate_decision("không phải dict", "r1") is None
 
 
 def test_evidence_keeps_measured_and_claimed_separate(pipeline_state: dict):

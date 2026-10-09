@@ -4,6 +4,7 @@ export type RunStatus =
   | "running"
   | "waiting_clarification"
   | "waiting_plan_review"
+  | "waiting_schema"
   | "waiting_rescue"
   | "waiting_review"
   | "approved"
@@ -85,6 +86,7 @@ export interface PlanPending {
 export type Pending =
   | { kind: "clarify"; unknowns: string[]; questions: ClarifyQuestion[] }
   | PlanPending
+  | { kind: "schema"; report: SchemaReport }
   | { kind: "rescue"; error: string; fix_attempts: number }
   | { kind: "review"; run_id: string; requester: string };
 
@@ -175,6 +177,68 @@ export interface RunDetail {
   stages?: Stage[];
   usage?: UsageReport;
   current?: CurrentNode | null;
+  schema_report?: SchemaReport | Record<string, never>;
+  schema_decision?: { by?: string; renames?: Record<string, string> };
+  value_filters?: ValueFilter[];
+  reconciliation?: RowReconciliation[];
+}
+
+/** Mục 8: một đề xuất sửa do code dựng (Reviewer quyết, agent không tự áp dụng). */
+export interface SchemaProposal {
+  kind: "added" | "type_changed" | "new_values" | "removed" | "rename";
+  column: string;
+  message: string;
+  snippet: string;
+  file: string;
+}
+
+export interface SourceChange {
+  source: string;
+  has_baseline: boolean;
+  added: Record<string, string>;
+  removed: Record<string, string>;
+  type_changed: Record<string, [string, string]>;
+  rename_candidates: [string, string][];
+  new_values: Record<string, string[]>;
+  proposals: SchemaProposal[];
+}
+
+/** Cấu trúc nguồn so với bản Reviewer đã duyệt (src/services/schema_watch.py). */
+export interface SchemaReport {
+  checked: boolean;
+  note: string;
+  changes: SourceChange[];
+  blocking: boolean;
+}
+
+/** Mục 9: so sánh cột với giá trị cụ thể trong code sinh ra. */
+export interface ValueFilter {
+  file: string;
+  line: number;
+  column: string;
+  values: string[];
+  context: string;
+  expression: string;
+  in_spec: boolean;
+}
+
+/** Mục 9: số dòng raw → staging của một nguồn. */
+export interface RowReconciliation {
+  model: string;
+  source: string;
+  rows_in: number;
+  rows_out: number;
+}
+
+/** Một dòng nhật ký kiểm toán (màn Admin). */
+export interface AuditEntry {
+  at: string;
+  actor_name: string;
+  action: string;
+  target: string;
+  outcome: string;
+  ip: string;
+  detail: Record<string, unknown>;
 }
 
 export type StageState = "waiting" | "running" | "passed" | "failed" | "human";
@@ -252,13 +316,64 @@ export interface CatalogView {
   joins: JoinInfo[];
 }
 
+/** Hồ sơ dữ liệu (đo bằng code, 0 token): chất lượng + phân bố từng cột, vấn đề, dòng xem trước đã che PII. */
+export type ColumnKind = "number" | "date" | "text" | "bool" | "nested";
+
+export interface ValueCount {
+  label: string;
+  count: number;
+}
+
+export interface ColumnProfile {
+  name: string;
+  type: string;
+  kind: ColumnKind;
+  is_key: boolean;
+  filled: number;
+  nulls: number;
+  blank: number;
+  invalid: number;
+  case_variants: number;
+  formats: string[];
+  distinct: number;
+  minimum: string | null;
+  maximum: string | null;
+  mean: number | null;
+  zeros: number;
+  top: ValueCount[];
+  other: number;
+  bins: ValueCount[];
+  near_unique: boolean;
+}
+
+export interface ProfileIssue {
+  level: "fail" | "warn" | "info";
+  column: string;
+  text: string;
+}
+
+export interface TableProfile {
+  id: string;
+  name: string;
+  layer: Layer;
+  rows: number;
+  columns: ColumnProfile[];
+  preview: (string | null)[][];
+  issues: ProfileIssue[];
+  duplicate_keys: number | null;
+  keys: string[];
+  rows_in: number | null;
+  dataset: string;
+  datasets: string[];
+  file: string;
+}
+
 export interface AgentStatus {
   status: string;
   agent: string;
   llm_provider: string;
   models: string;
   simulated: boolean;
-  require_separate_reviewer: boolean;
 }
 
 export interface ErrorEntry {
@@ -280,9 +395,23 @@ export interface Accepted {
   message: string;
 }
 
-export type Role = "de" | "engineer" | "reviewer";
+/** Vai trò (kiểm ở backend; web chỉ dùng để ẩn/hiện nút): engineer tạo yêu cầu, reviewer duyệt, admin quản lý tài khoản. */
+export type Role = "engineer" | "reviewer" | "admin";
 
+/** Người dùng của phiên đăng nhập (GET /auth/me). */
 export interface CurrentUser {
+  id: number;
   name: string;
+  display_name: string;
   role: Role;
+}
+
+/** Tài khoản trong màn quản trị (không có mật khẩu/chuỗi băm). */
+export interface AdminUser {
+  id: number;
+  username: string;
+  display_name: string;
+  role: Role;
+  is_active: boolean;
+  last_login_at: string | null;
 }

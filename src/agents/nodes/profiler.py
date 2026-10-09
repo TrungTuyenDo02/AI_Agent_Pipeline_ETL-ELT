@@ -38,6 +38,9 @@ MONEY_NAME_RE = re.compile(r"amount|total|price|revenue|vnd|spend|cost|fee", re.
 KEY_NAME_RE = re.compile(r"^(id|.*_id)$", re.I)
 DATE_NAME_RE = re.compile(r"date|time|day|_at$|_on$|_ts$", re.I)
 SAMPLE_VALUES = 1000  # số giá trị khác nhau đem dò định dạng (định dạng hiếm vẫn lọt vào mẫu)
+# Cột phân loại: chuỗi có ít giá trị khác nhau (không phải khóa/ngày/tiền). Danh sách giá trị chỉ để so cấu trúc
+# giữa các lần chạy (mục 8) — KHÔNG gửi LLM và không phải danh sách giá trị hợp lệ (mục 9: do người/đặc tả quyết).
+CATEGORY_MAX = 12
 
 
 def _formats(values: list[str], patterns: dict[str, re.Pattern]) -> list[str]:
@@ -102,11 +105,19 @@ def _column_profile(con: duckdb.DuckDBPyConnection, table: str, column_type: tup
         "examples": [mask_value(v) for v in texts[:3]],
     }
     if dtype == "VARCHAR":
-        profile.update(_text_hints(con, (ref, column), texts))
+        profile.update(text_hints(con, (ref, column), texts))
+        if _is_category(column, profile):
+            profile["categories"] = sorted({str(mask_value(v)) for v in texts})
     return profile
 
 
-def _text_hints(con: duckdb.DuckDBPyConnection, ref_column: tuple[str, str], texts: list[str]) -> dict:
+def _is_category(column: str, profile: dict) -> bool:
+    """Chuỗi ít giá trị, không phải khóa/ngày/tiền (vd trạng thái, giới tính, kênh bán)."""
+    special = KEY_NAME_RE.match(column) or MONEY_NAME_RE.search(column) or profile.get("date_formats")
+    return 0 < profile["distinct"] <= CATEGORY_MAX and not special
+
+
+def text_hints(con: duckdb.DuckDBPyConnection, ref_column: tuple[str, str], texts: list[str]) -> dict:
     """Cột chuỗi: định dạng ngày/tiền + biểu thức đọc đúng (kèm số giá trị vẫn không đọc được);
     biến thể hoa/thường/khoảng trắng → gợi ý chuẩn hóa trước khi nối hoặc khử trùng."""
     ref, column = ref_column

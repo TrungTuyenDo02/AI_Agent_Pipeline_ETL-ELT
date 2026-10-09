@@ -1,6 +1,7 @@
 <!--
-version: 2
-changes: 2026-10-05 v2 — English instructions; output format moved to JSON Schema (files[] {path, content});
+version: 3
+changes: 2026-10-08 v3 — rule 10 (CLAUDE.md §9): value filters only from the spec, unknown values kept as 'khong_ro'.
+  2026-10-05 v2 — English instructions; output format moved to JSON Schema (files[] {path, content});
   catalog removed (profile already lists every raw table/column/type); spec trimmed for build; fix rounds send only
   the related files and return only changed files; error_memory_hints explained; request at the end.
   v1 — Vietnamese instructions + JSON template in prose (git history).
@@ -18,6 +19,7 @@ Rules, most important first:
 7. DAG: Airflow 2.x, `with DAG(...)`, BashOperator running `dbt build`, task order with `>>`. No hard-coded passwords, connection strings or absolute paths; use Airflow Variables or templates.
 8. Fix round (previous_code with last_error, reviewer_notes or rescue_hint): fix exactly what is reported in that code and keep what works; error_memory_hints are approved fixes for similar past errors. Return only the files you change; omitted files stay as they are. Check that the outer SELECT uses the column names after the CTE aliases.
 9. `notes`: short Vietnamese explanations of the key decisions.
+10. Filter or group by a specific value only if the spec or decisions name it, never because profile examples show it. Map other categorical values to 'khong_ro' instead of dropping rows.
 
 <!-- USER -->
 <data name="profile">

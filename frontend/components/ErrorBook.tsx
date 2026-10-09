@@ -6,12 +6,15 @@ import { apiPost, messageOf } from "@/lib/api";
 import type { ErrorEntry } from "@/lib/types";
 import { usePoll } from "@/lib/usePoll";
 
+import { useHasRole } from "./AppContext";
+import { RoleNote } from "./Topbar";
 import { Card, Empty, ErrorBox, Loading } from "./ui";
 
 function EntryCard({ entry, onDone }: { entry: ErrorEntry; onDone: () => Promise<void> }) {
   const [fix, setFix] = useState(entry.fix);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const reviewer = useHasRole("reviewer");
 
   async function send(action: "approve" | "discard") {
     setSending(true);
@@ -42,10 +45,15 @@ function EntryCard({ entry, onDone }: { entry: ErrorEntry; onDone: () => Promise
         <textarea id={`fix-${entry.id}`} value={fix} onChange={(e) => setFix(e.target.value)} maxLength={2000} />
         {error && <ErrorBox message={error} />}
         <div className="row" style={{ justifyContent: "flex-end" }}>
-          <button type="button" className="btn danger" disabled={sending} onClick={() => send("discard")}>
+          <button type="button" className="btn danger" disabled={sending || !reviewer} onClick={() => send("discard")}>
             Bỏ
           </button>
-          <button type="button" className="btn ok" disabled={sending || !fix.trim()} onClick={() => send("approve")}>
+          <button
+            type="button"
+            className="btn ok"
+            disabled={sending || !reviewer || !fix.trim()}
+            onClick={() => send("approve")}
+          >
             Duyệt bài học
           </button>
         </div>
@@ -60,10 +68,13 @@ export function ErrorBook() {
   if (!data) return <ErrorBox message={error || "Không tải được sổ lỗi."} onRetry={refresh} />;
   if (data.length === 0) return <Empty>Không có mục nào chờ duyệt.</Empty>;
   return (
-    <div className="grid-2">
-      {data.map((entry) => (
-        <EntryCard key={entry.id} entry={entry} onDone={refresh} />
-      ))}
+    <div className="stack">
+      <RoleNote need="reviewer" />
+      <div className="grid-2">
+        {data.map((entry) => (
+          <EntryCard key={entry.id} entry={entry} onDone={refresh} />
+        ))}
+      </div>
     </div>
   );
 }

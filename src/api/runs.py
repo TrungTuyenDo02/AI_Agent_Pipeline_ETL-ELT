@@ -1,21 +1,31 @@
 """Lần chạy: tạo (chạy nền), xem tiến trình/chi tiết/file, tải gói code, trả lời J1, duyệt kế hoạch J1b, cứu hộ.
 
 Thao tác làm graph chạy tiếp trả về 202 ngay; web hỏi `GET /runs/{id}` định kỳ để thấy tiến trình.
+Xem: mọi người đã đăng nhập. Tạo yêu cầu, trả lời, duyệt kế hoạch, cứu hộ: chỉ Engineer (kiểm ở backend).
 """
 
 from pathlib import Path
-from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, HTTPException, Query, Request, Response, status
 
 from src.agents import runner
 from src.agents.nodes.clarify import valid_answers
 from src.agents.runner import ResumeRequest, RunStateError
 from src.agents.stages import pipeline_stages, stage_of
-from src.api.deps import CurrentUser, current_user, run_or_404
-from src.api.requests import Accepted, AnswerBody, CreateRunBody, PlanBody, RescueBody, RunDetail, RunFiles
+from src.api.deps import CurrentUser, Engineer, client_ip, run_or_404
+from src.api.requests import (
+    Accepted,
+    AnswerBody,
+    CreateRunBody,
+    PlanBody,
+    RescueBody,
+    RunDetail,
+    RunFiles,
+    SchemaBody,
+)
 from src.models.schemas import RunRecord
 from src.models.spec import ClarifyQuestion
+from src.services import auth
 from src.services.cost import usage_breakdown
 from src.services.export import export_zip
 from src.services.jobs import get_jobs
@@ -34,10 +44,11 @@ async def list_runs(limit: int = Query(default=20, ge=1, le=100)) -> list[RunRec
 
 
 @router.post("", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
-def create_run(body: CreateRunBody, user: Annotated[CurrentUser, Depends(current_user)]) -> Accepted:
+def create_run(body: CreateRunBody, user: Engineer, request: Request) -> Accepted:
     """Tạo yêu cầu mới; agent chạy nền tới điểm dừng đầu tiên (câu hỏi làm rõ hoặc bản duyệt)."""
     run_id = runner.create_run(body.request_text.strip(), user.name)
-    get_jobs().submit(run_id, lambda sink: runner.run_created(run_id, sink))
+    auth.audit("run.create", user.name, target=run_id, ip=client_ip(request))
+    get_jobs().submit(run_id, lambda sink: runner.run_created(run_id, sink), actor=user.name)
     return Accepted(run_id=run_id, status="running", message="Đã nhận yêu cầu, agent đang chạy.")
 
 
@@ -75,6 +86,10 @@ def get_run(run_id: str) -> RunDetail:
         ],
         usage=usage_breakdown(values.get("llm_usage", [])),
         current=current,
+        schema_report=values.get("schema_report", {}),
+        schema_decision=values.get("schema_decision", {}),
+        value_filters=values.get("value_filters", []),
+        reconciliation=values.get("reconciliation", []),
     )
 
 
@@ -112,38 +127,49 @@ def _pending(run_id: str, kind: str) -> dict:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
-def _resume(run_id: str, kind: str, value: dict) -> Accepted:
+def _resume(run_id: str, kind: str, value: dict, user: CurrentUser) -> Accepted:
     request = ResumeRequest(run_id=run_id, kind=kind, value=value)
-    get_jobs().submit(run_id, lambda sink: runner.resume_run(request, sink))
+    get_jobs().submit(run_id, lambda sink: runner.resume_run(request, sink), actor=user.name)
     return Accepted(run_id=run_id, status="running", message="Đã nhận, agent chạy tiếp.")
 
 
 @router.post("/{run_id}/answers", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
-def answer(run_id: str, body: AnswerBody) -> Accepted:
+def answer(run_id: str, body: AnswerBody, user: Engineer) -> Accepted:
     """Trả lời câu hỏi làm rõ (J1); lựa chọn phải đúng một trong các đáp án đã đưa ra."""
     run_or_404(run_id)
     questions = [ClarifyQuestion.model_validate(q) for q in _pending(run_id, "clarify").get("questions", [])]
     answers = valid_answers(questions, {"answers": body.answers})
     if len(answers) != len(questions):
         raise HTTPException(status_code=422, detail="Cần chọn đúng một đáp án có sẵn cho mỗi câu hỏi.")
-    return _resume(run_id, "clarify", {"answers": answers})
+    return _resume(run_id, "clarify", {"answers": answers}, user)
 
 
 @router.post("/{run_id}/plan", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
-def review_plan(run_id: str, body: PlanBody) -> Accepted:
+def review_plan(run_id: str, body: PlanBody, user: Engineer, request: Request) -> Accepted:
     """Duyệt kế hoạch (J1b): đồng ý → agent sinh code; sửa (kèm ghi chú) → agent lập lại kế hoạch."""
     run_or_404(run_id)
     _pending(run_id, "plan")
     if body.decision == "revise" and not body.note.strip():
         raise HTTPException(status_code=422, detail="Yêu cầu sửa kế hoạch thì cần ghi chú cần sửa gì.")
-    return _resume(run_id, "plan", {"decision": body.decision, "note": body.note.strip()})
+    auth.audit(f"plan.{body.decision}", user.name, target=run_id, ip=client_ip(request))
+    return _resume(run_id, "plan", {"decision": body.decision, "note": body.note.strip()}, user)
+
+
+@router.post("/{run_id}/schema", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
+def confirm_schema(run_id: str, body: SchemaBody, user: Engineer, request: Request) -> Accepted:
+    """Nguồn có cột bị xóa/nghi đổi tên: Engineer xác nhận cặp đổi tên (không tự đoán) rồi chạy tiếp, hoặc dừng."""
+    run_or_404(run_id)
+    _pending(run_id, "schema")
+    detail = {"action": body.action, "renames": body.renames}
+    auth.audit("schema.confirm", user.name, target=run_id, ip=client_ip(request), detail=detail)
+    return _resume(run_id, "schema", {**body.model_dump(), "by": user.name}, user)
 
 
 @router.post("/{run_id}/rescue", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
-def rescue(run_id: str, body: RescueBody) -> Accepted:
+def rescue(run_id: str, body: RescueBody, user: Engineer) -> Accepted:
     """Cứu hộ khi agent sửa không được: gợi ý rồi thử lại, hoặc dừng."""
     run_or_404(run_id)
     _pending(run_id, "rescue")
     if body.action == "retry" and not body.hint.strip():
         raise HTTPException(status_code=422, detail="Hãy nhập gợi ý cho agent trước khi thử lại.")
-    return _resume(run_id, "rescue", body.model_dump())
+    return _resume(run_id, "rescue", body.model_dump(), user)

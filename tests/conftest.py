@@ -1,17 +1,41 @@
-"""Fixture dùng chung. Mọi test chạy không cần khóa: LLM_PROVIDER=mock, dữ liệu/ổ lưu trong thư mục tạm."""
+"""Fixture dùng chung. Mọi test chạy không cần khóa: LLM_PROVIDER=mock, dữ liệu/ổ lưu trong thư mục tạm.
+
+Cơ sở dữ liệu đăng nhập: TEST_DATABASE_URL (PostgreSQL riêng cho test, tên phải chứa "test") nếu có; không có thì
+SQLite tạm. KHÔNG BAO GIỜ dùng DATABASE_URL của dev/prod. Bảng được tạo bằng chính migration Alembic (từ đầu).
+"""
 
 import atexit
 import copy
 import os
+import secrets
 import shutil
 import tempfile
+import uuid
 from pathlib import Path
+
+from dotenv import dotenv_values
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 _TMP = Path(tempfile.mkdtemp(prefix="p113-tests-"))
 atexit.register(shutil.rmtree, _TMP, ignore_errors=True)  # dọn dữ liệu test khi kết thúc
+
+
+def _test_database_url() -> str:
+    url = os.environ.get("TEST_DATABASE_URL") or dotenv_values(REPO_ROOT / ".env").get("TEST_DATABASE_URL") or ""
+    if not url:
+        return f"sqlite+pysqlite:///{(_TMP / 'auth.db').as_posix()}"
+    if "test" not in url.rsplit("/", 1)[-1]:
+        raise RuntimeError("TEST_DATABASE_URL phải trỏ tới cơ sở dữ liệu riêng cho test (tên chứa 'test').")
+    return url
+
+
+TEST_DATABASE_URL = _test_database_url()
+CSRF = {"X-Requested-With": "pytest"}
 os.environ.update(
     {
+        "DATABASE_URL": TEST_DATABASE_URL,
+        "MIGRATION_DATABASE_URL": TEST_DATABASE_URL,
+        "SESSION_SECRET": secrets.token_urlsafe(48),  # sinh lúc chạy test, không phải bí mật trong Git
         "APP_ENV": "test",
         "LLM_PROVIDER": "mock",
         "OPENAI_API_KEY": "",
@@ -39,6 +63,63 @@ from src.services.seed import SeedConfig, generate_sources  # noqa: E402
 get_settings.cache_clear()
 
 
+def migrate(url: str, target: str = "head", down: bool = False) -> None:
+    """Chạy migration Alembic (giống `alembic upgrade head`) trên `url`."""
+    from alembic import command
+    from alembic.config import Config
+
+    cfg = Config(str(REPO_ROOT / "alembic.ini"))
+    cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+    (command.downgrade if down else command.upgrade)(cfg, target)
+
+
+migrate(TEST_DATABASE_URL)
+
+
+@pytest.fixture
+def make_user():
+    """Tạo tài khoản với mật khẩu ngẫu nhiên: `make_user("reviewer")` → (tên, mật khẩu)."""
+    from src.services import auth
+
+    def _make(role: str = "engineer", username: str | None = None) -> tuple[str, str]:
+        name = username or f"{role[:3]}-{uuid.uuid4().hex[:8]}"
+        password = secrets.token_urlsafe(16)
+        auth.create_user(name, name, role, password)
+        return name, password
+
+    return _make
+
+
+@pytest_asyncio.fixture
+async def login(make_user):
+    """Client đã đăng nhập theo vai trò: `reviewer = await login("reviewer")` (mỗi client một phiên riêng)."""
+    from src.main import app
+
+    clients: list[AsyncClient] = []
+
+    async def _login(role: str = "engineer", username: str | None = None) -> AsyncClient:
+        name, password = make_user(role, username)
+        ac = AsyncClient(transport=ASGITransport(app=app), base_url="https://test", headers=CSRF)
+        response = await ac.post("/api/v1/auth/login", json={"username": name, "password": password})
+        assert response.status_code == 200, response.text
+        ac.username = name  # type: ignore[attr-defined]
+        clients.append(ac)
+        return ac
+
+    yield _login
+    for ac in clients:
+        await ac.aclose()
+
+
+@pytest_asyncio.fixture
+async def anon():
+    """Client CHƯA đăng nhập (https để cookie Secure hoạt động như trình duyệt thật)."""
+    from src.main import app
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://test", headers=CSRF) as ac:
+        yield ac
+
+
 @pytest.fixture(scope="session")
 def seeded_sources() -> Path:
     """Dữ liệu giả lập 3 nguồn (seed cố định) trong thư mục tạm."""
@@ -48,13 +129,9 @@ def seeded_sources() -> Path:
 
 
 @pytest_asyncio.fixture
-async def client():
-    """HTTP client gọi thẳng ứng dụng FastAPI (không mở cổng)."""
-    from src.main import app
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        yield ac
+async def client(login):
+    """HTTP client gọi thẳng ứng dụng FastAPI (không mở cổng), đã đăng nhập vai trò Engineer."""
+    return await login("engineer")
 
 
 @pytest.fixture
@@ -88,16 +165,6 @@ def built_state(seeded_sources: Path) -> dict:
     for node in (planner_node, ingest_node, profiler_node, mock_data_node, codegen_node, testgen_node):
         state.update(node(state))
     return state
-
-
-@pytest.fixture
-def separate_reviewer(monkeypatch: pytest.MonkeyPatch):
-    """Bật chế độ 2 người (REQUIRE_SEPARATE_REVIEWER=true) cho một test; mặc định là 1 vai trò DE tự duyệt."""
-    monkeypatch.setenv("REQUIRE_SEPARATE_REVIEWER", "true")
-    get_settings.cache_clear()
-    yield
-    monkeypatch.delenv("REQUIRE_SEPARATE_REVIEWER")
-    get_settings.cache_clear()
 
 
 @pytest.fixture

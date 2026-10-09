@@ -1,4 +1,39 @@
 services:
+  # PostgreSQL cục bộ cho đăng nhập/nhật ký (dev giống thật; KHÔNG dùng SQLite làm mặc định).
+  # Lần đầu: điền POSTGRES_PASSWORD, P113_MIGRATOR_PASSWORD, P113_APP_PASSWORD trong .env rồi `docker compose up -d db`.
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      P113_MIGRATOR_PASSWORD: ${P113_MIGRATOR_PASSWORD:-}
+      P113_APP_PASSWORD: ${P113_APP_PASSWORD:-}
+    ports:
+      # Chỉ máy này, không mở ra mạng. Cổng 5433 để không đụng PostgreSQL cài sẵn trên máy (thường chiếm 5432)
+      - "127.0.0.1:${P113_DB_PORT:-5433}:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/10-p113.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Chạy migration bằng tài khoản migration (không nằm trong container backend):
+  #   docker compose --profile tools run --rm migrate
+  migrate:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      MIGRATION_DATABASE_URL: postgresql+psycopg://p113_migrator:${P113_MIGRATOR_PASSWORD:-}@db:5432/p113_dev
+    depends_on:
+      db:
+        condition: service_healthy
+
   backend:
     build:
       context: .
@@ -11,6 +46,12 @@ services:
     environment:
       # Theo .env; không có thì mock. Ép mô phỏng: LLM_PROVIDER=mock docker compose up
       LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      # Tài khoản ỨNG DỤNG (không phải superuser, không phải migration); mật khẩu lấy từ .env
+      DATABASE_URL: postgresql+psycopg://p113_app:${P113_APP_PASSWORD:-}@db:5432/p113_dev
+      SESSION_SECRET: ${SESSION_SECRET:-}
+    depends_on:
+      db:
+        condition: service_healthy
     volumes:
       # Volume của Docker (không gắn thư mục Windows): checkpoint SQLite chế độ WAL cần ổ Linux để ghi an toàn.
       # Lần đầu chạy, API tự sinh dữ liệu mẫu vào data/sources.
@@ -38,5 +79,6 @@ services:
     restart: unless-stopped
 
 volumes:
+  pg-data:
   backend-data:
   backend-workspaces:

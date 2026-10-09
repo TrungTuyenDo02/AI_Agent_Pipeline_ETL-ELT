@@ -30,6 +30,9 @@ class PipelineState(TypedDict, total=False):
     row_counts: dict[str, int]  # số dòng mỗi bảng raw sau khi nạp
     profile: dict  # hồ sơ dữ liệu từng bảng raw
     datasets: dict[str, str]  # tên bộ dữ liệu thử → đường dẫn file DuckDB
+    schema_snapshot: dict  # Vs: ảnh chụp cấu trúc nguồn (cột → kiểu, giá trị cột phân loại); thành chuẩn khi duyệt
+    schema_report: dict  # Vs: SchemaReport so với bản đã duyệt (thêm/xóa/đổi kiểu/giá trị mới + đề xuất)
+    schema_decision: dict  # Vs: Engineer xác nhận khi có cột bị xóa/đổi tên: {by, renames}
 
     # E3, E3b, V1, V2
     code_files: dict[str, str]  # file do Codegen sinh: đường dẫn tương đối → nội dung
@@ -38,6 +41,8 @@ class PipelineState(TypedDict, total=False):
     test_notes: list[str]  # giải thích của Testgen (claimed)
     previous_files: dict[str, str]  # bộ file của vòng duyệt trước (để xem diff)
     safety: dict  # kết quả V1: {"passed": bool, "issues": [...]}
+    reconciliation: list[dict]  # V2: số dòng raw → staging từng nguồn (mục 9: không loại dòng im lặng)
+    value_filters: list[dict]  # package: điều kiện lọc/phân nhóm cứng theo giá trị (tô sáng cho Reviewer)
     sandbox: dict  # kết quả V2: {"passed", "error", "signature", "results", "sample", ...}
     fix_attempts: int  # số lần sửa sau lỗi V1/V2 trong vòng hiện tại
     error_signatures: list[str]  # chữ ký lỗi đã gặp (phát hiện lỗi lặp)

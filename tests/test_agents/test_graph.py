@@ -55,10 +55,10 @@ def test_clarify_keeps_question_text_for_planner(waiting_review: runner.RunOutco
 
 
 @pytest.mark.slow
-def test_requester_cannot_approve_and_engineer_role_cannot_review(waiting_review: runner.RunOutcome, separate_reviewer):
+def test_only_reviewer_role_can_review(waiting_review: runner.RunOutcome):
     with pytest.raises(PermissionDeniedError):
         runner.submit_review(
-            ReviewDecision(run_id=waiting_review.run_id, reviewer="alice", decision="approve"), "reviewer"
+            ReviewDecision(run_id=waiting_review.run_id, reviewer="alice", decision="approve"), "admin"
         )
     with pytest.raises(PermissionDeniedError):
         runner.submit_review(
@@ -81,15 +81,11 @@ def test_reject_goes_back_to_codegen_then_approve(waiting_review: runner.RunOutc
     assert [r.decision for r in get_store().list_reviews(waiting_review.run_id)] == ["reject", "approve"]
 
 
-def test_review_permission_default_single_de_role():
-    """Mặc định 1 vai trò DE: người tạo yêu cầu tự duyệt được (quyết định của người dùng, xem JOURNAL)."""
-    assert runner.review_permission_error("de", "alice", "alice") == ""
-
-
-def test_review_permission_separate_mode(separate_reviewer):
-    assert "Reviewer" in runner.review_permission_error("de", "bob", "alice")
-    assert "tự duyệt" in runner.review_permission_error("reviewer", "alice", "alice")
-    assert runner.review_permission_error("reviewer", "bob", "alice") == ""
+def test_review_permission_only_reviewer_role():
+    """Chỉ Reviewer duyệt; Reviewer được duyệt cả yêu cầu của chính mình (người dùng chọn, xem ADR 0004)."""
+    assert runner.review_permission_error("reviewer") == ""
+    for role in ("engineer", "admin", "de", ""):
+        assert "Reviewer" in runner.review_permission_error(role)
 
 
 def test_repeated_error_goes_to_rescue_then_abort(built_state, mock_llm):

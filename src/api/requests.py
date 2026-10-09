@@ -33,6 +33,13 @@ class ReviewBody(BaseModel):
     note: str = Field(default="", max_length=2000)
 
 
+class SchemaBody(BaseModel):
+    """Xác nhận khi nguồn có cột bị xóa/đổi tên: chạy tiếp (kèm cặp đổi tên đã xác nhận) hoặc dừng."""
+
+    action: Literal["continue", "abort"]
+    renames: dict[str, str] = Field(default_factory=dict)  # cột cũ → cột mới, chỉ trong danh sách nghi vấn
+
+
 class RescueBody(BaseModel):
     """Cứu hộ: gợi ý cho Coder rồi thử lại, hoặc dừng."""
 
@@ -73,6 +80,10 @@ class RunDetail(BaseModel):
     # node đang chạy: {node, label, stage, started_at, elapsed_s, typical_s, samples, activity}; None khi rảnh.
     # typical_s là trung vị thời gian ĐO THẬT các lần trước (None khi chưa đủ mẫu); activity là mô tả, không phải log đo.
     current: dict | None = None
+    schema_report: dict = {}  # mục 8: cấu trúc nguồn so với bản đã duyệt + đề xuất sửa
+    schema_decision: dict = {}  # Engineer đã xác nhận gì khi có cột bị xóa/đổi tên
+    value_filters: list[dict] = []  # mục 9: điều kiện cứng theo giá trị (tô sáng ở màn duyệt)
+    reconciliation: list[dict] = []  # mục 9: số dòng vào → ra từng model staging
 
 
 class RunFiles(BaseModel):
