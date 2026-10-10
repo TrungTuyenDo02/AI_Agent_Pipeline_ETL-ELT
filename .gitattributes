@@ -1,0 +1,8 @@
+# Ép LF cho mọi file văn bản: Windows (autocrlf) không làm Prettier/ruff báo lỗi hay hỏng script shell trong Docker.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.zip binary
+*.woff2 binary
+*.duckdb binary
