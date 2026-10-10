@@ -12,8 +12,10 @@ trong `src/agents/graph.py`.
 graph TB
     Eng([Engineer]) --> CLI[CLI<br/>python -m src.cli]
     Rev([Reviewer]) --> CLI
-    Eng -.giai đoạn B.-> Web[Web Next.js]
-    Web -.REST.-> API[FastAPI<br/>/health, /api/v1/runs]
+    Eng --> Web[Web Next.js]
+    Rev --> Web
+    Web -->|REST + cookie phiên| API[FastAPI<br/>đăng nhập, runs, catalog, sổ lỗi]
+    API --> PG[(PostgreSQL<br/>users, sessions, audit_log)]
     CLI --> Runner[Runner<br/>run / pause / resume]
     API --> Runner
     Runner --> Graph[LangGraph<br/>17 node J-E-V]
@@ -36,7 +38,10 @@ graph LR
     V0 -->|sai| E1
     V0 -->|đạt| J1b[/J1b DE duyệt kế hoạch/]
     J1b -->|sửa + ghi chú| E1
-    J1b -->|đồng ý| E0[E0 Nhận nguồn] --> P[P Soi dữ liệu] --> E2[E2 Dữ liệu thử]
+    J1b -->|đồng ý| E0[E0 Nhận nguồn] --> P[P Soi dữ liệu] --> Vs{Vs Soát cấu trúc nguồn}
+    Vs -->|xóa/đổi tên cột| JS[/Engineer xác nhận/]
+    JS --> E2[E2 Dữ liệu thử]
+    Vs -->|không đổi hoặc chỉ thêm| E2
     E2 --> E3[E3 Coder] --> E3b[E3b Test-gen] --> V1{V1 An toàn}
     V1 -->|đạt| V2{V2 Sandbox}
     V1 -->|lỗi ≤3| E3
@@ -61,13 +66,16 @@ hình bình hành = con người.
 
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
-| CLI | argparse + rich | Giao diện giai đoạn A: run, answer, review, status, errors, optimize, doctor, seed |
-| API | FastAPI | Health check, đọc lần chạy (tạo/duyệt qua web ở Phase 7) |
+| CLI | argparse + rich | run, answer, review, status, errors, optimize, doctor, seed, eval, users |
+| API | FastAPI | Đăng nhập, tạo/duyệt lần chạy, catalog, hồ sơ dữ liệu, sổ lỗi ([API.md](API.md)) |
+| Web | Next.js 16 + TypeScript | Giao diện cho Engineer, Reviewer, Admin |
+| Auth DB | PostgreSQL 17 + Alembic | Tài khoản, phiên, nhật ký kiểm toán, ảnh chụp cấu trúc nguồn ([DATABASE.md](DATABASE.md)) |
 | Runner | LangGraph `interrupt` + `SqliteSaver` | Tạm dừng ở J1/J1b/J2/cứu hộ, tiếp tục từ tiến trình khác |
 | Graph | LangGraph | 17 node: E (LLM), V (code), J (người) |
 | LLM service | langchain-openai / mock | Cổng gọi LLM duy nhất, ghi token + chi phí |
 | Sandbox | DuckDB + dbt-duckdb + sqlglot | Chạy thử không truy cập file ngoài, có timeout và giới hạn bộ nhớ |
 | Store | SQLite | Lần chạy, quyết định duyệt, sổ lỗi (mục mới phải được Reviewer duyệt) |
+| Schema guard | sqlglot + PostgreSQL | So cấu trúc nguồn với bản đã duyệt (`schema_snapshots`) |
 
 ## Khác biệt nhỏ so với sơ đồ Archify (để cân nhắc cập nhật sơ đồ)
 

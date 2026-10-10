@@ -215,9 +215,14 @@ Model theo từng bước (sửa trong `.env`, để trống thì dùng `MODEL_N
 
 Thiếu khóa mà chọn `openai`, hệ thống báo bằng tiếng Việt phải làm gì, không dừng đột ngột.
 
-## 6. Deploy lên Render + Vercel
+## 6. Deploy
 
-Chưa thực hiện được
+Hai hướng dẫn từng bước (kèm kiểm tra sau deploy, lỗi thường gặp, cách gỡ để không tốn tiền):
+
+- [DEPLOY_VERCEL.md](DEPLOY_VERCEL.md): frontend trên Vercel, backend trên Render (hoặc Railway), PostgreSQL trên Neon.
+- [DEPLOY_GCP.md](DEPLOY_GCP.md): Cloud Run + Cloud SQL + Secret Manager.
+
+Tình trạng: tài liệu đã viết, **chưa deploy thật** (chưa có Live URL).
 
 ## 7. Đẩy code lên GitHub
 
