@@ -236,36 +236,57 @@ function DiffCard({ files, filters }: { files: RunFiles; filters: ValueFilter[] 
   );
 }
 
+type ReviewTab = "code" | "optimize" | "cost";
+
+const REVIEW_TABS: { id: ReviewTab; label: string }[] = [
+  { id: "code", label: "Code sinh ra" },
+  { id: "optimize", label: "Tối ưu và tăng trưởng" },
+  { id: "cost", label: "Chi phí và thời gian" },
+];
+
+/** Màn duyệt: bằng chứng "Code đo | LLM nói" và nút quyết định lên đầu; code, tối ưu, chi phí đặt trong tab. */
 export function ReviewScreen() {
   const { runId, detail } = useRun();
+  const [tab, setTab] = useState<ReviewTab>("code");
   const version = detail?.record.updated_at ?? "";
   const files = usePoll<RunFiles>(detail ? `/runs/${runId}/files?v=${encodeURIComponent(version)}` : null, null);
   return (
     <>
-      <Card title="Code sinh ra">
-        {files.error && <ErrorBox message={files.error} onRetry={files.refresh} />}
-        {!files.data && !files.error && <Loading text="Đang tải code…" />}
-        {files.data && <DiffCard files={files.data} filters={detail?.value_filters ?? []} />}
-      </Card>
-      {detail && (
-        <DataChecksCard
-          report={detail.schema_report}
-          filters={detail.value_filters ?? []}
-          reconciliation={detail.reconciliation ?? []}
-          decision={detail.schema_decision}
-        />
-      )}
-      <div className="grid-2">
-        <div className="stack">
-          <EvidencePanel />
-          {detail && <OptimizationFigures report={detail.optimization} />}
-          <ScaleFigures />
-          <CostFigures />
-        </div>
+      <EvidencePanel />
+      <div className="grid-2 review-top">
         <div className="decision">
           <DecisionForm />
         </div>
+        {detail && (
+          <DataChecksCard
+            report={detail.schema_report}
+            filters={detail.value_filters ?? []}
+            reconciliation={detail.reconciliation ?? []}
+            decision={detail.schema_decision}
+          />
+        )}
       </div>
+      <div className="segmented" role="group" aria-label="Chi tiết để duyệt">
+        {REVIEW_TABS.map((item) => (
+          <button key={item.id} type="button" aria-pressed={tab === item.id} onClick={() => setTab(item.id)}>
+            {item.label}
+          </button>
+        ))}
+      </div>
+      {tab === "code" && (
+        <Card title="Code sinh ra">
+          {files.error && <ErrorBox message={files.error} onRetry={files.refresh} />}
+          {!files.data && !files.error && <Loading text="Đang tải code…" />}
+          {files.data && <DiffCard files={files.data} filters={detail?.value_filters ?? []} />}
+        </Card>
+      )}
+      {tab === "optimize" && (
+        <div className="stack">
+          {detail && <OptimizationFigures report={detail.optimization} />}
+          <ScaleFigures />
+        </div>
+      )}
+      {tab === "cost" && <CostFigures />}
     </>
   );
 }

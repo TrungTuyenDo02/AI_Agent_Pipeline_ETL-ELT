@@ -285,7 +285,6 @@ export function EngineerHome() {
       <div className="dash-side">
         <NewRequestCard />
         <SchemaWatchCard />
-        <ActivityFeed runs={mine} title="Hoạt động của tôi" />
       </div>
     </div>
   );
