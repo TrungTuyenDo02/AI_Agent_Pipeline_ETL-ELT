@@ -6,274 +6,341 @@
 
 ## 2026-10-02
 
-### 2026-10-02 · việc 1: Dựng khung dự án: cấu hình, Docker, CI, hợp đồng dữ liệu, LLM mock, CL…
+### 2026-10-02 · việc 1: Phase 0: dọn template — `config.py` (mặc định chạy không cần khóa), `l…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Dựng khung dự án: cấu hình, Docker, CI, hợp đồng dữ liệu, LLM mock, CLI doctor/seed
+- **Việc:** Phase 0: dọn template — `config.py` (mặc định chạy không cần khóa), `logging_config.py` (JSON log), `/health` (thêm timestamp/version/database), Dockerfile (venv `/opt/venv`, cổng `${PORT:-8000}`), `docker-compose.yml`, `.dockerignore`, `.env.example`, `pytest.ini`, CI 3 job lint → test → build, `Makefile` + `scripts/tasks.py` (Windows không có make), `docs/RUNBOOK.md`, ghim phiên bản `requirements.txt`
 - **Trạng thái:** ✅ Done
-- **Kết quả:** `python scripts/tasks.py ci` xanh; `doctor` và `seed` chạy được
+- **Kết quả:** `python scripts/tasks.py ci` xanh
 - **Thời gian:** —
 
-### 2026-10-02 · việc 2: Viết các node kiểm chứng V0/V1/V2, Planner, Codegen và Testgen mù code…
+### 2026-10-02 · việc 2: Phase 1: hợp đồng `src/models/` (PipelineSpec, Evidence, OptimizationR…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Viết các node kiểm chứng V0/V1/V2, Planner, Codegen và Testgen mù code
+- **Việc:** Phase 1: hợp đồng `src/models/` (PipelineSpec, Evidence, OptimizationReport, ReviewDecision, ErrorEntry), LLM service `mock` + `openai`, store SQLite, CLI `doctor`/`seed`, `scripts/seed_data.py`
 - **Trạng thái:** ✅ Done
-- **Kết quả:** Test chặn DROP/ATTACH/INSTALL/COPY, bắt tên bảng/cột bịa, `dbt build` thật
+- **Kết quả:** `python -m src.cli doctor`, `seed` chạy được
 - **Thời gian:** —
 
-### 2026-10-02 · việc 3: Viết Optimizer và V3, graph đầy đủ J1/J2/cứu hộ, gộp luật viết lại từ …
+### 2026-10-02 · việc 3: Phase 2: tools sqlglot/DuckDB/dbt; node V0 spec_check, E0 ingest, P pr…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Viết Optimizer và V3, graph đầy đủ J1/J2/cứu hộ, gộp luật viết lại từ nhánh optimizer
+- **Việc:** Phase 2: tools sqlglot/DuckDB/dbt; node V0 spec_check, E0 ingest, P profiler, E2 mock_data, V1 safety, V2 sandbox_run
 - **Trạng thái:** ✅ Done
-- **Kết quả:** TPC-H sf=0.1: 11/13 query được áp dụng, nhanh hơn 51%–94,7%
+- **Kết quả:** Test chặn DROP/ATTACH/INSTALL/COPY, bắt tên bảng/cột bịa, dbt build thật
 - **Thời gian:** —
 
-### 2026-10-02 · việc 4: Nhập ELT-Bench-Verified (10 pipeline) và đưa tập con ~700 KB vào repo…
+### 2026-10-02 · việc 4: Phase 3: node E1 planner (+ `decide_mode`), E3 codegen, E3b testgen (m…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Nhập ELT-Bench-Verified (10 pipeline) và đưa tập con ~700 KB vào repo
+- **Việc:** Phase 3: node E1 planner (+ `decide_mode`), E3 codegen, E3b testgen (mù code), sổ lỗi cần duyệt, prompt `src/prompts/*.md`
 - **Trạng thái:** ✅ Done
-- **Kết quả:** Model chuẩn: 3/3 khớp; `pytest` 212 passed, độ phủ 89,87%
+- **Kết quả:** Test node + routing
 - **Thời gian:** —
 
-### 2026-10-02 · việc 5: Build và chạy lại Docker sau khi dọn ổ C:…
+### 2026-10-02 · việc 5: Phase 4: E4 optimizer + V3 compare, lệnh `optimize`…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Build và chạy lại Docker sau khi dọn ổ C:
+- **Việc:** Phase 4: E4 optimizer + V3 compare, lệnh `optimize`
 - **Trạng thái:** ✅ Done
-- **Kết quả:** Image 1,45 GB; `/health` ok; luồng mô phỏng tới approved
+- **Kết quả:** Test: applied, lệch kết quả bị loại, skipped do lợi ích nhỏ / đề xuất trùng bản gốc
 - **Thời gian:** —
 
-### 2026-10-02 · việc 6: Chạy luồng bằng OpenAI thật, sửa lỗi lộ ra, chọn model theo từng bước…
+### 2026-10-02 · việc 6: Phase 5: graph đầy đủ (interrupt J1/J2/cứu hộ, vòng sửa ≤3, lỗi lặp 2 …
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Chạy luồng bằng OpenAI thật, sửa lỗi lộ ra, chọn model theo từng bước
+- **Việc:** Phase 5: graph đầy đủ (interrupt J1/J2/cứu hộ, vòng sửa ≤3, lỗi lặp 2 lần → cứu hộ), lệnh `run`/`answer`/`status`/`review`/`errors`, `demo`
 - **Trạng thái:** ✅ Done
-- **Kết quả:** gpt-5.6-luna: 5/5 tới bước duyệt, 4/5 không sửa vòng nào, 0,0205 USD/lần
+- **Kết quả:** `python scripts/tasks.py demo` chạy từ yêu cầu tới "đã duyệt" (mock)
 - **Thời gian:** —
 
-### 2026-10-02 · việc 7: Làm bộ golden 12 ca, mutation test, `eval/run_eval.py`; chạy golden và…
+### 2026-10-02 · việc 7: Docker build thử…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Làm bộ golden 12 ca, mutation test, `eval/run_eval.py`; chạy golden và ELT-Bench bằng LLM thật
-- **Trạng thái:** ✅ Done
-- **Kết quả:** Golden 12/12 đúng; mutation 11/12 (91,7%); ELT-Bench 7/34
+- **Việc:** Docker build thử
+- **Trạng thái:** 🔄 WIP
+- **Kết quả:** Lần 1 lỗi ở `pip install` (lỗi tạm thời khi dựng metadata gói nguồn); lần 2 build thành công (image 929 MB). Chạy container lỗi I/O vì **ổ C: đầy 100%** (Docker Desktop lưu dữ liệu trên C:) — cần giải phóng ổ C: hoặc chuyển nơi lưu ảnh đĩa Docker sang ổ khác
 - **Thời gian:** —
 
-### 2026-10-02 · việc 8: Viết API FastAPI chạy nền, chốt một vai trò DE tự duyệt được…
+### 2026-10-02 · việc 8: Gộp từ nhánh `feature/optimizer-agent`: 7 luật viết lại tất định + giả…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Viết API FastAPI chạy nền, chốt một vai trò DE tự duyệt được
+- **Việc:** Gộp từ nhánh `feature/optimizer-agent`: 7 luật viết lại tất định + giả định có SQL kiểm chứng (`src/agents/tools/rewrite_rules.py`), 6 dấu hiệu chậm mới (`slow_patterns.py`), 13 query chậm TPC-H (`eval/benchmarks/tpch/`). Không lấy: config.yaml/settings riêng, CLI/agent riêng, so sánh bằng pandas, reports JSON
 - **Trạng thái:** ✅ Done
-- **Kết quả:** `pytest`: 296 passed, độ phủ 90,06%
+- **Kết quả:** E4 thử luật → sqlglot → LLM; V3 chạy kiểm chứng giả định; benchmark TPC-H sf=0.1
 - **Thời gian:** —
 
-### 2026-10-02 · việc 9: Viết web Next.js, làm giàu kho dữ liệu P113 Retail, thêm bước J1b duyệ…
+### 2026-10-02 · việc 9: ELT-Bench-Verified: chọn 10 pipeline nhẹ nhất (95/100 task đủ dữ liệu)…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Viết web Next.js, làm giàu kho dữ liệu P113 Retail, thêm bước J1b duyệt kế hoạch
+- **Việc:** ELT-Bench-Verified: chọn 10 pipeline nhẹ nhất (95/100 task đủ dữ liệu), script nhập (chỉ lấy nguồn thô, yêu cầu, bảng kết quả đúng; bỏ Airbyte/Terraform/Snowflake), bộ chấm so bảng đúng, chế độ reference + agent; E0 đọc thêm parquet/jsonl
 - **Trạng thái:** ✅ Done
-- **Kết quả:** Kho 19 bảng, 8 hệ thống, ~58.000 dòng; `pytest` 328 passed (sau kho dữ liệu)
+- **Kết quả:** reference: 3/3 model cs_semester khớp bảng đúng; agent: chờ khóa LLM
 - **Thời gian:** —
+
+### 2026-10-02 · việc 10: Đưa tập con ELT-Bench (~700 KB, 10 task) vào repo tại `eval/datasets/e…
+
+- **Người làm:** TrungTuyenDo02
+- **Việc:** Đưa tập con ELT-Bench (~700 KB, 10 task) vào repo tại `eval/datasets/eltbench/` kèm README ghi nguồn + giấy phép CC BY-SA 4.0; script nhập/chạy trỏ về đó (sandbox tạm vẫn ở `data/`, git-ignored); thêm test chạy model chuẩn cs_semester để CI kiểm chứng bộ chấm
+- **Trạng thái:** ✅ Done
+- **Kết quả:** `run_eltbench.py --mode reference`: 3/3 khớp; `pytest`: 212 passed, độ phủ 89,87%
+- **Thời gian:** —
+
+### 2026-10-02 · việc 11: Docker chạy lại…
+
+- **Người làm:** TrungTuyenDo02
+- **Việc:** Docker chạy lại
+- **Trạng thái:** ✅ Đã giải quyết (dòng "Docker chạy lại" bên dưới)
+- **Kết quả:** Image cũ hỏng (lớp dữ liệu lỗi từ lần ổ C: đầy) → xóa 2 image P-113, build lại `--no-cache` thì lỗi I/O vì ổ C: về 0 byte (ổ đĩa ảo Docker nằm trên C:). Cần chuyển "Disk image location" của Docker Desktop sang ổ F:
+- **Thời gian:** —
+
+### 2026-10-02 · việc 12: Chạy luồng bằng OpenAI thật (gpt-4o-mini) và sửa các lỗi chỉ LLM thật …
+
+- **Người làm:** TrungTuyenDo02
+- **Việc:** Chạy luồng bằng OpenAI thật (gpt-4o-mini) và sửa các lỗi chỉ LLM thật mới lộ ra: Planner hỏi lặp (thiếu nội dung câu hỏi), V1 chặn nhầm `'/'` và DAG 1 task, Codegen không thấy code cũ khi sửa, lỗi dây chuyền gây nhiễu, Testgen viết phép so sánh sai → LLM chỉ viết "kết quả kỳ vọng", code dựng phép đối soát hai chiều; V1 biên dịch thử bằng DuckDB `EXPLAIN` (lỗi gắn đúng file); P ghi biểu thức DuckDB đọc đúng ngày/tiền; V0 bắt cột phân loại phải thuộc grain; bỏ `;` cuối file SQL
+- **Trạng thái:** ✅ Done
+- **Kết quả:** 5 lần chạy "gộp 3 nguồn, doanh thu ngày" (auto-answer, openai/gpt-4o-mini): **4/5 tới bước chờ duyệt**, 0 vòng sửa, 11.062–13.491 token/lần (0,00245–0,00301 USD); 1/5 lặp cùng lỗi cột 2 lần → cứu hộ (đúng thiết kế). `pytest`: 237 passed, độ phủ 90,13%
+- **Thời gian:** —
+
+### 2026-10-02 · việc 13: ELT-Bench agent lần 1 (gpt-4o-mini, dừng ở 12/34): 0 đạt → sửa lỗi hệ …
+
+- **Người làm:** TrungTuyenDo02
+- **Việc:** ELT-Bench agent lần 1 (gpt-4o-mini, dừng ở 12/34): 0 đạt → sửa lỗi hệ thống lộ ra: V0 bắt buộc "chỉ số" (bảng chiều không có), so tên cột phân biệt hoa/thường, Planner hỏi lại y hệt câu đã trả lời (code tự bỏ), gợi ý "đọc được cột nào" (cả cột có tiền tố bảng, chỉ nguồn trong FROM), V0 nêu danh sách cột được chọn làm grain
+- **Trạng thái:** ✅ Done
+- **Kết quả:** Các ca lỗi thật thành test hồi quy trong `tests/test_agents/test_fix_loop.py`
+- **Thời gian:** —
+
+### 2026-10-02 · việc 14: Hướng C — model theo từng bước: planner/codegen/testgen = gpt-5.6-luna…
+
+- **Người làm:** TrungTuyenDo02
+- **Việc:** Hướng C — model theo từng bước: planner/codegen/testgen = gpt-5.6-luna, optimizer = gpt-5.6-terra, dự phòng gemini-3.1-flash-lite khi OpenAI gọi lỗi (thêm `langchain-google-genai==4.4.0`); Coder không được viết file cấu hình hệ thống (dbt_project.yml, sources.yml)
+- **Trạng thái:** ✅ Done
+- **Kết quả:** Gọi thật cả 3 đường + ép lỗi để chạy dự phòng ✓. 5 lần đo (cùng kịch bản): lượt 1 **3/5** (Luna tự viết dbt_project.yml/sources.yml); sau khi sửa, lượt 2 **5/5 tới bước chờ duyệt, 4/5 không phải sửa vòng nào**, trung bình 19.556 token, 0,0205 USD/lần (gpt-4o-mini: 4/5, ~0,0027 USD). Optimizer: 1 lần nhanh hơn 39,6% nhưng tiết kiệm/năm < chi phí tối ưu → giữ nguyên (đúng luật "tối ưu chỉ khi đáng")
+- **Thời gian:** —
+
+### 2026-10-02 · việc 15: Phase 6 (phần không cần LLM): bộ golden 12 ca (`eval/datasets/golden/`…
+
+- **Người làm:** TrungTuyenDo02
+- **Việc:** Phase 6 (phần không cần LLM): bộ golden 12 ca (`eval/datasets/golden/`, kết quả đúng tính tay + SQL chuẩn), mutation test (`eval/mutation/`), `eval/run_eval.py` → `eval/results/report.md`, lệnh `make eval` / `python -m src.cli eval`, workflow `eval.yml` (chạy tay, không cần secret)
+- **Trạng thái:** ✅ Done
+- **Kết quả:** Golden reference: 11/11 kết quả đúng khớp SQL chuẩn. Mutation: **bắt 11/12 lỗi giả (91,7%)**, 0/1 báo động nhầm; lọt `count_distinct_id` vì dữ liệu thử không có mã trùng giữa nguồn
+- **Thời gian:** —
+
+### 2026-10-02 · việc 16: Phase 6 (phần LLM thật, gpt-5.6-luna/terra): golden agent + ELT-Bench …
+
+- **Người làm:** TrungTuyenDo02
+- **Việc:** Phase 6 (phần LLM thật, gpt-5.6-luna/terra): golden agent + ELT-Bench agent; sửa lỗi lộ ra: Planner hỏi giả định/đào sâu (prompt: chỉ hỏi khi có bằng chứng), not_null chỉ cho cột grain (cột khác rỗng hợp lệ), model suy luận dùng hết 4.000 token → LLM_MAX_TOKENS=16000 + mọi lỗi OpenAI chuyển dự phòng Gemini
+- **Trạng thái:** ✅ Done
+- **Kết quả:** Golden **12/12 đúng**, 12/12 đúng ELT/ETL, 10/12 không phải sửa vòng nào (~0,0055 USD/ca). ELT-Bench **7/34 khớp bảng đúng**, 27/34 tới bản duyệt, 0 lỗi nội bộ, tổng 0,94 USD. Quyết định: không tối ưu tiếp ELT-Bench. `pytest`: 280 passed, độ phủ 90,1%
+- **Thời gian:** —
+
+### 2026-10-02 · việc 17: Quyết định phạm vi: một vai trò DE (tự duyệt được), giữ bước duyệt J2;…
+
+- **Người làm:** TrungTuyenDo02
+- **Việc:** Quyết định phạm vi: một vai trò DE (tự duyệt được), giữ bước duyệt J2; công tắc `REQUIRE_SEPARATE_REVIEWER` bật lại luật 2 người; luật duyệt gom vào `review_permission_error()` (CLI + API dùng chung); ADR 0004
+- **Trạng thái:** ✅ Done
+- **Kết quả:** `pytest`: 283 passed, độ phủ 90,11%
+- **Thời gian:** —
+
+### 2026-10-02 · việc 18: Phase 7 — API: tạo yêu cầu (202 + chạy nền, hàng đợi một luồng `servic…
+
+- **Người làm:** TrungTuyenDo02
+- **Việc:** Phase 7 — API: tạo yêu cầu (202 + chạy nền, hàng đợi một luồng `services/jobs.py`), chi tiết + tiến trình từng bước, file/diff, J1 answers, J2 review, cứu hộ, hàng đợi duyệt, sổ lỗi, **cấu trúc dữ liệu** (`services/catalog.py`: bảng raw/staging/mart, kiểu cột qua DuckDB DESCRIBE, % rỗng, khóa, lineage + JOIN thật qua sqlglot, gợi ý khóa nối theo tên cột), lỗi 4xx/5xx tiếng Việt; sửa node J2 vẫn chặn tự duyệt dù đã chọn 1 vai trò DE (test API bắt được)
+- **Trạng thái:** ✅ Done
+- **Kết quả:** Test API trọn luồng qua HTTP cả 2 chế độ duyệt. `pytest`: 296 passed, độ phủ 90,06%
+- **Thời gian:** —
+
+### 2026-10-02 · việc 19: Docker chạy lại (sau khi dọn ổ C:, khởi động lại Docker Desktop)…
+
+- **Người làm:** TrungTuyenDo02
+- **Việc:** Docker chạy lại (sau khi dọn ổ C:, khởi động lại Docker Desktop)
+- **Trạng thái:** ✅ Done
+- **Kết quả:** Build image 1,45 GB (lần đầu ~22 phút do mạng chậm, lần sau dùng cache). `docker compose up`: `/health` = ok; thử trọn luồng qua HTTP trong container (mock): tạo yêu cầu → J1 → bản duyệt (optimizer applied +26,9%) → catalog 7 bảng/6 cạnh lineage → duyệt → approved
+- **Thời gian:** —
+
+### 2026-10-02 · việc 20: Phase 8 — Web (Next.js 16 + TypeScript, ưu tiên laptop, sáng/tối): Lần…
+
+- **Người làm:** TrungTuyenDo02
+- **Việc:** Phase 8 — Web (Next.js 16 + TypeScript, ưu tiên laptop, sáng/tối): Lần chạy (tạo yêu cầu, danh sách), Tổng quan (J1, cứu hộ, tiến trình ✓/✗, đặc tả, kết quả mẫu, token/chi phí), Duyệt code (Monaco, bằng chứng "Code đo \| LLM nói", duyệt/từ chối), Tối ưu (trước/sau, đối chiếu từng bộ, diff SQL), Cấu trúc dữ liệu (sơ đồ SVG raw → staging → mart, schema, lineage, khóa nối), Dữ liệu nguồn, Sổ lỗi; nhãn "Chế độ mô phỏng". Rà quy trình và vá: API tải gói `.zip` sau khi duyệt (DE tự mở PR), trả về câu J1 đã trả lời; Docker: thêm service frontend, chuyển sang volume (SQLite WAL mất dữ liệu trên thư mục Windows), API tự sinh dữ liệu mẫu khi trống; CI thêm job frontend (ESLint, Prettier, tsc, build) + build image frontend
+- **Trạng thái:** ✅ Done
+- **Kết quả:** `make ci`: **308 passed, độ phủ 90,08%**; `frontend-check` đạt. Docker (mock): backend 979 MB + frontend 306 MB chạy khỏe; trọn luồng tạo → J1 → bản duyệt (optimizer +40,5%) → tải zip 12 file → duyệt = approved; tạo lại container vẫn giữ lần chạy. Ảnh chụp ở `docs/screenshots/web_*.png`
+- **Thời gian:** —
+
+### 2026-10-02 · việc 21: Làm giàu kho dữ liệu: công ty bán lẻ giả lập "P113 Retail" — 8 hệ thốn…
+
+- **Người làm:** TrungTuyenDo02
+- **Việc:** Làm giàu kho dữ liệu: công ty bán lẻ giả lập "P113 Retail" — 8 hệ thống, 19 bảng, ~58.000 dòng, 5 định dạng (CSV, JSON, JSON từng dòng, SQLite nhiều bảng, Parquet), khóa liên kết thật giữa hệ thống, ~40 kiểu bẩn có chủ đích (`src/services/company/`, `seed --profile/--scale/--dirty`, `docs/data-catalog.md` kèm đáp án). Màn "Dữ liệu nguồn": nhóm theo hệ thống, số dòng/% rỗng/trùng khóa, khóa nối gợi ý kèm % dòng khớp đo thật. Sửa 5 lỗi dữ liệu lớn làm lộ: E0 nạp SQLite (311 s → 3,8 s), P đọc ngày/tiền nhiều định dạng + `parse_failures` + gợi ý `normalize`, mẫu số thường khớp nhầm `125.000`, bộ large của E2 làm phép nối bùng nổ, kết nối SQLite không đóng
+- **Trạng thái:** ✅ Done
+- **Kết quả:** `make ci`: **328 passed, độ phủ 91,5%** (bộ test nhanh gấp đôi); `frontend-check` đạt. Yêu cầu thật "doanh thu POS theo ngày × danh mục, cửa hàng đang hoạt động" (openai: gpt-5.6-luna/terra): lần 1–2 dừng ở cứu hộ (lỗi P), lần cuối **qua V2 ngay lần đầu**, 240 dòng = 30 ngày × 8 danh mục, optimizer thử 3 đề xuất → giữ nguyên; tổng 4 lần 0,079 USD. Agent chưa tự phát hiện: ngày xuất trùng của một cửa hàng, mã hàng thiếu gạch
+- **Thời gian:** —
+
+### 2026-10-02 · việc 22: J1b Duyệt kế hoạch: `PipelineSpec` thêm `plan_summary` + `plan` (bước:…
+
+- **Người làm:** TrungTuyenDo02
+- **Việc:** J1b Duyệt kế hoạch: `PipelineSpec` thêm `plan_summary` + `plan` (bước: làm gì, vì sao), Planner viết kế hoạch bằng lời thường (code dựng kế hoạch tối thiểu nếu LLM bỏ trống); graph dừng sau V0, DE đồng ý → sinh code, yêu cầu sửa (bắt buộc ghi chú) → Planner lập lại; CLI in bảng kế hoạch + hỏi approve/revise, API `POST /runs/{id}/plan`, web màn duyệt kế hoạch, kế hoạch vào `PULL_REQUEST.md`; ADR 0005
+- **Trạng thái:** ✅ Done
+- **Kết quả:** test mới: J1b trọn luồng (hiện kế hoạch có giải thích, sửa thiếu ghi chú → hỏi lại, sửa → lập lại, đồng ý → tới J2), routing, API 422
+- **Thời gian:** —
+
+**Kết quả đo thật (mock, máy Windows của TrungTuyenDo02):** `ruff check` ✓, `ruff format --check` ✓,
+
+`pytest`: 174 passed, độ phủ 89,05% (trước khi gộp optimizer); sau khi gộp optimizer + ELT-Bench: 210 passed; sau khi đưa dữ liệu ELT-Bench vào repo: **212 passed, độ phủ 89,87%**. TPC-H sf=0.1 (mock): 13/13 query chậm đúng đáp án chuẩn; 11/13 được áp dụng, nhanh hơn 51%–94,7%, 10 ca nhờ luật tất định (0 lần gọi LLM); 2 ca "đối chứng" giữ nguyên. Demo: V2 6/6 test dbt đạt; optimizer đo trên bộ `large` giả lập ghi nhận
+
+21,1%–44,6% nhanh hơn qua các lần chạy (UNION → UNION ALL), V3 giống hệt trên 5 bộ dữ liệu.
+
+Các con số này đo bằng code; phần câu trả lời LLM là **mô phỏng (mock)**, không phải chất lượng mô hình thật.
+
+**Tổng kết ngày:** Có MVP giai đoạn A chạy trọn trong terminal không cần khóa. Đội thống nhất dùng code của
+
+TrungTuyenDo02 làm chính; đã gộp phần phù hợp từ `feature/optimizer-agent`, không dùng hai nhánh còn lại.
+
+Việc treo: chấm agent trên ELT-Bench (cần khóa LLM), chạy Docker (ổ C: đầy).
 
 
 ## 2026-10-03
 
-### 2026-10-03 · việc 10: Sửa hai lỗi chạy thật trên kho dữ liệu công ty: lỗi nội bộ do mở DuckD…
+### 2026-10-03 · việc 23: Sửa lỗi chạy thật trên kho dữ liệu công ty: (1) "lỗi nội bộ" sau khi `…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Sửa hai lỗi chạy thật trên kho dữ liệu công ty: lỗi nội bộ do mở DuckDB và Planner hỏi quá nhiều vòng
+- **Việc:** Sửa lỗi chạy thật trên kho dữ liệu công ty: (1) "lỗi nội bộ" sau khi `dbt build` đạt — API đọc catalog mở `sandbox.duckdb` khác cấu hình với `mart_sample` → DuckDB `ConnectionException`; thống nhất kết nối chỉ-đọc qua `connect_read()`, API catalog trả 409 khi lần chạy đang xử lý. (2) "Vượt quá số vòng" — Planner hỏi từng câu một qua nhiều vòng; `max_plan_rounds` 3 → 5, lượt cuối Planner không được hỏi thêm mà ghi giả định
 - **Trạng thái:** ✅ Done
-- **Kết quả:** Chạy lại với OpenAI: tới bước chờ duyệt, V2 3/3 test đạt
+- **Kết quả:** Tái hiện được cả hai lỗi; chạy lại "Gộp đơn hàng 3 nguồn, tính doanh thu ngày" (openai): tới bước chờ duyệt, V2 3/3 test đạt
 - **Thời gian:** —
 
-### 2026-10-03 · việc 11: Xử lý góp ý PR: chặn `pre_hook/post_hook` lọt V1, luật viết lại bỏ biể…
+### 2026-10-03 · việc 24: Xử lý góp ý PR (phoenix-mentor): chặn `config(pre_hook/post_hook=...)`…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Xử lý góp ý PR: chặn `pre_hook/post_hook` lọt V1, luật viết lại bỏ biểu thức không tất định
+- **Việc:** Xử lý góp ý PR (phoenix-mentor): chặn `config(pre_hook/post_hook=...)` lọt qua V1 (chỉ cho `materialized`, `tags`, `alias`, `unique_key` với giá trị literal); `range_to_equality` bỏ qua biểu thức không tất định (`random()`...); `_load` của mock trả giá trị mặc định đúng kiểu
 - **Trạng thái:** ✅ Done
-- **Kết quả:** `pytest`: 349 passed, độ phủ 91,57%
+- **Kết quả:** `pytest`: **349 passed, độ phủ 91,57%**; ruff, eslint, prettier, tsc đạt
 - **Thời gian:** —
 
 
 ## 2026-10-05
 
-### 2026-10-05 · việc 12: Chuẩn hóa prompt v2, structured output strict, ngữ cảnh gọn, đo token …
+### 2026-10-05 · việc 25: U1 giai đoạn 1 — chuẩn prompt (không cần khóa): kiểm kê 4 prompt + chỗ…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Chuẩn hóa prompt v2, structured output strict, ngữ cảnh gọn, đo token bằng tiktoken
-- **Trạng thái:** ✅ Done
-- **Kết quả:** Token đầu vào optimizer 1.483 → 792 (−46,6%); `make ci` 384 passed
+- **Việc:** U1 giai đoạn 1 — chuẩn prompt (không cần khóa): kiểm kê 4 prompt + chỗ ghép biến; đo baseline bằng tiktoken trên 3 ca golden với spec/code THẬT của gpt-5.6-luna (`eval/prompt_bench/`, fixture trích từ checkpoint); viết lại prompt v2 (chỉ dẫn tiếng Anh, giữ mọi quy tắc cũ, có `version:` + nhật ký); structured output (JSON Schema strict, `src/models/llm_outputs.py`, công tắc `LLM_STRUCTURED_OUTPUT`); ngữ cảnh gọn (`src/services/prompt_context.py`: JSON không thụt lề, spec bỏ trường thừa, hồ sơ bỏ trường rỗng, bỏ catalog trùng hồ sơ, mẫu dạng mảng, EXPLAIN dạng cây toán tử, schema chỉ bảng query đọc); Planner chỉ trả tên nguồn (code điền kind/path); vòng sửa chỉ gửi file liên quan và gộp file trả về; nhiệt độ + trần token theo node; ghi `cached_tokens`; `budget.yaml` + `tests/test_prompts/`
+- **Trạng thái:** ✅ Done (giai đoạn 1)
+- **Kết quả:** Token đầu vào trung bình (đo offline, `eval/results/prompt_tokens.md`): planner 1.983 → 1.456 (−26,6%), codegen 2.558 → 1.578 (−38,3%), vòng sửa 2.736 → 1.690 (−38,2%), testgen 2.401 → 1.363 (−43,3%), optimizer 1.483 → 792 (−46,6%). Cách đếm khớp số OpenAI thật (codegen 3.009 vs 2.901, optimizer 1.433 vs 1.440). Token đầu ra, chất lượng golden, tỉ lệ trúng cache: — (chưa đo, cần khóa — giai đoạn 2). `make ci`: **384 passed, độ phủ 92,09%**
 - **Thời gian:** —
 
-### 2026-10-05 · việc 13: Ghi nhận hai điểm khi kiểm kê prompt: `references` bị LLM điền sai và …
+### 2026-10-05 · việc 26: Ghi nhận khi kiểm kê…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Ghi nhận hai điểm khi kiểm kê prompt: `references` bị LLM điền sai và thiếu `CLAUDE_BASE.md`
+- **Việc:** Ghi nhận khi kiểm kê
 - **Trạng thái:** ⚠️ Chưa sửa
-- **Kết quả:** Test `relationships` có thể trỏ tới bảng không tồn tại (xem 2026-10-10)
+- **Kết quả:** (1) Spec cũ có `references` bị LLM điền thành nguồn gốc cột (vd `shopee_orders.order_date; tiki_orders...`) → testgen sinh test `relationships` tới `ref('shopee_orders')` không tồn tại; v2 mô tả lại đúng nghĩa khóa ngoại trong schema, chưa thêm chặn bằng code. (2) `CLAUDE_BASE.md` không có (CLAUDE.md bị gitignore) → bỏ dòng nạp, ghi tạm luật nền trong CLAUDE.md
 - **Thời gian:** —
 
-### 2026-10-05 · việc 14: Đo các bước V như máy dò: red team V1, đột biến V2, cặp query V3 (0 to…
+### 2026-10-05 · việc 27: U3 — đo chính các bước V như máy dò (0 token): `eval/verifier_bench/` …
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Đo các bước V như máy dò: red team V1, đột biến V2, cặp query V3 (0 token)
+- **Việc:** U3 — đo chính các bước V như máy dò (0 token): `eval/verifier_bench/` (V1 red team 58 ca + 32 ca hợp lệ; V2 đột biến trên 2 pipeline: doanh thu 3 nguồn và nối một-nhiều g06 dùng code thật của LLM; V3 26 cặp query + 120 bộ dữ liệu ngẫu nhiên seed cố định + luật viết lại + bất biến xáo/nhân đôi; tự kiểm bằng plugin `sabotage.py`), lệnh `python -m src.cli eval-verifiers` / `make eval-verifiers`, test CI `tests/test_verifiers/test_v1_redteam.py`. Sửa lỗi lộ ra: V1 để lọt 7 ca (`query()`, `duckdb_secrets()`, `pragma_*()`, DAG gọi `os.system`/`subprocess`/`exec`, bash tải script từ mạng); Jinja lạ làm V1 ném ngoại lệ; luật `self_union_to_distinct` không thay được UNION ở gốc câu; V3 thiếu bộ dữ liệu nhóm toàn rỗng → thêm `nullmoney` vào E2/V3. Bản sửa đầu chặn theo tiền tố `duckdb_` gây báo nhầm hàm bịa (test cũ bắt được) → chỉ chặn hàm hệ thống có thật
 - **Trạng thái:** ✅ Done
-- **Kết quả:** V1 bắt 58/58, báo nhầm 0/32; `make ci` 477 passed
+- **Kết quả:** `eval/results/verifier_report.md`: V1 bắt 58/58, báo nhầm 0/32; V2 doanh thu 11/12 (báo nhầm 0/1), V2 g06 5/8 (báo nhầm 0/2, 3 ca lọt do dữ liệu golden nhỏ); V3 13/14 (báo nhầm 0/12, còn lọt LIMIT + thứ tự trùng); luật viết lại 0 lệch trên 120 bộ; bất biến 0 vi phạm; phá từng V (V0–V3) đều làm test đỏ (V2 chỉ 1 test đỏ — test V2 còn mỏng). Mọi nhãn do author gán, 0 ca external. `make ci`: **477 passed, độ phủ 92,12%**
 - **Thời gian:** —
 
-### 2026-10-05 · việc 15: Bổ sung ca khó do Claude viết thay (`ai_proxy`) và sửa V1 theo các ca …
+### 2026-10-05 · việc 28: U3 bổ sung — ca khó `labeled_by: ai_proxy` (chưa có người ngoài nhóm; …
 
-- **Người làm:** TrungTuyenDo02
-- **Việc:** Bổ sung ca khó do Claude viết thay (`ai_proxy`) và sửa V1 theo các ca lọt
+- **Người làm:** TrungTuyenDo02 (Claude viết ca thay thành viên)
+- **Việc:** U3 bổ sung — ca khó `labeled_by: ai_proxy` (chưa có người ngoài nhóm; KHÔNG tính là external): V1 +20 tấn công/+11 hợp lệ, V2 +6 đột biến/+3 đối chứng, V3 +12 cặp. Sửa V1 theo ca lọt: `config()` chỉ nhận materialized view/table/incremental/ephemeral, alias/unique_key là định danh, tags đơn giản; chặn `current_setting()`; DAG: theo dõi bí danh import, chặn `from os import system`, `getattr`/`open`/`importlib`, `os.exec*`/`spawn*`, quét mọi chuỗi (trừ docstring) tìm lệnh shell nguy hiểm và `python -c`. 2 ca DoS (CTE đệ quy, range 10^12) ghi `known_leak` (V2 chặn bằng timeout + memory_limit), test CI để xfail strict
 - **Trạng thái:** ✅ Done
-- **Kết quả:** V1 76/78, V2 17/26, V3 19/21, báo nhầm 0; 506 passed
+- **Kết quả:** ai_proxy trước khi sửa: V1 lọt 11/18 ca không phải DoS; sau khi sửa V1 18/20 (2 DoS đã biết), báo nhầm 0/11. V2 ai_proxy bắt **1/6** (lọt do dữ liệu thử không chạm trường hợp; V không so kiểu cột đầu ra với spec), V3 ai_proxy 6/7 (lọt `trim` vì dữ liệu không có khoảng trắng thừa). Tổng: V1 76/78, V2 17/26, V3 19/21, báo nhầm 0 ở mọi node. `make ci`: **506 passed, 2 xfailed, độ phủ 92,14%**
 - **Thời gian:** —
 
-### 2026-10-05 · việc 16: Thử LLM thật sớm bằng `eval/smoke_llm.py` trên 3 yêu cầu golden…
+### 2026-10-05 · việc 29: U2 — thử LLM thật sớm: `eval/smoke_llm.py` (`make smoke-llm`), 3 yêu c…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Thử LLM thật sớm bằng `eval/smoke_llm.py` trên 3 yêu cầu golden
+- **Việc:** U2 — thử LLM thật sớm: `eval/smoke_llm.py` (`make smoke-llm`), 3 yêu cầu golden (g01, g06, g09) qua Planner (tự chọn đáp án J1) → V0 → Codegen → V1, ghi provider thực trả lời, token vào/ra, `cached_tokens`, chi phí, câu hỏi Planner đặt ra; workspace/kho tạm riêng. Sửa lỗi lộ ra: LLM nhét `notes` vào danh sách files → code bỏ mục không phải file (không thư mục, không đuôi), đường dẫn lạ vẫn để V1 chặn
 - **Trạng thái:** ✅ Done
-- **Kết quả:** 3/3 qua V0 và V1, 0,0132 USD, cache 36,1%
+- **Kết quả:** openai gpt-5.6-luna, prompt v2 + structured output strict: **OpenAI nhận schema, 0 lần chuyển dự phòng**. Lần 1: 7 lần gọi, 0,0119 USD, cache 0%, g06 bị V1 chặn vì file `notes`. Lần cuối (sau sửa): **3/3 qua V0 + V1**, 7 lần gọi, 11.340 token vào / 9.098 ra, **0,0132 USD**, cache **36,1%** (chỉ lượt Planner đầu, do prompt giống hệt lần chạy trước; giữa các ca khác nhau không trúng vì phần tĩnh < 1024). Vấn đề chất lượng: Planner hỏi thừa ở g01 (dòng trùng, múi giờ) dù yêu cầu đã rõ — nghi do prompt v2 thêm "currency, timezone" vào quy tắc 2 → xử lý ở U1 giai đoạn 2. Tổng chi U2 (3 lần chạy thật): ~0,041 USD. `make ci`: 506 passed, 2 xfailed, độ phủ 92,15%
 - **Thời gian:** —
 
-### 2026-10-05 · việc 17: Chạy lại golden 12 ca bằng LLM thật, so prompt v1 với v5…
+### 2026-10-05 · việc 30: U1 giai đoạn 2 — chạy lại golden 12 ca bằng LLM thật (openai gpt-5.6-l…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Chạy lại golden 12 ca bằng LLM thật, so prompt v1 với v5
+- **Việc:** U1 giai đoạn 2 — chạy lại golden 12 ca bằng LLM thật (openai gpt-5.6-luna/terra), so với mốc prompt v1 (`eval/prompt_bench/compare_quality.py` → `eval/results/prompt_quality.md`). 3 lần chạy: planner v3 (hỏi thừa g04/g05, g09 sai mode) → v4 (quy tắc hỏi theo bằng chứng, nghĩa `signals` chuyển vào mô tả schema) → v5 (chỉ hỏi về dòng trùng khi yêu cầu chưa nói cách xử lý và bản sao khác nhau). Sửa lỗi lộ ra ở v4: Codegen ghi ghi chú vào `notes.txt` → V1 chặn, vòng sửa không xóa được file → cứu hộ (g09); code mới bỏ file ghi chú `.txt/.md` ở gốc và bỏ file V1 đã chặn khi gộp vòng sửa (`carry_over`). Kiểm nhanh Planner (`planner_check.py`, 2 lượt × 12 ca) trước mỗi lần chạy đầy đủ
 - **Trạng thái:** ✅ Done
-- **Kết quả:** Đúng 12/12; đạt ngay 11/12 (v1 10/12); chi phí/ca +27,5%
+- **Kết quả:** **v5 so với v1: đúng 12/12 = 12/12; đạt ngay lần đầu 11/12 (v1 10/12); vòng sửa 1 (v1 2); đúng ELT/ETL 12/12; ca rõ bị hỏi 0 = 0; g10 vẫn hỏi.** Token đầu vào mỗi lần gọi giảm (planner −9%, codegen −15%, testgen −17%; offline: planner −22,4%), nhưng **chi phí/ca tăng 0,005511 → 0,007027 USD (+27,5%)**, thời gian 43,1 → 50,4 s: chủ yếu do optimizer terra được gọi 3 lần (0,0256 USD) so với 1 lần ở v1 (0,0064) — phụ thuộc SQL sinh ra, không do prompt — và token đầu ra/suy luận dao động. Cache trúng 30,7% token vào (chỉ lượt Planner lặp lại). Mỗi bản chạy 1 lần: chênh 1 ca chưa đủ kết luận. planner_check v4 23/24, v5 22/24 (hỏi lẻ ở g06/g12, mỗi ca 1/2 lượt). Tổng chi U1 gđ2 ≈ 0,33 USD. `make ci`: 516 passed, 2 xfailed, độ phủ 92,18%
 - **Thời gian:** —
 
-### 2026-10-05 · việc 18: Làm giao diện: `tokens.css`, đường ống E/V/J, kiểm tương phản, phông, …
+### 2026-10-05 · việc 31: U9 — giao diện: mọi màu ở `frontend/styles/tokens.css` (bảng gợi ý mục…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Làm giao diện: `tokens.css`, đường ống E/V/J, kiểm tương phản, phông, chế độ sáng/tối
+- **Việc:** U9 — giao diện: mọi màu ở `frontend/styles/tokens.css` (bảng gợi ý mục 7.2, mỗi biến `light-dark(sáng, tối)`, không mã hex trong component; đặt ở `styles/` cho khớp cấu trúc app/, components/, lib/ thay vì `src/styles/`); `scripts/check-contrast.mjs` (`npm run check:contrast`, đã thêm vào `frontend-check`); phông Be Vietnam Pro + JetBrains Mono qua `next/font` (không thêm dependency); **đường ống E/V/J** ở đầu mỗi lần chạy (`PipelineTrack`, hình dạng theo loại: E tròn, V vuông, J thoi; trạng thái chờ/đang chạy/đạt/lỗi/chờ bạn do API suy từ dữ liệu thật — `src/agents/stages.py`, trường `stages` trong `GET /runs/{id}`); "Code đo" viền đặc + dấu đạt/lỗi, "LLM nói" viền nét đứt màu trung tính; màn duyệt thêm bảng tối ưu trước/sau, ô tăng trưởng 1x/10x/100x (ghi "Chưa đo"), panel chi phí và thời gian theo node + tỉ lệ trúng cache (`usage`, `services/cost.usage_breakdown`); thanh dưới trên điện thoại, vùng chạm 44px, nút chuyển Theo máy/Sáng/Tối, Monaco một cột khi màn ≤900px; bỏ nhãn IN HOA; chuyển động chỉ khi nút đổi trạng thái, tôn trọng `prefers-reduced-motion`; nút "Gửi yêu cầu", "Từ chối và ghi chú"
 - **Trạng thái:** ✅ Done
-- **Kết quả:** Tương phản 34/34 cặp ≥ 4,5:1
+- **Kết quả:** Tương phản: **34/34 cặp ≥ 4,5:1** (sáng thấp nhất 4,60 warn/warn-soft; tối thấp nhất 5,07). `npm run lint/format:check/typecheck/build` đạt. Chụp màn hình bằng Edge headless (sáng, tối, 600px) trên lần chạy thật. Lệch so với CLAUDE.md: nút duyệt giữ chữ "Duyệt" (hệ thống không tự merge, chỉ đóng gói zip để mở PR); biểu đồ tăng trưởng chưa vẽ vì chưa có số đo V4 (U5); bộ nhớ đỉnh "Chưa đo" vì V3 chưa đo RAM; chưa kiểm trên điện thoại thật; chưa có logo đội (`public/brand/` chưa tạo). `make ci`: 516 passed, 2 xfailed, độ phủ 92,18%
 - **Thời gian:** —
 
-### 2026-10-05 · việc 19: Dựng khung mốc DE làm tay: `PROTOCOL.md`, `check_de.py`, mục so sánh t…
+### 2026-10-05 · việc 32: U4 — mốc "DE làm tay" (0 token): `eval/baseline/PROTOCOL.md` (cùng đầu…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Dựng khung mốc DE làm tay: `PROTOCOL.md`, `check_de.py`, mục so sánh trong report
-- **Trạng thái:** ✅ Done
-- **Kết quả:** Cột DE làm tay: — (chưa có người làm); 527 passed
+- **Việc:** U4 — mốc "DE làm tay" (0 token): `eval/baseline/PROTOCOL.md` (cùng đầu vào `request.txt` + `sources/`, không đưa đáp án; cùng mốc dừng với agent: dbt + test + DAG, `dbt build` đạt; không tính thời gian chờ người ở cả hai bên; chấm đúng/sai bằng code), `human_baseline.csv` (chỉ tiêu đề, để trống), `check_de.py` (chấm bảng của DE bằng đúng bộ so `expected.csv` của golden, chặn tên bảng lạ), `baseline_compare.py` + `run_eval.py`: report.md thêm mục 2 "Agent so với DE làm tay" (từng ca, trung vị nếu nhiều DE, tỉ lệ agent / DE) và mục 3 "Công Reviewer" (tỉ lệ duyệt ngay vòng đầu, số dòng code đổi sau khi từ chối; bỏ tài khoản `*-auto-reviewer`); test `tests/test_eval/test_baseline.py`
+- **Trạng thái:** ✅ Done (khung)
+- **Kết quả:** report.md: thời gian agent/ca 0,5–1,3 phút (golden v5, openai); **cột DE làm tay: — (chưa có người làm)**; tỉ lệ agent/DE: —. Công Reviewer: 5 lần chạy có người duyệt không phải tài khoản tự duyệt, 100% duyệt ngay — nhưng đều là lượt thử của nhóm ngày 2026-10-02 (bob, binh, de), report ghi rõ là chưa đủ kết luận; số dòng đổi sau từ chối: — (chưa có lần từ chối thật). **Cần ít nhất 1 DE làm 5–10 ca theo PROTOCOL.** `make ci`: 527 passed, 2 xfailed, độ phủ 92,18%
 - **Thời gian:** —
 
 
 ## 2026-10-07
 
-### 2026-10-07 · việc 20: Sửa bộ chấm ELT-Bench (`gt_compare.py`): thời gian, VARIANT, so số ngu…
+### 2026-10-07 · việc 33: B1 — sửa bộ chấm ELT-Bench (`gt_compare.py`, 0 token): thời gian đưa v…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Sửa bộ chấm ELT-Bench (`gt_compare.py`): thời gian, VARIANT, so số nguyên
+- **Việc:** B1 — sửa bộ chấm ELT-Bench (`gt_compare.py`, 0 token): thời gian đưa về một dạng ở cả hai bên (UTC, mili giây, giờ 2 chữ số, múi `+0000`/`+07`); ô VARIANT xuất JSON (`"regular"`, chữ `null`); số nguyên so bằng (sai số tương đối làm lọt ID±1 — kiểm ngược bắt được); báo cột lệch + 3 dòng mẫu; `known_issues.yaml` (2 model đề lệch đáp án) → in hai số gồm/không gồm; cột `gt_rows`; ghi rõ J1 chọn `options[0]`; `--mode selfcheck`
 - **Trạng thái:** ✅ Done
-- **Kết quả:** Tự kiểm 34/34 (trước 28/34); `make ci` 560 passed
+- **Kết quả:** Tự kiểm **34/34** (trước 28/34); kiểm ngược (đổi 1 ô) **34/34** (trước 28/34); reference 3/3; golden reference 11/11 (không đổi). `make ci`: 560 passed, 2 xfailed, độ phủ 92,17%
 - **Thời gian:** ~2 giờ
 
-### 2026-10-07 · việc 21: Lưu đầu ra mỗi lần chạy ELT-Bench và chấm lại đợt 2026-10-02 (0 token)…
+### 2026-10-07 · việc 34: B2 — lưu đầu ra mỗi lần chạy (`eval/results/eltbench_runs/<đợt>/<task>…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Lưu đầu ra mỗi lần chạy ELT-Bench và chấm lại đợt 2026-10-02 (0 token)
+- **Việc:** B2 — lưu đầu ra mỗi lần chạy (`eval/results/eltbench_runs/<đợt>/<task>__<model>/`: `output.parquet`, `models/`, `meta.json`), điểm luôn tính từ file đã lưu; `--regrade <đợt>`; `backfill_runs.py` lấy lại đợt 2026-10-02 từ workspace cũ (ghép theo nguyên văn yêu cầu + khung giờ, trạng thái khớp báo cáo cũ)
 - **Trạng thái:** ✅ Done
-- **Kết quả:** Khớp bảng đúng 7/34 → 11/34 (1 lần chạy)
+- **Kết quả:** Chấm lại đợt 2026-10-02 (openai gpt-5.6-luna/terra, n=1 lần chạy, 0 token): **7/34 → 11/34** (gồm lỗi benchmark); không gồm 2 model lỗi benchmark: 11/32; 17/34 bảng đúng ≤ 5 dòng (khớp 8/17). Thêm 4 ca đúng do lỗi VARIANT: `mailchimp__campaigns/automations/automation_emails`, `twilio__account_overview`. 5 bảng lỗi giờ lẻ giây vẫn sai vì cột khác (agent sai thật hoặc đề mơ hồ — B3 phân loại)
 - **Thời gian:** ~1 giờ
 
 
 ## 2026-10-08
 
-### 2026-10-08 · việc 22: Làm giao diện Studio theo mẫu `ai-agent-studio`: khung kính, tab, chuô…
+### 2026-10-08 · việc 35: Giao diện theo mẫu `ai-agent-studio` (chỉ lấy bố cục/phong cách, không…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Làm giao diện Studio theo mẫu `ai-agent-studio`: khung kính, tab, chuông, màn lần chạy 2 cột | ✅ Done
-- **Trạng thái:** Tương phản 54/54 cặp ≥ 4,5:1
-- **Kết quả:** 
+- **Việc:** Giao diện theo mẫu `ai-agent-studio` (chỉ lấy bố cục/phong cách, không lấy số giả của mẫu; giữ Next.js + `tokens.css`, không thêm Tailwind/lucide): khung kính trên nền gradient, thanh điều hướng dạng viên thuốc (Agent Studio / Lần chạy / Dữ liệu nguồn / Sổ lỗi), chuông = lần chạy đang chờ bạn (dữ liệu thật), trang `/runs` riêng; màn lần chạy 2 cột: bước 1 yêu cầu · 2 J1 · 3 kế hoạch J1b · 4 theo dõi trực tiếp | chỉ số đo được · sơ đồ nguồn → dbt → bảng đích · console
+- **Trạng thái:** ✅ Done
+- **Kết quả:** Chụp màn hình (Edge headless, mock chậm 12 s/lượt): sáng, tối, 500px. `npm run lint/typecheck/format:check/build` đạt; tương phản **27 cặp × 2 chế độ = 54/54 ≥ 4,5:1** (thêm 10 cặp mới)
 - **Thời gian:** —
 
-### 2026-10-08 · việc 23: Hiển thị tiến trình thật khi chờ LLM: sự kiện node bắt đầu, đồng hồ, ư…
+### 2026-10-08 · việc 36: Chờ LLM lâu: backend phát sự kiện **node bắt đầu** thật (`stream_mode=…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Hiển thị tiến trình thật khi chờ LLM: sự kiện node bắt đầu, đồng hồ, ước lượng theo trung vị
+- **Việc:** Chờ LLM lâu: backend phát sự kiện **node bắt đầu** thật (`stream_mode=["updates","tasks"]`), `RunDetail.current` = node đang chạy + giây đã chạy + **trung vị thời gian đo thật** các lần trước (`data/node_timings.json`, cần ≥ 3 mẫu, không thì không ước lượng) + câu "đang làm" ghép từ state thật (`src/agents/activity.py`, ghi rõ là mô tả, không phải log đo). Web: thẻ đang chạy có đồng hồ, thanh ước lượng (vô định khi chưa đủ mẫu), câu mô tả gõ dần, khung xương kế hoạch, tiêu đề tab + thông báo trình duyệt khi cần bạn
 - **Trạng thái:** ✅ Done
-- **Kết quả:** `pytest`: 570 passed, độ phủ 92,28%
+- **Kết quả:** `tests/test_agents/test_live_progress.py` 10 test. `make ci`: **570 passed, 2 xfailed, độ phủ 92,28%**. Chưa đo với LLM thật (thời gian thường lệ sẽ có sau ≥ 3 lần chạy mỗi node)
 - **Thời gian:** —
 
-### 2026-10-08 · việc 24: Làm giao diện kiểu "kính trên trời" và dashboard trang chủ, giảm vẽ lạ…
+### 2026-10-08 · việc 37: Giao diện phong cách "kính trên trời" theo ảnh mẫu người dùng gửi: nền…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Làm giao diện kiểu "kính trên trời" và dashboard trang chủ, giảm vẽ lại không cần thiết
+- **Việc:** Giao diện phong cách "kính trên trời" theo ảnh mẫu người dùng gửi: nền bầu trời → chân trời ấm (CSS, không dùng ảnh), thanh biểu tượng dọc (thành thanh dưới trên điện thoại), thanh kính nổi (LLM, model, chế độ duyệt, chuông, người dùng, "Yêu cầu mới"), mọi thẻ thành kính mờ bo 28px; trang chủ hero chữ lớn nét mảnh, thẻ kính Bước 1 + số lần chạy/đã duyệt THẬT, thẻ "Lần chạy gần nhất" số đo thật. Sửa trùng tên lớp `.stage` với đường ống E/V/J
 - **Trạng thái:** ✅ Done
-- **Kết quả:** Tương phản 68/68 cặp ≥ 4,5:1
+- **Kết quả:** Chụp màn hình sáng/tối trên dữ liệu thật. lint, typecheck, format, build đạt; tương phản 34 cặp × 2 chế độ = 68/68 ≥ 4,5:1
 - **Thời gian:** —
 
-### 2026-10-08 · việc 25: Thêm đăng nhập 3 vai trò, PostgreSQL + Alembic, theo dõi thay đổi cấu …
+### 2026-10-08 · việc 38: Giao diện theo mẫu dashboard (ảnh 2): thanh trên (logo · tab có icon ·…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Thêm đăng nhập 3 vai trò, PostgreSQL + Alembic, theo dõi thay đổi cấu trúc nguồn (`schema_guard`)
+- **Việc:** Giao diện theo mẫu dashboard (ảnh 2): thanh trên (logo · tab có icon · tìm lần chạy · chuông · avatar có menu người dùng/giao diện), thanh thao tác nhanh dọc, trang chủ: hero ngắn + nút "Bắt đầu ngay", thẻ Tổng quan (lần chạy, đã duyệt, chờ bạn, tỉ lệ duyệt/kết thúc — số thật), Lần chạy gần đây (icon, nhãn trạng thái có biểu tượng, thời gian tương đối), Yêu cầu mới, Hoạt động mới nhất. Bớt chữ ở màn lần chạy (tiêu đề bước, mô tả, console, ước lượng → tooltip). Mượt hơn: bỏ `backdrop-filter` trên thẻ lớn, hỏi API chỉ vẽ lại khi dữ liệu đổi, một nguồn `/runs` dùng chung (trước 3 nơi tự hỏi)
 - **Trạng thái:** ✅ Done
-- **Kết quả:** Bảng `users`, `sessions`, `audit_log`, `schema_snapshots` (migration 0001–0002)
+- **Kết quả:** Chụp màn hình trên dữ liệu thật. lint, typecheck, format, build đạt; tương phản 68/68
 - **Thời gian:** —
 
-### 2026-10-08 · việc 26: Giảm token đầu ra LLM bằng prompt Planner v6, chạy lại golden 12 ca…
+### 2026-10-08 · việc 39: Giảm token đầu ra LLM: prompt Planner v6 (quy tắc 13 giới hạn kế hoạch…
 
 - **Người làm:** TrungTuyenDo02
-- **Việc:** Giảm token đầu ra LLM bằng prompt Planner v6, chạy lại golden 12 ca
+- **Việc:** Giảm token đầu ra LLM: prompt Planner v6 (quy tắc 13 giới hạn kế hoạch/giả định). Đo trước bằng dữ liệu golden v5: plan + assumptions = 59% phần chữ Planner sinh. Chạy lại golden 12 ca bằng LLM thật
 - **Trạng thái:** ✅ Done
-- **Kết quả:** Token đầu ra mỗi lượt Planner 1.155 → 825 (−29%); đúng 12/12
-- **Thời gian:** —
-
-
-## 2026-10-10
-
-### 2026-10-10 · việc 27: Sửa CI: thêm `models/` và `tests/` trống cho template, tạo thư mục khi…
-
-- **Người làm:** TrungTuyenDo02
-- **Việc:** Sửa CI: thêm `models/` và `tests/` trống cho template, tạo thư mục khi ghi `sources.yml`
-- **Trạng thái:** ✅ Done
-- **Kết quả:** Clone sạch: 613 passed, 2 xfailed, độ phủ 91,60%
-- **Thời gian:** —
-
-### 2026-10-10 · việc 28: Thêm `.gitattributes` ép LF và xóa `.kilo` khỏi git…
-
-- **Người làm:** TrungTuyenDo02
-- **Việc:** Thêm `.gitattributes` ép LF và xóa `.kilo` khỏi git
-- **Trạng thái:** ✅ Done
-- **Kết quả:** Prettier xanh trên clone Windows; `git ls-files .kilo` rỗng
-- **Thời gian:** —
-
-### 2026-10-10 · việc 29: Thêm đo p50/p95 API, bộ nhớ đỉnh DuckDB và kiểm tra `references` ở V0…
-
-- **Người làm:** TrungTuyenDo02
-- **Việc:** Thêm đo p50/p95 API, bộ nhớ đỉnh DuckDB và kiểm tra `references` ở V0
-- **Trạng thái:** ✅ Done
-- **Kết quả:** `/health` p50 3,2 ms; `GET /runs/{id}` p95 15,3 ms (`api_latency.md`)
-- **Thời gian:** —
-
-### 2026-10-10 · việc 30: Bớt chật giao diện: gộp bước đã xong, tab ở màn duyệt, chi tiết kỹ thu…
-
-- **Người làm:** TrungTuyenDo02
-- **Việc:** Bớt chật giao diện: gộp bước đã xong, tab ở màn duyệt, chi tiết kỹ thuật thu gọn
-- **Trạng thái:** ✅ Done
-- **Kết quả:** Màn duyệt cao 4.932 → 2.084 px (1440px)
-- **Thời gian:** —
-
-### 2026-10-10 · việc 31: Viết `docs/DATABASE.md` sau khi chạy thử migration, sao lưu/khôi phục,…
-
-- **Người làm:** TrungTuyenDo02
-- **Việc:** Viết `docs/DATABASE.md` sau khi chạy thử migration, sao lưu/khôi phục, test PostgreSQL
-- **Trạng thái:** ✅ Done
-- **Kết quả:** Test với PostgreSQL thật: 100 passed
-- **Thời gian:** —
-
-### 2026-10-10 · việc 32: Rút gọn WORKLOG, chuyển nguyên văn sang `docs/worklog-detail.md`, thêm…
-
-- **Người làm:** TrungTuyenDo02
-- **Việc:** Rút gọn WORKLOG, chuyển nguyên văn sang `docs/worklog-detail.md`, thêm `scripts/check_worklog.py`
-- **Trạng thái:** ✅ Done
-- **Kết quả:** 39 dòng gốc → bảng 5 ô, kiểm tra tự động trong CI
+- **Kết quả:** `eval/results/planner_v6_output.md`: đúng **12/12 = 12/12**; token đầu ra/lượt Planner **1.155 → 825 (−29%)**; plan 338 → 210, assumptions 174 → 86 token. Mỗi bản 1 lần chạy: chưa đủ kết luận về tổng chi phí (0,0843 → 0,0540 USD, có phần do optimizer). Chi phí đo ~0,054 USD. `make ci`: 570 passed, 2 xfailed, độ phủ 92,28%
 - **Thời gian:** —
 

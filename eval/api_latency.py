@@ -125,7 +125,7 @@ def render(rows: list[tuple[str, list[float]]], n: int) -> str:
         f"> Sinh bởi `eval/api_latency.py` ngày {date.today().isoformat()}. 0 token. Mỗi endpoint đo {n} lần liên tiếp sau 3 lần chạy nóng.",
         "",
         "**Điều kiện đo:** gọi thẳng ứng dụng FastAPI trong cùng tiến trình (không qua mạng), một client đã đăng nhập,",
-        f"LLM `mock`, SQLite trong thư mục tạm (không phải PostgreSQL), {platform.system()} {platform.release()}, "
+        f"LLM `mock`, SQLite trong thư mục tạm (không phải PostgreSQL), {platform.system()} {platform.version()}, "
         f"Python {platform.python_version()}. Đây là thời gian xử lý của ứng dụng, **chưa gồm độ trễ mạng**; chỉ chạy 1 lượt đo.",
         "",
         "| Endpoint | p50 (ms) | p95 (ms) | Lớn nhất (ms) |",

@@ -1,6 +1,6 @@
 {
  "summary": {
-  "date": "2026-10-05",
+  "date": "2026-10-10",
   "provider": "mock (pipeline gốc tất định; không dùng LLM để chấm)",
   "real_total": 12,
   "real_caught": 11,

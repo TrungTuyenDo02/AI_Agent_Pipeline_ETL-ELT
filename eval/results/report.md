@@ -1,24 +1,24 @@
 # Evaluation Report — P-113
 
-> Sinh tự động bởi `eval/run_eval.py` ngày 2026-10-05. Chỉ ghi số đã đo thật; chưa đo ghi `—`.
+> Sinh tự động bởi `eval/run_eval.py` ngày 2026-10-10. Chỉ ghi số đã đo thật; chưa đo ghi `—`.
 > Số chạy bằng `mock` KHÔNG phải chất lượng mô hình thật.
 
 ## 1. Chỉ số
 
 | Chỉ số | Provider/model | Kết quả |
 |---|---|---|
-| pytest | mock (không cần khóa) | 527 đạt, 0 lỗi |
-| Độ phủ code | — | 92.18% (ngưỡng 60%) |
+| pytest | mock (không cần khóa) | 624 đạt, 0 lỗi |
+| Độ phủ code | — | 91.76% (ngưỡng 60%) |
 | Mutation: bắt được lỗi giả | code (0 token) | 11/12 (91.7%) |
 | Mutation: báo động nhầm ở đối chứng | code (0 token) | 0/1 |
 | Golden: kết quả đúng khớp SQL chuẩn | code | 11/11 ca |
 | Golden: agent đúng so với kết quả đúng | openai/planner=gpt-5.6-luna, codegen=gpt-5.6-luna, testgen=gpt-5.6-luna, optimizer=gpt-5.6-terra | 12/12 ca |
-| Golden: đạt ngay lần đầu (0 lỗi V1/V2) | openai/planner=gpt-5.6-luna, codegen=gpt-5.6-luna, testgen=gpt-5.6-luna, optimizer=gpt-5.6-terra | 11/12 ca |
+| Golden: đạt ngay lần đầu (0 lỗi V1/V2) | openai/planner=gpt-5.6-luna, codegen=gpt-5.6-luna, testgen=gpt-5.6-luna, optimizer=gpt-5.6-terra | 12/12 ca |
 | Golden: chọn đúng mode ELT/ETL | openai/planner=gpt-5.6-luna, codegen=gpt-5.6-luna, testgen=gpt-5.6-luna, optimizer=gpt-5.6-terra | 12/12 ca |
-| Golden: token / chi phí trung bình mỗi ca | openai/planner=gpt-5.6-luna, codegen=gpt-5.6-luna, testgen=gpt-5.6-luna, optimizer=gpt-5.6-terra | 8665 token / 0.007 USD |
-| Golden: thời gian trung bình yêu cầu → bản duyệt | openai/planner=gpt-5.6-luna, codegen=gpt-5.6-luna, testgen=gpt-5.6-luna, optimizer=gpt-5.6-terra | 50.4 s |
-| Golden: tỉ lệ token đầu vào trúng cache | openai/planner=gpt-5.6-luna, codegen=gpt-5.6-luna, testgen=gpt-5.6-luna, optimizer=gpt-5.6-terra | 30.7% |
-| ELT-Bench-Verified (10 task, 34 bảng): khớp bảng đúng | openai/planner=gpt-5.6-luna, codegen=gpt-5.6-luna, testgen=gpt-5.6-luna, optimizer=gpt-5.6-terra | 7/34 bảng |
+| Golden: token / chi phí trung bình mỗi ca | openai/planner=gpt-5.6-luna, codegen=gpt-5.6-luna, testgen=gpt-5.6-luna, optimizer=gpt-5.6-terra | 6917 token / 0.0045 USD |
+| Golden: thời gian trung bình yêu cầu → bản duyệt | openai/planner=gpt-5.6-luna, codegen=gpt-5.6-luna, testgen=gpt-5.6-luna, optimizer=gpt-5.6-terra | 46.4 s |
+| Golden: tỉ lệ token đầu vào trúng cache | openai/planner=gpt-5.6-luna, codegen=gpt-5.6-luna, testgen=gpt-5.6-luna, optimizer=gpt-5.6-terra | 24.8% |
+| ELT-Bench-Verified (10 task, 34 bảng): khớp bảng đúng | openai/planner=gpt-5.6-luna, codegen=gpt-5.6-luna, testgen=gpt-5.6-luna, optimizer=gpt-5.6-terra | 11/34 bảng |
 | Thời gian agent / DE làm tay (tổng các ca có cả hai) | openai/planner=gpt-5.6-luna, codegen=gpt-5.6-luna, testgen=gpt-5.6-luna, optimizer=gpt-5.6-terra | — (chưa có DE làm tay) |
 
 Chi tiết: [mutation.md](mutation.md) • [golden_reference.md](golden_reference.md) • [golden_agent.md](golden_agent.md) • [eltbench_reference.md](eltbench_reference.md) • [eltbench_agent.md](eltbench_agent.md) • [tpch_benchmark.md](tpch_benchmark.md) • [prompt_tokens.md](prompt_tokens.md) • [verifier_report.md](verifier_report.md)
@@ -30,17 +30,17 @@ Chi tiết: [mutation.md](mutation.md) • [golden_reference.md](golden_referenc
 | Ca | Agent (phút) | DE làm tay (phút, trung vị) | Số DE | Kinh nghiệm (năm) | Agent / DE |
 |---|---:|---:|---:|---:|---:|
 | g01_three_sources | 0,9 | — | — | — | — |
-| g02_duplicate_rows | 1,0 | — | — | — | — |
-| g03_refunds | 0,7 | — | — | — | — |
+| g02_duplicate_rows | 0,9 | — | — | — | — |
+| g03_refunds | 0,8 | — | — | — | — |
 | g04_mixed_dates | 0,7 | — | — | — | — |
 | g05_vnd_format | 0,6 | — | — | — | — |
-| g06_one_to_many_join | 0,8 | — | — | — | — |
-| g07_null_amounts | 0,6 | — | — | — | — |
-| g08_cross_source_keys | 1,2 | — | — | — | — |
-| g09_customer_dimension | 1,3 | — | — | — | — |
-| g10_ambiguous_request | 1,2 | — | — | — | — |
-| g11_monthly_by_channel | 0,6 | — | — | — | — |
-| g12_pii_etl | 0,5 | — | — | — | — |
+| g06_one_to_many_join | 0,9 | — | — | — | — |
+| g07_null_amounts | 0,7 | — | — | — | — |
+| g08_cross_source_keys | 0,8 | — | — | — | — |
+| g09_customer_dimension | 1,1 | — | — | — | — |
+| g10_ambiguous_request | 0,7 | — | — | — | — |
+| g11_monthly_by_channel | 0,7 | — | — | — | — |
+| g12_pii_etl | 0,6 | — | — | — | — |
 
 ## 3. Công Reviewer
 
@@ -48,12 +48,22 @@ Chi tiết: [mutation.md](mutation.md) • [golden_reference.md](golden_referenc
 
 | Chỉ số | Kết quả |
 |---|---|
-| Công Reviewer: duyệt ngay vòng đầu | 100% (5 lần chạy có người duyệt thật; người duyệt và ngày: binh 2026-10-02, bob 2026-10-02, de 2026-10-02) |
+| Công Reviewer: duyệt ngay vòng đầu | 100% (6 lần chạy có người duyệt thật; người duyệt và ngày: binh 2026-10-02, bob 2026-10-02, de 2026-10-02, de 2026-10-07) |
 | Công Reviewer: số dòng code đổi sau khi từ chối | — |
 
 ## 4. Thời gian phản hồi API
 
-— (đo ở Phase 7 khi có đủ endpoint).
+> Sinh bởi `eval/api_latency.py` ngày 2026-10-10. 0 token. Mỗi endpoint đo 100 lần liên tiếp sau 3 lần chạy nóng.
+**Điều kiện đo:** gọi thẳng ứng dụng FastAPI trong cùng tiến trình (không qua mạng), một client đã đăng nhập,
+LLM `mock`, SQLite trong thư mục tạm (không phải PostgreSQL), Windows 10.0.26300, Python 3.11.9. Đây là thời gian xử lý của ứng dụng, **chưa gồm độ trễ mạng**; chỉ chạy 1 lượt đo.
+
+| Endpoint | p50 (ms) | p95 (ms) | Lớn nhất (ms) |
+|---|---:|---:|---:|
+| `GET /health` | 2.2 | 4.3 | 5.0 |
+| `GET /api/v1/runs?limit=20` | 4.2 | 7.8 | 10.0 |
+| `GET /api/v1/runs/{id} (đã xong tới bản duyệt)` | 10.1 | 15.3 | 24.0 |
+
+Chi tiết: [api_latency.md](api_latency.md)
 
 ## 5. Phản hồi người dùng thử
 

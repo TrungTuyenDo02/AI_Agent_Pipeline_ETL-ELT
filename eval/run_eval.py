@@ -41,7 +41,9 @@ def api_latency_lines() -> list[str]:
         return ["— (chưa đo; chạy `python eval/api_latency.py`)."]
     text = API_LATENCY.read_text(encoding="utf-8").splitlines()
     body = [line for line in text if line.startswith(("> Sinh", "**Điều kiện", "LLM `mock`", "|"))]
-    return [*body, "", "Chi tiết: [api_latency.md](api_latency.md)"]
+    head = [line for line in body if not line.startswith("|")]
+    table = [line for line in body if line.startswith("|")]
+    return [*head, "", *table, "", "Chi tiết: [api_latency.md](api_latency.md)"]
 
 
 # Bảng truy vết test → tính năng (CLAUDE.md mục 8)

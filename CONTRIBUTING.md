@@ -53,3 +53,30 @@ Lỗ hổng bảo mật thì **không** mở issue công khai — làm theo [SEC
 
 Tham gia repo này đồng nghĩa với việc bạn đồng ý tuân thủ
 [Quy tắc ứng xử](CODE_OF_CONDUCT.md).
+
+## AI usage logging
+
+Mọi prompt được ghi vào `.ai-log/session.jsonl` và tự động gửi lên grading server ở bước pre-push.
+Cài hook một lần sau khi clone:
+
+```bash
+bash scripts/setup_hooks.sh                                      # Linux / macOS / Git Bash
+powershell -ExecutionPolicy Bypass -File scripts\setup_hooks.ps1 # Windows PowerShell
+```
+
+| Công cụ | Cấu hình | Thời điểm ghi |
+|---|---|---|
+| Claude Code | `.claude/settings.json` | mỗi prompt (`UserPromptSubmit`) |
+| Cursor | `.cursor/hooks.json` | mỗi prompt và khi dừng |
+| OpenAI Codex CLI | `.codex/hooks.json` | mỗi prompt và khi dừng |
+| Gemini CLI | `.gemini/settings.json` | mỗi lượt agent chạy |
+| GitHub Copilot | `.github/hooks/hooks.json` | mỗi prompt và cuối session |
+| Antigravity IDE | `.agents/hooks.json` | mỗi prompt, kèm lần quét lại lúc `git push` |
+
+Dùng ChatGPT hay công cụ web khác thì log thủ công:
+
+```bash
+bash scripts/_pyrun.sh scripts/log_manual.py --tool chatgpt --prompt "What you asked"
+```
+
+Mỗi thành viên tự tạo `AI_LOG_API_KEY` tại [dashboard Phoenix](https://phoenix.note.transformerlabs.ai/api-keys) và điền vào `.env`.

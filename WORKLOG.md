@@ -71,10 +71,12 @@
 |--------|------|--------|--------|------|
 | TrungTuyenDo02 | Sửa CI: thêm `models/` và `tests/` trống cho template, tạo thư mục khi ghi `sources.yml` | ✅ Done | Clone sạch: 613 passed, 2 xfailed, độ phủ 91,60% | — |
 | TrungTuyenDo02 | Thêm `.gitattributes` ép LF và xóa `.kilo` khỏi git | ✅ Done | Prettier xanh trên clone Windows; `git ls-files .kilo` rỗng | — |
-| TrungTuyenDo02 | Thêm đo p50/p95 API, bộ nhớ đỉnh DuckDB và kiểm tra `references` ở V0 | ✅ Done | `/health` p50 3,2 ms; `GET /runs/{id}` p95 15,3 ms (`api_latency.md`) | — |
+| TrungTuyenDo02 | Thêm đo p50/p95 API, bộ nhớ đỉnh DuckDB và kiểm tra `references` ở V0 | ✅ Done | `/health` p50 2,2 ms; `GET /runs/{id}` p95 15,3 ms (`api_latency.md`) | — |
 | TrungTuyenDo02 | Bớt chật giao diện: gộp bước đã xong, tab ở màn duyệt, chi tiết kỹ thuật thu gọn | ✅ Done | Màn duyệt cao 4.932 → 2.084 px (1440px) | — |
 | TrungTuyenDo02 | Viết `docs/DATABASE.md` sau khi chạy thử migration, sao lưu/khôi phục, test PostgreSQL | ✅ Done | Test với PostgreSQL thật: 100 passed | — |
 | TrungTuyenDo02 | Rút gọn WORKLOG, chuyển nguyên văn sang `docs/worklog-detail.md`, thêm `scripts/check_worklog.py` | ✅ Done | 39 dòng gốc → bảng 5 ô, kiểm tra tự động trong CI | — |
+| TrungTuyenDo02 | Viết API.md, CONFIG.md, hai hướng dẫn deploy, proxy `rewrites` cho đăng nhập cùng miền | ✅ Done | Đăng nhập qua proxy đã thử trên máy; lệnh cloud ghi chưa chạy thật | — |
+| TrungTuyenDo02 | Viết lại README, BAO_CAO, kịch bản video, dàn ý slide; thêm kiểm link `.md` | ✅ Done | 210 file .md, 0 link chết; `pytest` 624 passed, độ phủ 91,76% | — |
 
 ---
 
