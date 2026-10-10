@@ -76,7 +76,7 @@
 | TrungTuyenDo02 | Viết `docs/DATABASE.md` sau khi chạy thử migration, sao lưu/khôi phục, test PostgreSQL | ✅ Done | Test với PostgreSQL thật: 100 passed | — |
 | TrungTuyenDo02 | Rút gọn WORKLOG, chuyển nguyên văn sang `docs/worklog-detail.md`, thêm `scripts/check_worklog.py` | ✅ Done | 39 dòng gốc → bảng 5 ô, kiểm tra tự động trong CI | — |
 | TrungTuyenDo02 | Viết API.md, CONFIG.md, hai hướng dẫn deploy, proxy `rewrites` cho đăng nhập cùng miền | ✅ Done | Đăng nhập qua proxy đã thử trên máy; lệnh cloud ghi chưa chạy thật | — |
-| TrungTuyenDo02 | Viết lại README, BAO_CAO, kịch bản video, dàn ý slide; thêm kiểm link `.md` | ✅ Done | 210 file .md, 0 link chết; `pytest` 624 passed, độ phủ 91,76% | — |
+| TrungTuyenDo02 | Viết lại README, BAO_CAO, kịch bản video, dàn ý slide; thêm kiểm link `.md` | ✅ Done | 210 file .md, 0 link chết; `pytest` 626 passed, độ phủ 91,76% | — |
 
 ---
 

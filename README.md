@@ -54,7 +54,7 @@ Chi tiết và điều kiện đo: [eval/results/report.md](eval/results/report.
 | Mutation: bắt lỗi giả | code, 0 token | **11/12** (91,7%), báo nhầm 0/1 |
 | TPC-H sf=0,1: query chậm được tối ưu | `mock`, 2026-10-02 | **11/13**, nhanh hơn 51%–94,7%, 10/11 không tốn token |
 | ELT-Bench-Verified: khớp bảng đúng | LLM thật, 34 bảng, 1 lần, chấm lại 2026-10-07 | **11/34** (gồm 2 model lỗi của benchmark) |
-| Test tự động | `mock`, độ phủ ngưỡng 60% | 624 passed, độ phủ 91,76% |
+| Test tự động | `mock`, độ phủ ngưỡng 60% | 626 passed, độ phủ 91,76% |
 | Thời gian phản hồi API | trong tiến trình, SQLite, 100 lần | p50 2,2 ms, p95 4,3 ms (`/health`) • [api_latency.md](eval/results/api_latency.md) |
 
 ## Tài liệu

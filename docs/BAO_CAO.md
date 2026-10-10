@@ -183,7 +183,7 @@ Nguồn: [eval/results/report.md](../eval/results/report.md), sinh bởi `python
 
 | Chỉ số | Điều kiện đo | Kết quả |
 |---|---|---|
-| Test tự động | `mock`, không cần khóa | 624 đạt, 0 lỗi |
+| Test tự động | `mock`, không cần khóa | 626 đạt, 0 lỗi |
 | Độ phủ code | `pytest --cov`, ngưỡng 60% | 91,76% |
 | Mutation: bắt lỗi giả | code, 0 token, 1 lần | 11/12 (91,7%) |
 | Golden: kết quả đúng khớp SQL chuẩn | code | 11/11 ca |

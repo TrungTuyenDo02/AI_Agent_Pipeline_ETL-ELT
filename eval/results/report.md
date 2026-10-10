@@ -7,7 +7,7 @@
 
 | Chỉ số | Provider/model | Kết quả |
 |---|---|---|
-| pytest | mock (không cần khóa) | 624 đạt, 0 lỗi |
+| pytest | mock (không cần khóa) | 626 đạt, 0 lỗi |
 | Độ phủ code | — | 91.76% (ngưỡng 60%) |
 | Mutation: bắt được lỗi giả | code (0 token) | 11/12 (91.7%) |
 | Mutation: báo động nhầm ở đối chứng | code (0 token) | 0/1 |
