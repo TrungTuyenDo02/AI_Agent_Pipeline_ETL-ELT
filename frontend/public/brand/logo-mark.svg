@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="P-113">
+  <title>P-113</title>
+  <rect width="64" height="64" rx="16" fill="#1b4fd8"/>
+  <path d="M14 44 L32 20 L50 44" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="14" cy="44" r="7" fill="#ffffff"/>
+  <circle cx="32" cy="20" r="7" fill="#ffffff"/>
+  <circle cx="50" cy="44" r="7" fill="#3cc796"/>
+</svg>

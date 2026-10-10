@@ -38,6 +38,26 @@ def _sources_exist(spec: PipelineSpec, catalog: list[dict]) -> list[str]:
     ]
 
 
+def _references_exist(spec: PipelineSpec) -> list[str]:
+    """Khóa ngoại `bang.cot` thành test `relationships` tới `ref('bang')`: bảng phải là model có thật (đích hoặc `stg_<nguồn>`)."""
+    models = {spec.target} | {f"stg_{s.name}" for s in spec.sources}
+    errors = []
+    for column in spec.output_columns:
+        if not column.references:
+            continue
+        table, _, field = column.references.partition(".")
+        if table not in models or not field:
+            errors.append(
+                f"Cột '{column.name}': references '{column.references}' không trỏ tới model có thật "
+                f"(chỉ được: {', '.join(sorted(models))}). Để trống nếu không phải khóa ngoại (đừng ghi nguồn gốc cột)."
+            )
+        elif table == spec.target and field not in {c.name for c in spec.output_columns}:
+            errors.append(
+                f"Cột '{column.name}': references '{column.references}' trỏ tới cột không có trong bảng đích."
+            )
+    return errors
+
+
 def _unknowns(spec: PipelineSpec) -> list[str]:
     if not spec.unknowns:
         return []
@@ -74,7 +94,7 @@ def check_spec(spec_data: dict, catalog: list[dict]) -> list[str]:
     if not spec_data:
         return ["Chưa có đặc tả hợp lệ từ Planner."]
     spec = PipelineSpec.model_validate(spec_data)
-    checks = _unknowns(spec) + _required_fields(spec) + _dimensions_in_grain(spec)
+    checks = _unknowns(spec) + _required_fields(spec) + _references_exist(spec) + _dimensions_in_grain(spec)
     return checks + _sources_exist(spec, catalog) + _mode_matches(spec)
 
 

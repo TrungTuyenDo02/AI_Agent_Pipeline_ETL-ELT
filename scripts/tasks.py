@@ -60,6 +60,7 @@ TASKS: dict[str, list[list[str]]] = {
     "eval-llm": [[PY, "eval/run_eval.py", "--with-llm"]],
     "smoke-llm": [[PY, "eval/smoke_llm.py"]],
     "eval-verifiers": [[PY, "eval/verifier_bench/run_bench.py"]],
+    "api-latency": [[PY, "eval/api_latency.py"]],
     "prompt-tokens": [[PY, "eval/prompt_bench/measure_tokens.py", "--label", "after"]],
     "frontend-dev": [[NPM, "--prefix", "frontend", "run", "dev"]],
     "frontend-build": [[NPM, "--prefix", "frontend", "run", "build"]],

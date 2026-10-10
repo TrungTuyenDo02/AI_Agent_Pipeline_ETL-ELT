@@ -1,5 +1,5 @@
 {
- "date": "2026-10-05",
+ "date": "2026-10-10",
  "v1": {
   "attacks": 78,
   "valid": 43,
@@ -1331,8 +1331,8 @@
     "label": "different",
     "labeled_by": "ai_proxy",
     "trap": "khoảng trắng — chỉ khác khi dữ liệu có ' paid ' (dữ liệu thử KHÔNG có → không đo được)",
-    "v3_pass": true,
-    "v3_detail": "giống hệt mọi bộ",
+    "v3_pass": false,
+    "v3_detail": "dirty: Khác số dòng: 37 ≠ 21",
     "random_diff": 0,
     "random_errors": 0
    }
@@ -1452,10 +1452,9 @@
  "v3": {
   "equivalent": 17,
   "different": 21,
-  "caught": 19,
+  "caught": 20,
   "missed": [
-   "diff_limit_order_ties",
-   "diff_trim_whitespace"
+   "diff_limit_order_ties"
   ],
   "false_blocks": [],
   "label_conflicts": [
@@ -1902,11 +1901,11 @@
    ],
    "intact": {
     "failed": 0,
-    "summary": "16 passed in 0.07s"
+    "summary": "23 passed in 0.35s"
    },
    "broken": {
     "failed": 4,
-    "summary": "4 failed, 12 passed in 0.32s"
+    "summary": "4 failed, 19 passed in 0.54s"
    }
   },
   {
@@ -1918,11 +1917,11 @@
    ],
    "intact": {
     "failed": 0,
-    "summary": "137 passed, 2 xfailed in 16.07s"
+    "summary": "138 passed, 2 xfailed in 20.93s"
    },
    "broken": {
     "failed": 27,
-    "summary": "27 failed, 110 passed, 2 xfailed in 15.90s"
+    "summary": "27 failed, 111 passed, 2 xfailed in 19.92s"
    }
   },
   {
@@ -1933,11 +1932,11 @@
    ],
    "intact": {
     "failed": 0,
-    "summary": "16 passed in 15.13s"
+    "summary": "17 passed in 17.58s"
    },
    "broken": {
     "failed": 1,
-    "summary": "1 failed, 15 passed in 15.52s"
+    "summary": "1 failed, 16 passed in 17.59s"
    }
   },
   {
@@ -1948,11 +1947,11 @@
    ],
    "intact": {
     "failed": 0,
-    "summary": "19 passed in 10.64s"
+    "summary": "19 passed in 18.88s"
    },
    "broken": {
     "failed": 2,
-    "summary": "2 failed, 17 passed in 14.88s"
+    "summary": "2 failed, 17 passed in 14.31s"
    }
   }
  ]

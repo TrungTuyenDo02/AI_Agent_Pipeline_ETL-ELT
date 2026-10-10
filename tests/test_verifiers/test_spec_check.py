@@ -82,3 +82,21 @@ def test_dimension_columns_must_be_in_grain(overrides: dict, ok: bool):
 def test_dimension_table_without_metrics_passes():
     """Bảng chiều (mỗi dòng một vị trí/địa điểm) không có chỉ số vẫn hợp lệ."""
     assert check_spec(valid_spec(metrics=[]), CATALOG) == []
+
+
+@pytest.mark.parametrize(
+    ("references", "ok"),
+    [
+        ("", True),
+        ("stg_orders.order_id", True),  # model staging có thật
+        ("fct_daily_revenue.order_date", True),  # chính bảng đích, cột có thật
+        ("fct_daily_revenue.khong_co", False),
+        ("orders.order_date", False),  # tên nguồn raw, không phải model → test relationships sẽ lỗi
+        ("shopee_orders.order_date; tiki_orders.order_date", False),  # nguồn gốc cột, LLM điền nhầm
+        ("stg_orders", False),  # thiếu cột
+    ],
+)
+def test_references_must_point_to_real_models(references: str, ok: bool):
+    columns = [{"name": "order_date", "type": "DATE", "references": references}, {"name": "revenue", "type": "BIGINT"}]
+    errors = check_spec(valid_spec(output_columns=columns), CATALOG)
+    assert (not any("references" in e for e in errors)) == ok, errors

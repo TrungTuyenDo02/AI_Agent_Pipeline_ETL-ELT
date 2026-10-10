@@ -63,6 +63,14 @@ def _candidate(sql: str, before_ms: float) -> dict:
     return {"original_sql": ORIGINAL, "sql": sql, "before": {"median_ms": before_ms, "runs": 3}, "attempt": 1}
 
 
+def test_benchmark_reports_peak_memory(datasets: dict[str, str]):
+    from src.agents.tools.duckdb_tools import benchmark_query
+
+    metrics = benchmark_query(Path(datasets["large"]), ORIGINAL, runs=2)
+    assert metrics.median_ms > 0 and metrics.runs == 2
+    assert metrics.peak_memory_mb is not None and metrics.peak_memory_mb > 0
+
+
 def test_equivalent_rewrite_is_measured_and_decided(datasets: dict[str, str]):
     rewrite = ORIGINAL.replace(" union ", " union all ")
     report = evaluate_candidate(_candidate(rewrite, before_ms=1e6), datasets)
