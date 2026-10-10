@@ -1,5 +1,0 @@
-id: g02_duplicate_rows
-expect_questions: false
-score: result
-trap: đơn trùng trong một nguồn
-expected_mode: ELT

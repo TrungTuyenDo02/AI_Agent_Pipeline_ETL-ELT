@@ -64,7 +64,9 @@ def prepare_workspace(run_id: str) -> Path:
 def write_sources_yml(workspace: Path, tables: list[str]) -> None:
     """Khai báo nguồn raw cho dbt từ danh mục thật (code sinh, không phải LLM)."""
     doc = {"version": 2, "sources": [{"name": "raw", "schema": "raw", "tables": [{"name": t} for t in tables]}]}
-    (workspace / "models" / "sources.yml").write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+    target = workspace / "models" / "sources.yml"
+    target.parent.mkdir(parents=True, exist_ok=True)  # git không lưu thư mục trống: bản clone mới có thể thiếu models/
+    target.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
 
 
 def is_allowed_path(relative: str) -> bool:
