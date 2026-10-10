@@ -105,3 +105,21 @@ def test_eval_command_is_registered():
 
     args = build_parser().parse_args(["eval", "--with-llm"])
     assert args.command == "eval" and args.with_llm is True and "eval" in COMMANDS
+
+
+def test_users_create_first_admin_hides_password(capsys, monkeypatch: pytest.MonkeyPatch):
+    """Tạo admin đầu tiên: mật khẩu nhập ẩn (getpass), không bao giờ in ra màn hình; hai lần nhập lệch thì không tạo."""
+    from src.services import auth
+
+    secret = "mat-khau-thu-nghiem-123"
+    answers = iter([secret, secret])
+    monkeypatch.setattr("src.cli_commands.getpass.getpass", lambda prompt="": next(answers))
+    assert main(["users", "create", "--username", "admin-dau-tien", "--name", "Admin", "--role", "admin"]) == 0
+    out = capsys.readouterr()
+    assert secret not in out.out + out.err
+    assert auth.find_user("admin-dau-tien").role == "admin"
+
+    mismatch = iter([secret, "khac-hoan-toan-123"])
+    monkeypatch.setattr("src.cli_commands.getpass.getpass", lambda prompt="": next(mismatch))
+    assert main(["users", "create", "--username", "admin-hai", "--name", "Admin", "--role", "admin"]) == 2
+    assert auth.find_user("admin-hai") is None
