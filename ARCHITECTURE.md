@@ -13,10 +13,13 @@ Mermaid + mô tả thành phần: [docs/architecture_diagram.md](docs/architectu
 ## Components
 
 ### 1. Giao diện
-- **CLI** (`src/cli.py`, giai đoạn A): `doctor`, `seed`, `run`, `answer`, `status`, `review`, `errors`, `optimize`.
-  Vai trò `--as engineer|reviewer`; approve chỉ hợp lệ với reviewer khác người tạo yêu cầu.
-- **API** (`src/api/`, FastAPI): `/health`, `/api/v1/status`, `/api/v1/runs`. Endpoint tạo/duyệt: Phase 7.
-- **Web** (Next.js): giai đoạn B, chưa làm.
+- **CLI** (`src/cli.py`): `doctor`, `seed`, `run`, `answer`, `status`, `review`, `errors`, `optimize`, `eval`, `eval-verifiers`, `users`.
+  Chạy trên máy chủ nên tin `--as engineer|reviewer`; web luôn dùng phiên đăng nhập.
+- **API** (`src/api/`, FastAPI): đăng nhập/đăng xuất, quản trị tài khoản, tạo và duyệt lần chạy, catalog, sổ lỗi. Chi tiết: [docs/API.md](docs/API.md).
+  Thao tác dài trả `202` rồi chạy nền (hàng đợi một luồng, `src/services/jobs.py`); web hỏi tiến trình định kỳ.
+- **Web** (Next.js 16, `frontend/`): trang chủ theo vai trò, màn lần chạy (J1, J1b, cứu hộ, tiến trình), duyệt code (Monaco), tối ưu,
+  cấu trúc và hồ sơ dữ liệu, sổ lỗi, quản trị.
+- **Đăng nhập** (`src/services/auth.py`): tài khoản nội bộ (argon2id), phiên phía máy chủ, 3 vai trò `engineer` / `reviewer` / `admin`, nhật ký `audit_log`.
 
 ### 2. Runner (`src/agents/runner.py`)
 - Mỗi lần chạy có `run_id` = `thread_id` của checkpointer SQLite.
@@ -32,10 +35,12 @@ Mermaid + mô tả thành phần: [docs/architecture_diagram.md](docs/architectu
 |---|---|---|
 | `planner` (E1) | LLM | Spec: nguồn, bảng đích, grain, cột, chỉ số, điểm chưa rõ, câu hỏi; mode do `decide_mode` (code) |
 | `clarify` (J1) | Người | `interrupt` chờ chọn đáp án |
-| `spec_check` (V0) | Code | Đủ trường, nguồn có thật, mode khớp tín hiệu, không còn điểm chưa rõ |
+| `spec_check` (V0) | Code | Đủ trường, nguồn có thật, mode khớp tín hiệu, không còn điểm chưa rõ, `references` trỏ tới model có thật |
+| `plan_review` (J1b) | Người | DE đọc kế hoạch có giải thích, đồng ý hoặc yêu cầu sửa (bắt buộc ghi chú) trước khi tốn token sinh code ([ADR 0005](docs/adr/0005-duyet-ke-hoach-truoc-khi-sinh-code.md)) |
 | `ingest` (E0) | Code | Nạp CSV (giữ chuỗi), JSON, SQLite vào schema `raw` |
 | `profiler` (P) | Code | Kiểu, % rỗng, trùng khóa, định dạng ngày/tiền, mẫu che PII |
-| `mock_data` (E2) | Code | Bộ small / large / dirty / empty / few / dupkeys (seed cố định) |
+| `schema_guard` (Vs) | Code | So cấu trúc nguồn với bản Reviewer đã duyệt; cột bị xóa/nghi đổi tên thì dừng chờ Engineer xác nhận |
+| `mock_data` (E2) | Code | Bộ small / large / dirty / empty / few / dupkeys / nullmoney (seed cố định) |
 | `codegen` (E3) | LLM | Staging (ephemeral) + mart (table) + DAG; nhận lỗi trước, gợi ý sổ lỗi đã duyệt, ghi chú Reviewer |
 | `testgen` (E3b) | Code + LLM | not_null, grain duy nhất (code); đối soát tổng tiền/số dòng (LLM, chỉ thấy spec + schema) |
 | `safety` (V1) | Code | sqlglot: 1 câu SELECT, chặn DROP/ATTACH/INSTALL/COPY/PRAGMA/SET, hàm đọc file, đường dẫn tuyệt đối, Jinja lạ; bảng/cột phải có thật; kiểm tra DAG bằng AST |
@@ -50,7 +55,9 @@ Mermaid + mô tả thành phần: [docs/architecture_diagram.md](docs/architectu
 - **Tools:** `sql_tools` (sqlglot), `slow_patterns`, `rewrite_rules` (chuyển từ nhánh `feature/optimizer-agent`), `duckdb_tools`, `dbt_tools`, `pii`.
 
 ### 4. Lưu trữ
-- **SQLite `data/app.db`:** bảng `runs`, `reviews`, `error_entries` (sổ lỗi).
+Chi tiết và cách xem: [docs/DATABASE.md](docs/DATABASE.md).
+- **PostgreSQL 17 (Alembic):** `users`, `sessions`, `audit_log`, `schema_snapshots`; hai tài khoản `p113_migrator` / `p113_app`.
+- **SQLite `data/app.db`:** bảng `runs`, `reviews`, `error_entries` (sổ lỗi). Chưa chuyển sang PostgreSQL (quyết định ở DATABASE.md).
 - **SQLite `data/checkpoints.db`:** state LangGraph theo `run_id`.
 - **Workspace `pipelines/workspaces/<run_id>/`:** dự án dbt, DAG, test, `sandbox.duckdb`, `datasets/*.duckdb`.
 
@@ -60,22 +67,25 @@ Mermaid + mô tả thành phần: [docs/architecture_diagram.md](docs/architectu
 
 ## Data Flow
 
-1. Engineer gửi yêu cầu (CLI) → runner tạo `run_id` → Planner đọc danh mục nguồn thật (schema + mẫu đã che PII).
-2. Còn điểm chưa rõ → dừng ở J1 → người chọn đáp án → Planner lập lại → V0.
-3. Nạp nguồn vào sandbox → soi dữ liệu → sinh bộ dữ liệu thử.
+1. Engineer gửi yêu cầu (web hoặc CLI) → runner tạo `run_id` → Planner đọc danh mục nguồn thật (schema + mẫu đã che PII).
+2. Còn điểm chưa rõ → dừng ở J1 → người chọn đáp án → Planner lập lại → V0 → J1b (DE duyệt kế hoạch).
+3. Nạp nguồn vào sandbox → soi dữ liệu → so cấu trúc nguồn (Vs) → sinh bộ dữ liệu thử.
 4. Coder + Test-gen → V1 → V2 (vòng sửa) → Optimizer ⇄ V3.
-5. Đóng gói bằng chứng → dừng ở J2 → Reviewer (khác người tạo) duyệt hoặc từ chối.
+5. Đóng gói bằng chứng → dừng ở J2 → Reviewer duyệt hoặc từ chối (được duyệt cả yêu cầu do mình tạo, [ADR 0004](docs/adr/0004-mot-vai-tro-de.md)).
 
 ## Deployment Architecture
 
+Backend chạy `dbt` bằng tiến trình con, ghi file DuckDB, dùng SQLite chế độ WAL và chạy agent nền sau khi trả `202`,
+nên cần container/máy có ổ đĩa bền, không chạy kiểu serverless thuần. Hai cách triển khai: [Vercel + Render + Neon](docs/DEPLOY_VERCEL.md)
+và [Google Cloud](docs/DEPLOY_GCP.md).
+
 ```mermaid
 graph LR
-    subgraph Local / Render
-        BE[Container backend<br/>FastAPI + graph + DuckDB]
-        V[(volume ./data)]
-    end
-    FE[Frontend Vercel<br/>giai đoạn B/C] -.-> BE
-    BE --> V
+    U([Người dùng]) --> FE[Frontend Next.js<br/>Vercel hoặc Cloud Run]
+    FE -->|/api/v1| BE[Backend FastAPI + LangGraph + dbt/DuckDB<br/>1 bản, ổ đĩa bền]
+    BE --> PG[(PostgreSQL<br/>tài khoản, phiên, audit)]
+    BE --> V[(Ổ đĩa: SQLite, workspace, nguồn)]
+    BE --> L[LLM OpenAI / Gemini<br/>hoặc mock]
 ```
 
 ## Security
@@ -84,13 +94,17 @@ graph LR
 - Tiến trình dbt chạy với môi trường đã bỏ các biến `*_API_KEY`, `*_TOKEN`, `*_SECRET`.
 - Sandbox: DuckDB `enable_external_access=false`, timeout, giới hạn bộ nhớ; SQL sinh ra qua V1 trước khi chạy.
 - Dữ liệu mẫu gửi LLM và hiển thị đều che email/số điện thoại.
-- Hạn chế: chưa có đăng nhập; vai trò ở CLI là tham số.
+- Đăng nhập bắt buộc cho mọi API trừ `/health`, đăng nhập/đăng xuất; sai vai trò → 403 và ghi `audit_log`; cookie phiên HttpOnly, thao tác ghi cần header `X-Requested-With`.
+- Mật khẩu băm argon2id, khóa tạm sau nhiều lần sai (`LOGIN_MAX_FAILURES`); tài khoản ứng dụng PostgreSQL không có quyền đổi cấu trúc.
+- Hạn chế: CLI chạy trên máy chủ nên tin tham số `--as/--user`.
 
 ## Design Decisions
 
 | Decision | Choice | Reason |
 |----------|--------|--------|
 | Tạm dừng ở bước con người | LangGraph interrupt + SqliteSaver | [ADR 0001](docs/adr/0001-tam-dung-bang-langgraph-interrupt.md) |
+| Vai trò duyệt | Một vai trò DE tự duyệt được; sau đó thay bằng đăng nhập 3 vai trò (2026-10-08) | [ADR 0004](docs/adr/0004-mot-vai-tro-de.md), [JOURNAL](JOURNAL.md) |
+| Duyệt kế hoạch trước khi sinh code | Bước J1b | [ADR 0005](docs/adr/0005-duyet-ke-hoach-truoc-khi-sinh-code.md) |
 | CLI, LLM mặc định | argparse, `mock` | [ADR 0002](docs/adr/0002-cli-argparse-va-mock-provider.md) |
 | Kiểm chứng | Code thuần, Testgen mù code | [ADR 0003](docs/adr/0003-v-node-bang-code-va-testgen-mu-code.md) |
 | Sandbox | DuckDB local + dbt-duckdb | Chạy được trên laptop/CI, không chạm production |

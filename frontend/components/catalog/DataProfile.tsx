@@ -339,7 +339,7 @@ function PreviewGrid({ profile, columns, active }: { profile: TableProfile; colu
 
 function ProfileBody({ profile }: { profile: TableProfile }) {
   const [active, setActive] = useState("");
-  const [onlyIssues, setOnlyIssues] = useState(false);
+  const [onlyIssues, setOnlyIssues] = useState(true); // mặc định chỉ cột có vấn đề; không có cột nào lỗi thì hiện tất cả
   const byColumn = useMemo(() => {
     const map = new Map<string, ProfileIssue[]>();
     profile.issues.forEach((i) => i.column && map.set(i.column, [...(map.get(i.column) ?? []), i]));
@@ -347,7 +347,7 @@ function ProfileBody({ profile }: { profile: TableProfile }) {
   }, [profile]);
   const shown = profile.columns
     .map((column, i) => ({ column, i }))
-    .filter(({ column }) => !onlyIssues || byColumn.has(column.name));
+    .filter(({ column }) => !(onlyIssues && byColumn.size > 0) || byColumn.has(column.name));
   const pick = (name: string) => {
     setActive(name);
     document.getElementById(`col-${name}`)?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
@@ -383,11 +383,13 @@ function ProfileBody({ profile }: { profile: TableProfile }) {
           />
         ))}
       </div>
-      <div className="profile-section-head">
-        <h3>Xem trước {formatNumber(profile.preview.length)} dòng đầu</h3>
-        <span className="small muted">Email, số điện thoại đã được che · ␣ = khoảng trắng thừa</span>
-      </div>
-      <PreviewGrid profile={profile} columns={shown.map(({ i }) => i)} active={active} />
+      <details className="more preview-more">
+        <summary>
+          Xem trước {formatNumber(profile.preview.length)} dòng đầu
+          <span className="small muted"> · email, số điện thoại đã được che · ␣ = khoảng trắng thừa</span>
+        </summary>
+        <PreviewGrid profile={profile} columns={shown.map(({ i }) => i)} active={active} />
+      </details>
     </>
   );
 }

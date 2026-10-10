@@ -77,6 +77,9 @@
   bước kiểm chứng bằng code. Test đối soát "mù code" bắt được Coder và Tester bất đồng, nhưng nếu cả hai cùng đọc sai
   (NULL hàng loạt) thì phải nhờ số đo của bước soi P (`parse_failures`).
 
+- Thư mục trống không được git lưu: `pipelines/template/models/` có sẵn trên máy tác giả nên test qua, nhưng bản clone mới thiếu
+  và job test của CI lỗi `FileNotFoundError`. Luôn kiểm bằng `git clone` sạch trước khi tin CI xanh; thư mục cần có thì đặt `.gitkeep`.
+- Windows tự đổi kết thúc dòng sang CRLF khi clone nên Prettier báo 64 file sai dù CI Linux không lỗi: dùng `.gitattributes` ép LF.
 ### Kế hoạch tuần sau
 - [x] Gộp phần phù hợp của `feature/optimizer-agent`; không dùng `feature/sandbox_execution` (đội đã thống nhất)
 - [x] Phase 6: bộ golden 12 ca, mutation test, `eval/run_eval.py` (đã chạy bằng LLM thật)

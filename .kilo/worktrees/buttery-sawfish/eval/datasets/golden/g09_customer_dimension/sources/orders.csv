@@ -1,5 +1,0 @@
-order_id,customer_id,status
-O1,C1,completed
-O2,C1,completed
-O3,C2,cancelled
-O4,C1,cancelled

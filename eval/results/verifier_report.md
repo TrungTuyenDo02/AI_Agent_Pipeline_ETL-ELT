@@ -1,6 +1,6 @@
 # Đo các bước V như máy dò (U3)
 
-- Ngày chạy: 2026-10-05 • toàn bộ bằng code, **0 token**, không dùng LLM để chấm.
+- Ngày chạy: 2026-10-10 • toàn bộ bằng code, **0 token**, không dùng LLM để chấm.
 - **Bỏ sót** = code sai mà V cho qua. **Báo nhầm** = code đúng mà V chặn.
 - Nhãn: `author` = người viết hệ thống; `ai_proxy` = Claude viết thay thành viên khi chưa có người ngoài nhóm (31 ca V1, cùng một người viết V nên **không độc lập** như `external`); `external` = người ngoài nhóm: 0 ca.
 - Kết quả chỉ nói về **bộ ca đã có**; không có nghĩa V không bao giờ sai.
@@ -12,7 +12,7 @@
 | V1 An toàn (red team + ca hợp lệ) | 43 | 78 | 76 | 2 | 0 |
 | V2 Sandbox — đột biến `revenue_3_sources` | 3 | 16 | 11 | 5 | 0 |
 | V2 Sandbox — đột biến `join_g06` | 3 | 10 | 6 | 4 | 0 |
-| V3 Đối chiếu — cặp query | 17 | 21 | 19 | 2 | 0 |
+| V3 Đối chiếu — cặp query | 17 | 21 | 20 | 1 | 0 |
 
 V1 ném ngoại lệ thay vì báo lỗi gọn: —.
 
@@ -25,7 +25,7 @@ V1 ném ngoại lệ thay vì báo lỗi gọn: —.
 | author | V3 | 14 | 13 | 12 | 0 |
 | ai_proxy | V1 | 20 | 18 | 11 | 0 |
 | ai_proxy | V2 | 6 | 1 | 3 | 0 |
-| ai_proxy | V3 | 7 | 6 | 5 | 0 |
+| ai_proxy | V3 | 7 | 7 | 5 | 0 |
 
 ## 2. V3 chi tiết: cặp query trên 6 bộ dữ liệu thử của hệ thống và trên dữ liệu ngẫu nhiên
 
@@ -70,7 +70,7 @@ Dữ liệu ngẫu nhiên: 120 bộ nhỏ, seed 20261005 (rỗng, trùng dòng, 
 | diff_median_vs_quantile_disc | different | làm tròn — median nội suy, quantile_disc lấy giá trị có thật | ✓ chặn | small: 3 dòng chỉ có ở bản gốc, 3 dòng chỉ có ở bản mới | 92/120 |
 | diff_window_range_vs_rows | different | thứ tự trùng — khung mặc định RANGE gộp các dòng cùng giờ, ROWS thì không | ✓ chặn | small: 25 dòng chỉ có ở bản gốc, 25 dòng chỉ có ở bản mới | 53/120 |
 | diff_string_agg_order | different | thứ tự không xác định — string_agg không ORDER BY | ✓ chặn | small: 8 dòng chỉ có ở bản gốc, 8 dòng chỉ có ở bản mới | 83/120 |
-| diff_trim_whitespace | different | khoảng trắng — chỉ khác khi dữ liệu có ' paid ' (dữ liệu thử KHÔNG có → không đo được) | ✗ qua | giống hệt mọi bộ | 0/120 |
+| diff_trim_whitespace | different | khoảng trắng — chỉ khác khi dữ liệu có ' paid ' (dữ liệu thử KHÔNG có → không đo được) | ✓ chặn | dirty: Khác số dòng: 37 ≠ 21 | 0/120 |
 
 Nhãn mâu thuẫn với dữ liệu ngẫu nhiên (cặp `equivalent` mà lệch, hoặc `different` mà không bộ nào lệch): `diff_trim_whitespace`.
 
@@ -105,10 +105,10 @@ Bản tối ưu do luật tất định / sqlglot sinh phải cho kết quả y 
 
 | V bị phá | Cách phá | Test chạy | Khi nguyên vẹn | Khi bị phá | Test bắt được? |
 |---|---|---|---|---|---|
-| v0 | V0 Soát spec luôn đạt (bỏ kiểm điểm chưa rõ + trường bắt buộc) | `tests/test_verifiers/test_spec_check.py` | 16 passed in 0.07s | 4 failed, 12 passed in 0.32s | ✓ |
-| v1 | V1 An toàn không tìm lệnh/hàm nguy hiểm | `tests/test_verifiers/test_v1_redteam.py`, `tests/test_verifiers/test_safety_and_sandbox.py` | 137 passed, 2 xfailed in 16.07s | 27 failed, 110 passed, 2 xfailed in 15.90s | ✓ |
-| v2 | V2 Sandbox coi mọi lần dbt build là đạt | `tests/test_verifiers/test_safety_and_sandbox.py` | 16 passed in 15.13s | 1 failed, 15 passed in 15.52s | ✓ |
-| v3 | V3 Đối chiếu luôn coi hai kết quả là giống | `tests/test_optimizer/test_optimizer.py` | 19 passed in 10.64s | 2 failed, 17 passed in 14.88s | ✓ |
+| v0 | V0 Soát spec luôn đạt (bỏ kiểm điểm chưa rõ + trường bắt buộc) | `tests/test_verifiers/test_spec_check.py` | 23 passed in 0.35s | 4 failed, 19 passed in 0.54s | ✓ |
+| v1 | V1 An toàn không tìm lệnh/hàm nguy hiểm | `tests/test_verifiers/test_v1_redteam.py`, `tests/test_verifiers/test_safety_and_sandbox.py` | 138 passed, 2 xfailed in 20.93s | 27 failed, 111 passed, 2 xfailed in 19.92s | ✓ |
+| v2 | V2 Sandbox coi mọi lần dbt build là đạt | `tests/test_verifiers/test_safety_and_sandbox.py` | 17 passed in 17.58s | 1 failed, 16 passed in 17.59s | ✓ |
+| v3 | V3 Đối chiếu luôn coi hai kết quả là giống | `tests/test_optimizer/test_optimizer.py` | 19 passed in 18.88s | 2 failed, 17 passed in 14.31s | ✓ |
 
 ## 6. Ca còn lọt và cách giảm rủi ro
 
@@ -126,7 +126,6 @@ Bản tối ưu do luật tất định / sqlglot sinh phải cho kết quả y 
 | V2 join_g06 | `count_items_not_orders` | Mọi đơn hoàn tất đều có dòng hàng nên count(cột phải) = count(*). Như join_left_to_inner. |
 | V2 join_g06 | `revenue_type_bigint` | V không so kiểu cột đầu ra với spec (đối soát so số có sai số). Nên thêm kiểm kiểu ở V1 (DESCRIBE model đích so với output_columns.type); trong lúc chờ Reviewer xem cột kiểu. |
 | V3 | `diff_limit_order_ties` | Kết quả không xác định (LIMIT với ORDER BY có giá trị trùng): V3 chỉ chặn khi lần chạy lệch. Reviewer chặn mọi bản tối ưu chạm ORDER BY/LIMIT; dữ liệu ngẫu nhiên bắt được 9/120 bộ. |
-| V3 | `diff_trim_whitespace` | Dữ liệu thử (và dữ liệu ngẫu nhiên) không có chuỗi thừa khoảng trắng nên không đo được. Profiler (P) gợi ý `normalize` khi dữ liệu thật có biến thể; Reviewer kiểm TRIM khi bản tối ưu bỏ nó. |
 
 Lớp bảo vệ chung khi V bỏ sót: Reviewer (J2) xem diff và bảng "Code đo | LLM nói"; sandbox DuckDB tắt truy cập file ngoài, có timeout và giới hạn bộ nhớ; tối đa 3 vòng sửa rồi chuyển con người.
 

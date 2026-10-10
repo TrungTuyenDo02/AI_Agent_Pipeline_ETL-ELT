@@ -228,7 +228,18 @@ def benchmark_query(db_path: Path, sql: str, runs: int) -> QueryMetrics:
             start = time.perf_counter()
             con.execute(sql).fetchall()
             timings.append((time.perf_counter() - start) * 1000)
-    return QueryMetrics(median_ms=round(statistics.median(timings), 3), runs=runs)
+        peak_mb = _peak_buffer_mb(con, sql)
+    return QueryMetrics(median_ms=round(statistics.median(timings), 3), runs=runs, peak_memory_mb=peak_mb)
+
+
+def _peak_buffer_mb(con: duckdb.DuckDBPyConnection, sql: str) -> float | None:
+    """Bộ nhớ đỉnh (MB) DuckDB báo cho một lần chạy thêm (`system_peak_buffer_memory`); không đo được thì None."""
+    try:
+        plan = json.loads(con.execute(f"EXPLAIN (ANALYZE, FORMAT JSON) {sql}").fetchall()[0][-1])
+        peak = plan.get("system_peak_buffer_memory")
+        return round(peak / 1024 / 1024, 1) if isinstance(peak, int | float) else None
+    except (duckdb.Error, ValueError, IndexError):
+        return None
 
 
 def materialize_views(db_path: Path, models: dict[str, str]) -> None:

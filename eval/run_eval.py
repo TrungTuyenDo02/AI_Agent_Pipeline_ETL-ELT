@@ -32,6 +32,20 @@ from baseline_compare import (  # noqa: E402
     summary_ratio,
 )
 
+API_LATENCY = RESULTS / "api_latency.md"
+
+
+def api_latency_lines() -> list[str]:
+    """Bảng p50/p95 từ `eval/api_latency.py` (nếu đã đo); chưa đo thì ghi `—`."""
+    if not API_LATENCY.exists():
+        return ["— (chưa đo; chạy `python eval/api_latency.py`)."]
+    text = API_LATENCY.read_text(encoding="utf-8").splitlines()
+    body = [line for line in text if line.startswith(("> Sinh", "**Điều kiện", "LLM `mock`", "|"))]
+    head = [line for line in body if not line.startswith("|")]
+    table = [line for line in body if line.startswith("|")]
+    return [*head, "", *table, "", "Chi tiết: [api_latency.md](api_latency.md)"]
+
+
 # Bảng truy vết test → tính năng (CLAUDE.md mục 8)
 TRACE = [
     ("tests/test_verifiers/test_spec_check.py", "V0 Soát đặc tả: chặn khi còn điểm chưa rõ, grain sai, mode sai"),
@@ -206,7 +220,7 @@ def write_report(tests: dict) -> None:
         *baseline_detail,
         "## 4. Thời gian phản hồi API",
         "",
-        "— (đo ở Phase 7 khi có đủ endpoint).",
+        *api_latency_lines(),
         "",
         "## 5. Phản hồi người dùng thử",
         "",
