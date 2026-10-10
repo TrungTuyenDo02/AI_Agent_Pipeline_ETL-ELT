@@ -84,3 +84,6 @@ node_modules/
 .next/
 *.db
 *.duckdb
+
+# Dữ liệu demo cục bộ (demo/run_demo.py)
+demo_data/
