@@ -78,6 +78,15 @@
 | TrungTuyenDo02 | Viết API.md, CONFIG.md, hai hướng dẫn deploy, proxy `rewrites` cho đăng nhập cùng miền | ✅ Done | Đăng nhập qua proxy đã thử trên máy; lệnh cloud ghi chưa chạy thật | — |
 | TrungTuyenDo02 | Viết lại README, BAO_CAO, kịch bản video, dàn ý slide; thêm kiểm link `.md` | ✅ Done | 210 file .md, 0 link chết; `pytest` 626 passed, độ phủ 91,76% | — |
 
+## 2026-10-12
+
+| Member | Task | Status | Output | Time |
+|--------|------|--------|--------|------|
+| TrungTuyenDo02 | Chặn dữ liệu chứa `</data>` thoát khỏi khối dữ liệu của prompt (prompt injection), test cả 4 prompt | ✅ Done | `llm.neutralize_data_tags`; `test_prompt_injection.py` 21 ca đạt | — |
+| TrungTuyenDo02 | Thêm quét từ khóa injection/bí mật, chỉ cảnh báo ở hồ sơ dữ liệu và sổ lỗi | ✅ Done | `src/agents/tools/injection_scan.py`; 20 ca test | — |
+| TrungTuyenDo02 | Thêm câu chống injection vào 4 prompt, lọc mật khẩu/DATABASE_URL khỏi môi trường dbt, thêm ca TRUNCATE | ✅ Done | +24–26 token tĩnh mỗi prompt, vẫn trong ngân sách; `pytest` 671 passed, độ phủ 91,81% | — |
+| TrungTuyenDo02 | Đo hiệu quả câu dặn chống injection với LLM thật | ⏳ Chưa làm | Cần khóa API và bộ eval injection | — |
+
 ---
 
 <!-- Format: copy khối trên cho mỗi ngày làm việc. Status: ✅ Done · 🔄 Doing · ⚠️ Chưa sửa · ⏳ Chưa làm -->

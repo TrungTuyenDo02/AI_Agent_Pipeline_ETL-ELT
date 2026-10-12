@@ -88,3 +88,4 @@ class ErrorEntry(BaseModel):
     sql_after: str = ""
     occurrences: int = 1
     approved: bool = False
+    warnings: list[str] = []  # dấu hiệu prompt injection / bí mật (tính khi đọc, chỉ để người duyệt thấy)

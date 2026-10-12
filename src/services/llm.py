@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
 USER_MARKER = "<!-- USER -->"
 COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)  # đầu file prompt (version, nhật ký thay đổi): không gửi LLM
+DATA_TAG_RE = re.compile(r"<(\s*/?\s*data\b)", re.IGNORECASE)
 
 
 class LLMConfigError(RuntimeError):
@@ -59,6 +60,12 @@ class LLMProvider(Protocol):
         ...
 
 
+def neutralize_data_tags(value: str) -> str:
+    """`</data>` trong dữ liệu (yêu cầu, ô CSV nguồn, thông báo lỗi) sẽ đóng khối sớm và biến phần sau thành chỉ dẫn
+    (prompt injection) → đổi `<` của mọi thẻ data thành `&lt;`. Dữ liệu bình thường không đổi một ký tự."""
+    return DATA_TAG_RE.sub(r"&lt;\1", value)
+
+
 def render_prompt(request: LLMRequest) -> tuple[str, str]:
     """Đọc `src/prompts/<task>.md`, điền biến `$ten_bien`, tách phần system và user."""
     path = PROMPTS_DIR / f"{request.task}.md"
@@ -66,7 +73,8 @@ def render_prompt(request: LLMRequest) -> tuple[str, str]:
         raise LLMConfigError(f"Không tìm thấy prompt cho tác vụ '{request.task}' ({path}).")
     system, _, user = path.read_text(encoding="utf-8").partition(USER_MARKER)
     system = COMMENT_RE.sub("", system)  # bỏ chú thích TRƯỚC khi điền biến: dữ liệu không bị đụng tới
-    fill = Template(system).safe_substitute(request.variables), Template(user).safe_substitute(request.variables)
+    variables = {key: neutralize_data_tags(str(value)) for key, value in request.variables.items()}
+    fill = Template(system).safe_substitute(variables), Template(user).safe_substitute(variables)
     return fill[0].strip(), fill[1].strip()
 
 

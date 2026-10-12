@@ -88,8 +88,20 @@ def write_generated_files(workspace: Path, files: dict[str, str]) -> None:
         target.write_text(content, encoding="utf-8")
 
 
+# dbt đọc được biến môi trường (env_var()) → không chuyển khóa API, mật khẩu, chuỗi kết nối DB sang tiến trình dbt.
+# V1 đã chặn Jinja env_var() trong model; đây là lớp thứ hai nếu V1 lọt.
+SECRET_ENV_SUFFIXES = ("_API_KEY", "_TOKEN", "_SECRET", "_PASSWORD", "_DATABASE_URL", "_DSN")
+SECRET_ENV_NAMES = {"DATABASE_URL", "PGPASSWORD", "SESSION_SECRET"}
+
+
+def is_secret_env(name: str) -> bool:
+    """Tên biến môi trường có thể chứa bí mật (so không phân biệt hoa/thường, vì Windows)."""
+    upper = name.upper()
+    return upper in SECRET_ENV_NAMES or upper.endswith(SECRET_ENV_SUFFIXES)
+
+
 def _dbt_env() -> dict[str, str]:
-    env = {k: v for k, v in os.environ.items() if not k.endswith(("_API_KEY", "_TOKEN", "_SECRET"))}
+    env = {k: v for k, v in os.environ.items() if not is_secret_env(k)}
     env.update({"DBT_SEND_ANONYMOUS_USAGE_STATS": "false", "DBT_USE_COLORS": "false", "PYTHONIOENCODING": "utf-8"})
     return env
 

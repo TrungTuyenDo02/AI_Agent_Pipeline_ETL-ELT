@@ -35,6 +35,14 @@ function EntryCard({ entry, onDone }: { entry: ErrorEntry; onDone: () => Promise
       <div className="stack" style={{ gap: 10 }}>
         <p>{entry.description}</p>
         {entry.cause && <p className="muted">Nguyên nhân: {entry.cause}</p>}
+        {entry.warnings?.length > 0 && (
+          <div className="alert warn" role="note">
+            <span>
+              Nội dung đáng ngờ ({entry.warnings.join(", ")}). Mục được duyệt sẽ vào prompt của agent — kiểm tra kỹ,
+              không chắc thì bấm Bỏ.
+            </span>
+          </div>
+        )}
         {entry.sql_before && (
           <details>
             <summary>SQL lúc lỗi</summary>

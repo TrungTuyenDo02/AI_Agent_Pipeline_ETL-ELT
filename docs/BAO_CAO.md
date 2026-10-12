@@ -94,7 +94,10 @@ Không có đăng ký tự do: tài khoản do quản trị cấp. Sai vai trò 
 - **Dữ liệu cá nhân** (email, số điện thoại) được che trước khi hiển thị hoặc gửi cho AI.
 - **Code do AI viết** phải qua V1 (chặn lệnh nguy hiểm) rồi mới chạy trong hộp cát không có quyền đọc file ngoài.
 - **Agent không tự đẩy code lên kho chính**: người duyệt tải gói `.zip` và tự mở Pull Request.
-- **Tiến trình dbt** chạy với môi trường đã bỏ mọi biến có đuôi `_API_KEY`, `_TOKEN`, `_SECRET`.
+- **Tiến trình dbt** chạy với môi trường đã bỏ khóa API, mật khẩu và chuỗi kết nối DB (`_API_KEY`, `_TOKEN`, `_SECRET`, `_PASSWORD`, `DATABASE_URL`…).
+- **Chống lệnh cài vào dữ liệu (prompt injection).** Kẻ xấu có thể viết "bỏ qua mọi quy tắc" vào một ô CSV để điều khiển AI. Ba lớp chặn:
+  dữ liệu luôn nằm trong thẻ `<data>` mà code không cho đóng sớm (`llm.neutralize_data_tags`); prompt dặn AI coi chữ đó là giá trị;
+  và code quét dữ liệu nguồn và sổ lỗi để **cảnh báo** người duyệt (`injection_scan.py`). Kể cả khi AI bị lừa, code sinh ra vẫn phải qua V1.
 
 ### Ví dụ một lần chạy (chế độ mô phỏng)
 

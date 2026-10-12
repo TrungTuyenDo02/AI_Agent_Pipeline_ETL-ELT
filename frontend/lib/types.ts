@@ -387,6 +387,7 @@ export interface ErrorEntry {
   sql_after: string;
   occurrences: number;
   approved: boolean;
+  warnings: string[];
 }
 
 export interface Accepted {
