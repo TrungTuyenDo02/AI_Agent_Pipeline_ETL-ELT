@@ -93,7 +93,7 @@ function Neighbours({ label, ids, onSelect }: { label: string; ids: string[]; on
 
 function Metric({ icon, label, value }: { icon: IconName; label: string; value: string }) {
   return (
-    <div className="metric">
+    <div className="schema-metric">
       <Icon name={icon} size={18} weight="duotone" />
       <strong>{value}</strong>
       <span>{label}</span>
@@ -141,7 +141,7 @@ export function SchemaPanel({
             </div>
           </div>
         )}
-        <div className="metrics">
+        <div className="schema-metrics">
           <Metric icon="columns" label="Cột" value={formatNumber(table.columns.length)} />
           <Metric icon="rows" label="Dòng" value={formatNumber(table.rows)} />
           <Metric icon="keyColumn" label="Cột khóa" value={formatNumber(keyCount)} />

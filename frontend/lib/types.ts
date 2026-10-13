@@ -267,6 +267,8 @@ export interface UsageRow {
   cached_tokens: number;
   cost_usd: number;
   seconds: number;
+  /** "nhà cung cấp/model" đã trả lời thật (khác model cấu hình nếu dự phòng thay thế) */
+  models?: string[];
 }
 
 /** Token/chi phí/thời gian LLM theo node (src/services/cost.usage_breakdown). */

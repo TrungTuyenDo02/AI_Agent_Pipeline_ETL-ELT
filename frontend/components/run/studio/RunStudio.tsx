@@ -3,6 +3,7 @@
 import { ResultCard } from "../ResultCard";
 import { useRun } from "../RunContext";
 import { RunLog } from "../RunLog";
+import { UsageSummary } from "../UsageSummary";
 import { FlowPanel, MetricsPanel } from "./Panels";
 import { ClarifyStep, PlanStep, RequestStep, TrackerStep } from "./Steps";
 import { useRunAttention } from "./useRunAttention";
@@ -44,10 +45,11 @@ export function RunStudio() {
       )}
       <TrackerStep detail={detail} />
       <RunLog detail={detail} />
+      <UsageSummary />
       <details className="card tech-details">
         <summary>
           <strong>Chi tiết kỹ thuật</strong>
-          <span className="muted">Token, chi phí, luồng dữ liệu, kết quả mẫu</span>
+          <span className="muted">Luồng dữ liệu, kết quả mẫu, chỉ số kiểm thử</span>
         </summary>
         <div className="studio tech-body">
           <div className="studio-main">

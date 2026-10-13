@@ -5407,13 +5407,13 @@ pre,
   color: var(--muted);
 }
 
-.metrics {
+.schema-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
-.metric {
+.schema-metric {
   display: grid;
   grid-template-columns: auto 1fr;
   grid-template-rows: auto auto;
@@ -5425,18 +5425,18 @@ pre,
   background: var(--surface-2);
 }
 
-.metric > svg {
+.schema-metric > svg {
   grid-row: 1 / span 2;
   color: var(--primary);
 }
 
-.metric strong {
+.schema-metric strong {
   font-size: 17px;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
 
-.metric span {
+.schema-metric span {
   color: var(--muted);
   font-size: 12px;
 }
@@ -6002,4 +6002,83 @@ body:has(.login-page)::after {
   .login-hero h2 {
     font-size: 30px;
   }
+}
+
+/* ---------- Token, chi phí, thời gian (màn lần chạy) và Hiệu quả agent (trang Lần chạy) ---------- */
+
+.usage-models {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.usage-summary .card-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.efficiency > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.efficiency > summary::-webkit-details-marker {
+  display: none;
+}
+
+.efficiency-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 18px 18px;
+}
+
+.efficiency-calc h3 {
+  margin-bottom: 4px;
+}
+
+.efficiency-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.efficiency-inputs label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.efficiency-inputs input {
+  height: 36px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.efficiency-result {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding-left: 18px;
+}
+
+.ok-text {
+  color: var(--ok);
+}
+
+.fail-text {
+  color: var(--fail);
 }

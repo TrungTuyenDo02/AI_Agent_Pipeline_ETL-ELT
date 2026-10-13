@@ -45,7 +45,7 @@ def cache_hit_rate(usages: list[dict]) -> float | None:
 
 
 def usage_breakdown(usages: list[dict]) -> dict:
-    """Token, chi phí, thời gian gọi LLM theo node + tỉ lệ trúng cache (panel "Chi phí và thời gian" trên web).
+    """Token, chi phí, thời gian gọi LLM theo node (kèm model đã trả lời) + tỉ lệ trúng cache (panel "Chi phí và thời gian").
 
     `simulated` = có lần gọi mock: số token/chi phí khi đó là mô phỏng, web phải ghi rõ.
     """
@@ -54,9 +54,12 @@ def usage_breakdown(usages: list[dict]) -> dict:
         row = rows.setdefault(
             u.get("task", "?"),
             {"task": u.get("task", "?"), "calls": 0, "input_tokens": 0, "output_tokens": 0, "cached_tokens": 0,
-             "cost_usd": 0.0, "seconds": 0.0},
+             "cost_usd": 0.0, "seconds": 0.0, "models": []},
         )  # fmt: skip
         row["calls"] += 1
+        label = f"{u.get('provider', '?')}/{u.get('model', '?')}"  # model đã trả lời thật (kể cả khi dự phòng thay thế)
+        if label not in row["models"]:
+            row["models"].append(label)
         for key in ("input_tokens", "output_tokens", "cached_tokens"):
             row[key] += u.get(key, 0)
         row["cost_usd"] = round(row["cost_usd"] + u.get("cost_usd", 0.0), 6)
