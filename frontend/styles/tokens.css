@@ -121,6 +121,17 @@
   --type-bool: light-dark(#0b6b5b, #6fe3cf);
   --type-bool-bg: light-dark(#e2f5f1, #0f3029);
 
+  /* Trang đăng nhập kiểu chia đôi: khung thông tin bên trái có lớp phủ tối để chữ trắng đọc rõ trên ảnh */
+  --login-scrim: light-dark(rgb(14 38 78 / 82%), rgb(6 10 20 / 84%));
+  --login-hero-solid: light-dark(#2b466a, #1a2630); /* màu xấu nhất sau lớp phủ (dùng để kiểm tương phản) */
+  --login-hero-ink: light-dark(#ffffff, #ffffff);
+  --login-hero-muted: light-dark(#dbe4f2, #dbe4f2);
+  --login-hero-card: rgb(255 255 255 / 11%);
+  --login-hero-card-solid: light-dark(#3a5478, #26323d);
+  --login-hero-edge: rgb(255 255 255 / 22%);
+  --login-photo-veil: light-dark(rgb(240 245 252 / 12%), rgb(6 10 20 / 45%));
+  --login-accent: light-dark(#c8102e, #ff8591);
+
   --shadow: 0 1px 2px var(--shadow-color), 0 2px 6px var(--shadow-color);
   --radius: 16px;
 

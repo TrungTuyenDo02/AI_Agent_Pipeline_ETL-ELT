@@ -5614,3 +5614,392 @@ pre,
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+
+/* =====================================================================================================
+   Trang đăng nhập kiểu chia đôi: bên trái giới thiệu dự án (ảnh + lớp phủ), bên phải thẻ đăng nhập
+   ===================================================================================================== */
+
+body:has(.login-page)::before {
+  filter: blur(1px) saturate(110%);
+}
+
+body:has(.login-page)::after {
+  background: var(--login-photo-veil);
+}
+
+.login-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(380px, 480px);
+  place-items: stretch;
+  padding: 0;
+  min-height: 100vh;
+  background: transparent;
+}
+
+.login-tools {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.login-lang,
+.login-tool {
+  border: 1px solid var(--glass-edge);
+  background: var(--glass-strong);
+  color: var(--text);
+  box-shadow: var(--shadow-1);
+}
+
+.login-lang {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+}
+
+.login-lang button {
+  min-width: 38px;
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.login-lang button[aria-pressed="true"] {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.login-tool {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.login-tool:hover {
+  color: var(--primary);
+}
+
+/* ----- Khung bên trái ----- */
+
+.login-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+  padding: 48px clamp(28px, 5vw, 72px) 28px;
+  color: var(--login-hero-ink);
+  isolation: isolate;
+}
+
+.login-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 -90px 0 0;
+  z-index: -1;
+  background: var(--login-scrim);
+  clip-path: polygon(0 0, 100% 0, 84% 100%, 0 100%);
+}
+
+.login-hero-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.login-hero h2 {
+  max-width: 18ch;
+  font-size: clamp(34px, 4.2vw, 54px);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  text-shadow: 0 2px 18px rgb(0 0 0 / 35%);
+}
+
+.login-hero-sub {
+  max-width: 56ch;
+  margin: 0;
+  color: var(--login-hero-muted);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.login-hero blockquote {
+  max-width: 52ch;
+  margin: 0;
+  padding-left: 14px;
+  border-left: 3px solid var(--login-hero-edge);
+  color: var(--login-hero-muted);
+  font-size: 14px;
+  font-style: italic;
+}
+
+.login-hero-foot {
+  margin: 8px 0 0;
+  color: var(--login-hero-muted);
+  font-size: 12px;
+}
+
+.hero-info {
+  max-width: 600px;
+  margin-top: 6px;
+}
+
+.hero-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--login-hero-edge);
+  border-radius: 999px;
+  background: var(--login-hero-card);
+}
+
+.hero-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--login-hero-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hero-tab:hover {
+  color: var(--login-hero-ink);
+}
+
+.hero-tab.active {
+  background: var(--login-hero-ink);
+  color: var(--login-hero-solid);
+}
+
+.hero-tab:focus-visible,
+.hero-cmd button:focus-visible,
+.hero-account-list button:focus-visible {
+  outline: 2px solid var(--login-hero-ink);
+  outline-offset: 2px;
+}
+
+.hero-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 230px;
+  margin-top: 10px;
+  padding: 16px 18px;
+  border: 1px solid var(--login-hero-edge);
+  border-radius: 18px;
+  background: var(--login-hero-card);
+  font-size: 14px;
+}
+
+.hero-panel p,
+.hero-panel ol,
+.hero-panel ul {
+  max-width: none;
+  margin: 0;
+}
+
+.hero-note {
+  color: var(--login-hero-muted);
+  font-size: 13px;
+}
+
+.hero-flow,
+.hero-data,
+.hero-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.hero-flow li,
+.hero-data li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.hero-flow strong,
+.hero-data strong {
+  display: block;
+}
+
+.hero-flow small,
+.hero-data small {
+  display: block;
+  color: var(--login-hero-muted);
+  font-size: 13px;
+}
+
+.hero-step-num {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--login-hero-ink);
+  color: var(--login-hero-solid);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.hero-data svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.hero-steps {
+  counter-reset: step;
+}
+
+.hero-steps li {
+  position: relative;
+  padding-left: 30px;
+  counter-increment: step;
+}
+
+.hero-steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--login-hero-ink);
+  color: var(--login-hero-solid);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.hero-cmd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 8px 8px 14px;
+  border-radius: 12px;
+  background: var(--console-bg);
+  color: var(--console-text);
+}
+
+.hero-cmd code {
+  font-size: 13px;
+}
+
+.hero-cmd button,
+.hero-account-list button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--login-hero-edge);
+  border-radius: 999px;
+  background: var(--login-hero-card);
+  color: var(--login-hero-ink);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hero-cmd button:hover,
+.hero-account-list button:hover {
+  background: var(--login-hero-card-solid);
+}
+
+.hero-accounts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hero-accounts small {
+  color: var(--login-hero-muted);
+  font-size: 12px;
+}
+
+.hero-account-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hero-account-list em {
+  color: var(--login-hero-muted);
+  font-style: normal;
+  font-weight: 500;
+}
+
+/* ----- Thẻ đăng nhập bên phải ----- */
+
+.login-side {
+  display: grid;
+  place-items: center;
+  padding: 72px 24px 32px;
+}
+
+.login-side .login-card {
+  width: min(430px, 100%);
+}
+
+.login-card h1 {
+  font-size: 26px;
+  letter-spacing: 0.01em;
+}
+
+.login-accent {
+  color: var(--login-accent);
+}
+
+/* Điện thoại / máy tính bảng dọc: xếp dọc, thẻ đăng nhập lên trước */
+@media (max-width: 960px) {
+  .login-page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .login-side {
+    order: -1;
+    padding-top: 72px;
+  }
+
+  .login-hero {
+    padding: 28px 20px 24px;
+    background: var(--login-scrim);
+  }
+
+  .login-hero::before {
+    display: none;
+  }
+
+  .login-hero h2 {
+    font-size: 30px;
+  }
+}
