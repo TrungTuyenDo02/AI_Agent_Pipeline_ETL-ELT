@@ -14,6 +14,18 @@ import { useDismiss, waitingFor } from "./NotificationBell";
 
 export const ROLE_LABELS: Record<Role, string> = { engineer: "Engineer", reviewer: "Reviewer", admin: "Admin" };
 
+/** Nút sáng/tối hiển thị sẵn trên thanh trên: bấm đổi ngay (lựa chọn lưu ở trình duyệt; "Theo máy" vẫn chọn được trong menu). */
+export function ThemeToggle() {
+  const { dark, setTheme } = useApp();
+  const next = dark ? "light" : "dark";
+  const label = dark ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối";
+  return (
+    <button type="button" className="icon-btn theme-toggle" aria-label={label} title={label} onClick={() => setTheme(next)}>
+      <Icon name={dark ? "light" : "dark"} size={20} weight="fill" />
+    </button>
+  );
+}
+
 export function ModeBadges() {
   const { status, statusError } = useApp();
   if (statusError) return <span className="badge danger">Mất kết nối API</span>;

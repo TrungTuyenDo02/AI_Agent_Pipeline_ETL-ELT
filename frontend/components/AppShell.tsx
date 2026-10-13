@@ -12,7 +12,7 @@ import { BottomNav, Dock, type NavLinkItem } from "./Dock";
 import { Icon, SparkIcon } from "./icons";
 import { NotificationBell } from "./NotificationBell";
 import { RunSearch } from "./RunSearch";
-import { AvatarMenu, ModeBadges, RoleChip } from "./Topbar";
+import { AvatarMenu, ModeBadges, RoleChip, ThemeToggle } from "./Topbar";
 
 // Bố cục (CLAUDE.md 9.4): thanh trên (logo · tab · tìm · vai trò · chuông · avatar), dock nổi bên trái (lối tắt),
 // thẻ nền đặc trên nền phẳng. Điện thoại (< 640px): tab chuyển xuống thanh dưới đáy, ẩn dock.
@@ -62,10 +62,26 @@ function TopBar() {
       <div className="topbar-tools">
         <RunSearch />
         <RoleChip />
+        <ThemeToggle />
         <NotificationBell />
         <AvatarMenu />
       </div>
     </header>
+  );
+}
+
+/** Nút quay lại: về trang trước trong lịch sử; mở thẳng từ liên kết (không có lịch sử) thì về cấp trên. */
+function BackButton() {
+  const pathname = usePathname();
+  const router = useRouter();
+  if (pathname === "/") return null;
+  const parent = pathname.startsWith("/runs/") ? "/runs" : "/";
+  const goBack = () => (window.history.length > 1 ? router.back() : router.push(parent));
+  return (
+    <button type="button" className="back-btn" onClick={goBack} aria-label="Quay lại trang trước">
+      <Icon name="back" size={16} weight="bold" />
+      <span>Quay lại</span>
+    </button>
   );
 }
 
@@ -121,6 +137,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <TopBar />
         <div className="body">
           <main id="main" className="content">
+            <BackButton />
             {children}
           </main>
         </div>

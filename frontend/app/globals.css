@@ -5031,3 +5031,586 @@ main > .schema-watch {
     text-align: left;
   }
 }
+
+
+/* =====================================================================================================
+   Giao diện v2: ảnh nền, cuộn mượt, nút Quay lại / Sáng-Tối, tiến trình sáng rõ, panel schema
+   (đặt cuối file để ghi đè các khai báo cũ cùng độ ưu tiên)
+   ===================================================================================================== */
+
+/* ---------- Ảnh nền: lớp cố định riêng (không dùng background-attachment: fixed, vì nó làm cuộn giật) ---------- */
+
+body {
+  background: var(--bg-page);
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+}
+
+body::before {
+  background: var(--bg-photo) center / cover no-repeat;
+  filter: var(--bg-photo-filter);
+  transform: scale(1.06); /* che mép mờ do blur */
+}
+
+body::after {
+  z-index: -1;
+  background: var(--bg-veil);
+}
+
+/* Cuộn: bỏ cuộn "trượt" ở html (gây trễ khi bấm neo), chừa chỗ thanh cuộn để bố cục không nhảy */
+html {
+  scroll-behavior: auto;
+  scrollbar-gutter: stable;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: var(--scroll-thumb);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+  background-clip: padding-box;
+}
+
+/* Vùng cuộn nội bộ không "kéo dây" sang cả trang */
+.table-wrap,
+.flyout-list,
+pre,
+.pipeline-track,
+.diagram-scroll {
+  overscroll-behavior: contain;
+}
+
+/* Thanh trên dính đầu trang: giảm độ mờ (blur nặng là nguyên nhân chính làm cuộn giật), nền đặc hơn để đọc rõ trên ảnh */
+.topbar {
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: saturate(160%) blur(10px);
+  backdrop-filter: saturate(160%) blur(10px);
+  box-shadow: var(--shadow-2);
+}
+
+/* Thẻ nổi lên khỏi ảnh nền; bỏ chuyển màu viền khi rê chuột (hàng chục thẻ cùng vẽ lại) */
+.card,
+.glass {
+  box-shadow: var(--shadow-2);
+}
+
+.card {
+  transition: none;
+}
+
+.card:hover {
+  border-color: var(--card-border);
+}
+
+.footer {
+  background: var(--glass-strong);
+}
+
+/* Trang đăng nhập: để ảnh nền chung lộ ra dưới các vệt màu lưới */
+.login-page {
+  background:
+    radial-gradient(60vmax 50vmax at 12% 18%, color-mix(in srgb, var(--login-mesh-a) 55%, transparent), transparent 60%),
+    radial-gradient(55vmax 45vmax at 88% 22%, color-mix(in srgb, var(--login-mesh-b) 55%, transparent), transparent 60%),
+    radial-gradient(60vmax 50vmax at 70% 92%, color-mix(in srgb, var(--login-mesh-c) 55%, transparent), transparent 60%);
+}
+
+/* ---------- Nút Quay lại + nút Sáng/Tối ---------- */
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px 0 10px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 999px;
+  background: var(--glass-strong);
+  box-shadow: var(--shadow-1);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.back-btn:hover {
+  transform: translateX(-2px);
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--glass-edge));
+  box-shadow: var(--shadow-2);
+}
+
+.back-btn:active {
+  transform: scale(0.97);
+}
+
+.back-btn:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  outline-offset: 2px;
+}
+
+.theme-toggle:hover {
+  color: var(--primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .back-btn:hover {
+    transform: none;
+  }
+}
+
+/* ---------- Tiến trình: sáng, rõ, thấy ngay đang ở đâu ---------- */
+
+.run-head .pipeline {
+  padding: 18px 20px 14px;
+  gap: 14px;
+  box-shadow: var(--shadow-2);
+}
+
+.overall {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.overall-text {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.overall-text strong {
+  font-size: 15px;
+}
+
+.overall-text span {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.overall-bar {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border);
+  overflow: hidden;
+}
+
+.overall-bar > span {
+  display: block;
+  height: 100%;
+  min-width: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--primary-hi), var(--primary));
+  box-shadow: 0 0 12px var(--progress-glow);
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.overall[data-state="passed"] .overall-bar > span {
+  background: linear-gradient(90deg, var(--ok-hi), var(--ok));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--ok) 45%, transparent);
+}
+
+.overall[data-state="failed"] .overall-bar > span {
+  background: var(--fail);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--fail) 45%, transparent);
+}
+
+.overall[data-state="human"] .overall-bar > span {
+  background: var(--warn);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--warn) 45%, transparent);
+}
+
+/* Giai đoạn: vòng đặc màu cho bước đã xong, vầng sáng nhấp nháy cho bước đang chạy, mờ đi cho bước chưa tới */
+.phase-dot {
+  width: 34px;
+  height: 34px;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.phase + .phase::before {
+  top: 23px;
+  right: calc(50% + 22px);
+  width: calc(100% - 44px);
+  height: 3px;
+  border-radius: 2px;
+  transition: background-color 0.4s ease;
+}
+
+.phase[data-state="passed"] .phase-dot {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: var(--ok-ink);
+}
+
+.phase[data-state="running"] .phase-dot {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: 0 0 0 5px var(--progress-glow);
+  animation: glow 1.8s ease-in-out infinite;
+}
+
+.phase[data-state="human"] .phase-dot {
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--warn) 30%, transparent);
+}
+
+.phase[data-state="failed"] .phase-dot {
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--fail) 28%, transparent);
+}
+
+.phase[data-state="waiting"] {
+  opacity: 0.7;
+}
+
+.phase[data-state="running"] .phase-label {
+  color: var(--primary);
+}
+
+.phase[data-state="passed"] .phase-meta {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.phase[data-state="running"] .phase-meta {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+@keyframes glow {
+  50% {
+    box-shadow: 0 0 0 9px color-mix(in srgb, var(--primary) 12%, transparent);
+  }
+}
+
+/* Bước con: bước xong tô đặc xanh, bước đang chạy có vầng sáng */
+.stage[data-state="passed"] .stage-dot {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: var(--ok-ink);
+}
+
+.stage[data-state="running"] .stage-dot {
+  background: var(--primary-soft);
+  box-shadow: 0 0 0 4px var(--progress-glow);
+  animation: glow 1.8s ease-in-out infinite;
+}
+
+.stage[data-state="waiting"] .stage-dot {
+  opacity: 0.65;
+}
+
+.stage[data-state="running"] .stage-label {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.stage + .stage::before {
+  height: 3px;
+}
+
+/* Danh sách theo dõi chạy trực tiếp: dòng đang chạy nổi bật */
+.track-row[data-state="passed"] .track-dot {
+  background: var(--ok);
+  color: var(--ok-ink);
+}
+
+.track-row[data-state="waiting"] {
+  opacity: 0.7;
+}
+
+.live-node {
+  border-width: 2px;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--progress-glow);
+}
+
+.progress {
+  height: 8px;
+}
+
+.progress > span {
+  background: linear-gradient(90deg, var(--primary-hi), var(--primary));
+  box-shadow: 0 0 10px var(--progress-glow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phase[data-state="running"] .phase-dot,
+  .stage[data-state="running"] .stage-dot {
+    animation: none;
+  }
+}
+
+/* ---------- Panel Schema (cấu trúc bảng) ---------- */
+
+.schema-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--primary);
+}
+
+.schema-title .mono {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.schema-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.schema-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schema-intro p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.metric {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.metric > svg {
+  grid-row: 1 / span 2;
+  color: var(--primary);
+}
+
+.metric strong {
+  font-size: 17px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.schema-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schema-section > h3 {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.neighbours {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  font-size: 13px;
+}
+
+.neighbours-label {
+  padding-top: 4px;
+  color: var(--muted);
+}
+
+.neighbours-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.schema-cols-table {
+  max-height: 380px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.schema-cols-table th {
+  z-index: 1;
+  padding: 8px 12px;
+}
+
+.schema-cols-table td {
+  padding: 8px 12px;
+  vertical-align: middle;
+}
+
+.schema-cols-table tbody tr:hover td {
+  background: var(--surface-2);
+}
+
+.col-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.col-key {
+  flex: none;
+  color: var(--warn);
+}
+
+.col-key-gap {
+  flex: none;
+  width: 14px;
+}
+
+.type-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.type-chip.t-num {
+  background: var(--type-num-bg);
+  color: var(--type-num);
+}
+
+.type-chip.t-text {
+  background: var(--type-text-bg);
+  color: var(--type-text);
+}
+
+.type-chip.t-time {
+  background: var(--type-time-bg);
+  color: var(--type-time);
+}
+
+.type-chip.t-bool {
+  background: var(--type-bool-bg);
+  color: var(--type-bool);
+}
+
+.null-bar {
+  gap: 8px;
+}
+
+.null-pct {
+  min-width: 40px;
+  font-variant-numeric: tabular-nums;
+}
+
+.null-bar span.track {
+  width: 56px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.null-bar span.fill {
+  border-radius: 999px;
+  background: var(--ok);
+}
+
+.null-bar[data-tone="warn"] span.fill {
+  background: var(--warn);
+}
+
+.null-bar[data-tone="danger"] span.fill {
+  background: var(--fail);
+}
+
+.join-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.join-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.join-cols {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.join-cols svg {
+  color: var(--primary);
+}
+
+.catalog-layout {
+  grid-template-columns: minmax(0, 1fr) 400px;
+}
+
+@media (max-width: 1180px) {
+  .catalog-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

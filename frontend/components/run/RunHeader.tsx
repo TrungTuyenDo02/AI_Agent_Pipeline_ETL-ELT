@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { downloadUrl } from "@/lib/api";
 import { formatTime } from "@/lib/format";
 
-import { ArrowLeftIcon } from "../icons";
 import { ErrorBox, Loading, StatusBadge } from "../ui";
 import { PipelineTrack } from "./PipelineTrack";
 import { useRun } from "./RunContext";
@@ -48,11 +47,8 @@ export function RunHeader() {
     <div className="run-head">
       <div className="run-title">
         <div>
-          {/* mã lần chạy dài chỉ còn trong tooltip (CLAUDE.md yêu cầu 6) */}
-          <Link href="/runs" className="small" title={`Mã lần chạy: ${record.id}`}>
-            <ArrowLeftIcon size={14} /> Lần chạy
-          </Link>
-          <h1>{record.request_text}</h1>
+          {/* mã lần chạy dài chỉ còn trong tooltip (CLAUDE.md yêu cầu 6); nút quay lại nằm ở khung chung (AppShell) */}
+          <h1 title={`Mã lần chạy: ${record.id}`}>{record.request_text}</h1>
           <div className="row muted small run-meta">
             <span>{record.requester}</span>
             <span>·</span>
