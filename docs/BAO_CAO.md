@@ -188,7 +188,7 @@ Nguồn: [eval/results/report.md](../eval/results/report.md), sinh bởi `python
 |---|---|---|
 | Test tự động | `mock`, không cần khóa | 626 đạt, 0 lỗi |
 | Độ phủ code | `pytest --cov`, ngưỡng 60% | 91,76% |
-| Mutation: bắt lỗi giả | code, 0 token, 1 lần | 11/12 (91,7%) |
+| Mutation: bắt lỗi giả | mô phỏng (bộ sinh test giả `mock`, pipeline gốc cố định), 1 lần | 11/12 (91,7%) |
 | Golden: kết quả đúng khớp SQL chuẩn | code | 11/11 ca |
 | Golden: agent đúng | LLM thật (gpt-5.6-luna; optimizer gpt-5.6-terra), 12 ca, 1 lần, đo 2026-10-08 | 12/12 ca |
 | Golden: đạt ngay lần đầu | như trên | 12/12 ca |
@@ -196,12 +196,12 @@ Nguồn: [eval/results/report.md](../eval/results/report.md), sinh bởi `python
 | Golden: token / chi phí mỗi ca | như trên | 6917 token / 0,0045 USD |
 | Golden: thời gian yêu cầu → bản duyệt | như trên | 46,4 giây |
 | ELT-Bench-Verified: khớp bảng đúng | LLM thật, 10 task, 34 bảng, 1 lần, chấm lại 2026-10-07 | 11/34 bảng |
-| TPC-H: query chậm được tối ưu | `mock`, sf=0,1, 2026-10-02 | 11/13, nhanh hơn 51%–94,7% |
+| TPC-H: query chậm được tối ưu | `mock`, sf=0,1, 2026-10-02; 10/11 ca nhờ luật cố định, **chưa kiểm chứng với LLM thật** | 11/13, nhanh hơn 51%–94,7% |
 | Thời gian phản hồi API | trong cùng tiến trình, SQLite, 100 lần | `/health` p50 2,2 ms; `GET /runs/{id}` p95 15,3 ms ([api_latency.md](../eval/results/api_latency.md)) |
 | Agent so với DE làm tay | — | — (chưa có DE làm tay) |
 | Phản hồi người dùng thử | — | — (chưa thu thập) |
 
-Ghi chú: ELT-Bench 11/34 là điểm **nghiêm** (tính cả 2 model lỗi của chính benchmark); các bảng còn lại lệch nghĩa so với định nghĩa của benchmark.
+Ghi chú: ELT-Bench 11/34 (khoảng 32%) là điểm **nghiêm** (tính cả 2 model lỗi của chính benchmark); các bảng còn lại lệch nghĩa so với định nghĩa của benchmark.
 Trước đây báo cáo ghi 7/34 vì bộ chấm còn lỗi; đã sửa và chấm lại từ đầu ra đã lưu (không chạy lại LLM, 0 token).
 
 ## 7. Hạn chế, nói trung thực
@@ -212,6 +212,10 @@ Trước đây báo cáo ghi 7/34 vì bộ chấm còn lỗi; đã sửa và ch�
 - **Dữ liệu là kho giả lập** "P113 Retail" (8 hệ thống, 19 bảng, bẩn có chủ đích), chưa chạy trên dữ liệu công ty thật.
 - **Chưa deploy thật:** chưa có địa chỉ chạy công khai; lần chạy và checkpoint còn ở SQLite nên backend chỉ chạy một bản ([DATABASE.md](DATABASE.md)).
 - Chế độ `mock` chỉ chứng minh luồng chạy, không chứng minh chất lượng AI.
+- **ELT-Bench chỉ 11/34 bảng (khoảng 32%)** và có ca pipeline **được duyệt nhưng kết quả sai**: bộ kiểm chứng hiện chưa bắt hết, đây là rủi ro thật, không phải sai số nhỏ.
+- **Golden 12/12 chưa phải điểm kiểm độc lập:** bộ golden chưa tách thành tập chỉnh và tập kiểm riêng, nên không nên đọc là độ đúng trên yêu cầu lạ.
+- **Optimizer chưa có số đo với LLM thật:** con số tối ưu TPC-H đến từ `mock` và luật cố định; phần LLM của optimizer ghi là *chưa kiểm chứng*.
+- **Mutation test dùng bộ sinh test giả (`mock`):** đo khả năng bắt lỗi của bộ kiểm chứng, không đo chất lượng test do LLM thật viết. Lọt 1/12 ca (`count_distinct_id`).
 
 ## 8. Hướng phát triển
 
