@@ -12,6 +12,7 @@ from src.agents.tools.dbt_tools import DbtResult, run_dbt_build, write_generated
 from src.agents.tools.duckdb_tools import RAW_SCHEMA, connect_read
 from src.agents.tools.pii import mask_rows
 from src.agents.tools.sql_tools import SOURCE_RE, SqlCheckError, render_dbt_sql
+from src.models.contracts import SandboxResult, hand_off
 
 logger = logging.getLogger(__name__)
 SAMPLE_ROWS = 10
@@ -78,10 +79,12 @@ def sandbox_run_node(state: PipelineState) -> dict:
     spec = spec_of(state)
     if not result.ok:
         message = failure_message(result)
-        sandbox = {"passed": False, "error": message, **_summary(result)}
+        sandbox = hand_off(SandboxResult, {"passed": False, "error": message, **_summary(result)})
         return {"sandbox": sandbox, **register_failure(state, message, state["code_files"].get(mart_path(spec), ""))}
     rows, sample = mart_sample(sandbox_db(state), spec.target)
     return {
-        "sandbox": {"passed": True, "error": "", "target_rows": rows, "sample": sample, **_summary(result)},
+        "sandbox": hand_off(
+            SandboxResult, {"passed": True, "error": "", "target_rows": rows, "sample": sample, **_summary(result)}
+        ),
         "reconciliation": reconcile_staging(sandbox_db(state), state.get("code_files", {})),
     }

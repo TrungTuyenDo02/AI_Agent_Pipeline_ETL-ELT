@@ -7,6 +7,7 @@ Kế hoạch do Planner viết (lời LLM, chưa kiểm chứng); nếu Planner 
 from langgraph.types import interrupt
 
 from src.agents.state import PipelineState
+from src.models.contracts import PlanDecision, hand_off
 
 PLAN_SPEC_FIELDS = ("target", "mode", "mode_reason", "grain", "output_columns", "metrics", "filters", "assumptions")
 NEXT_STEPS = (
@@ -66,9 +67,9 @@ def parse_plan_reply(reply: object) -> dict | None:
         return None
     decision, note = reply.get("decision"), str(reply.get("note") or "").strip()
     if decision == "approve":
-        return {"decision": "approve", "note": note}
+        return hand_off(PlanDecision, {"decision": "approve", "note": note})
     if decision == "revise" and note:
-        return {"decision": "revise", "note": note}
+        return hand_off(PlanDecision, {"decision": "revise", "note": note})
     return None
 
 

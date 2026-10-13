@@ -20,6 +20,7 @@ from src.agents.tools.rewrite_rules import rules_candidate, sqlglot_candidate
 from src.agents.tools.slow_patterns import detect_slow_patterns
 from src.agents.tools.sql_tools import SqlCheckError, render_dbt_sql
 from src.config import get_settings
+from src.models.contracts import OptCandidate, hand_off
 from src.models.evidence import Finding, OptimizationReport
 from src.models.schemas import LLMUsage
 from src.services.llm import LLMConfigError, LLMOutputError, call_llm, parse_json_output, to_json
@@ -149,7 +150,7 @@ def optimizer_node(state: PipelineState) -> dict:
         "llm_cost_usd": cost,
     }
     candidate.pop("feedback", None)
-    update = {"opt_candidate": candidate, "opt_attempts": attempt}
+    update = {"opt_candidate": hand_off(OptCandidate, candidate), "opt_attempts": attempt}
     return {**update, "llm_usage": [usage.model_dump()]} if usage else update
 
 

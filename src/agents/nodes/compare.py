@@ -17,6 +17,7 @@ from src.agents.state import PipelineState
 from src.agents.tools.duckdb_tools import QueryResult, benchmark_query, run_query
 from src.agents.tools.sql_tools import same_query, to_dbt_refs
 from src.config import get_settings
+from src.models.contracts import OptCandidate, hand_off
 from src.models.evidence import DatasetCheck, OptimizationReport, QueryMetrics
 from src.services.cost import compute_cost_usd
 
@@ -168,7 +169,7 @@ def compare_node(state: PipelineState) -> dict:
     report = evaluate_candidate(candidate, state.get("datasets", {}))
     history = [*candidate.get("history", []), f"[{candidate.get('source', '?')}] {report.reason}"]
     if report.decision != "applied" and state.get("opt_attempts", 0) < get_settings().opt_max_attempts:
-        return {"opt_candidate": {**candidate, "feedback": report.reason, "history": history}}
+        return {"opt_candidate": hand_off(OptCandidate, {**candidate, "feedback": report.reason, "history": history})}
     if report.decision != "applied":
         summary = f"Đã thử {len(history)} đề xuất, không đề xuất nào đạt: " + " | ".join(history)
         report = report.model_copy(update={"decision": "skipped", "reason": summary})
