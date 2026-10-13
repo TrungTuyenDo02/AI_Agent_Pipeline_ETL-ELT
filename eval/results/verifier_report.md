@@ -1,6 +1,6 @@
 # Đo các bước V như máy dò (U3)
 
-- Ngày chạy: 2026-10-10 • toàn bộ bằng code, **0 token**, không dùng LLM để chấm.
+- Ngày chạy: 2026-10-12 • toàn bộ bằng code, **0 token**, không dùng LLM để chấm.
 - **Bỏ sót** = code sai mà V cho qua. **Báo nhầm** = code đúng mà V chặn.
 - Nhãn: `author` = người viết hệ thống; `ai_proxy` = Claude viết thay thành viên khi chưa có người ngoài nhóm (31 ca V1, cùng một người viết V nên **không độc lập** như `external`); `external` = người ngoài nhóm: 0 ca.
 - Kết quả chỉ nói về **bộ ca đã có**; không có nghĩa V không bao giờ sai.
@@ -9,7 +9,7 @@
 
 | Node | Ca đúng (phải qua) | Ca sai (phải chặn) | Bắt được | Bỏ sót | Báo nhầm |
 |---|---:|---:|---:|---:|---:|
-| V1 An toàn (red team + ca hợp lệ) | 43 | 78 | 76 | 2 | 0 |
+| V1 An toàn (red team + ca hợp lệ) | 43 | 79 | 77 | 2 | 0 |
 | V2 Sandbox — đột biến `revenue_3_sources` | 3 | 16 | 11 | 5 | 0 |
 | V2 Sandbox — đột biến `join_g06` | 3 | 10 | 6 | 4 | 0 |
 | V3 Đối chiếu — cặp query | 17 | 21 | 20 | 1 | 0 |
@@ -20,7 +20,7 @@ V1 ném ngoại lệ thay vì báo lỗi gọn: —.
 
 | Nhãn | Node | Ca sai | Bắt được | Ca đúng | Báo nhầm |
 |---|---|---:|---:|---:|---:|
-| author | V1 | 58 | 58 | 32 | 0 |
+| author | V1 | 59 | 59 | 32 | 0 |
 | author | V2 | 20 | 16 | 3 | 0 |
 | author | V3 | 14 | 13 | 12 | 0 |
 | ai_proxy | V1 | 20 | 18 | 11 | 0 |
@@ -105,10 +105,10 @@ Bản tối ưu do luật tất định / sqlglot sinh phải cho kết quả y 
 
 | V bị phá | Cách phá | Test chạy | Khi nguyên vẹn | Khi bị phá | Test bắt được? |
 |---|---|---|---|---|---|
-| v0 | V0 Soát spec luôn đạt (bỏ kiểm điểm chưa rõ + trường bắt buộc) | `tests/test_verifiers/test_spec_check.py` | 23 passed in 0.35s | 4 failed, 19 passed in 0.54s | ✓ |
-| v1 | V1 An toàn không tìm lệnh/hàm nguy hiểm | `tests/test_verifiers/test_v1_redteam.py`, `tests/test_verifiers/test_safety_and_sandbox.py` | 138 passed, 2 xfailed in 20.93s | 27 failed, 111 passed, 2 xfailed in 19.92s | ✓ |
-| v2 | V2 Sandbox coi mọi lần dbt build là đạt | `tests/test_verifiers/test_safety_and_sandbox.py` | 17 passed in 17.58s | 1 failed, 16 passed in 17.59s | ✓ |
-| v3 | V3 Đối chiếu luôn coi hai kết quả là giống | `tests/test_optimizer/test_optimizer.py` | 19 passed in 18.88s | 2 failed, 17 passed in 14.31s | ✓ |
+| v0 | V0 Soát spec luôn đạt (bỏ kiểm điểm chưa rõ + trường bắt buộc) | `tests/test_verifiers/test_spec_check.py` | 23 passed in 0.14s | 4 failed, 19 passed in 0.39s | ✓ |
+| v1 | V1 An toàn không tìm lệnh/hàm nguy hiểm | `tests/test_verifiers/test_v1_redteam.py`, `tests/test_verifiers/test_safety_and_sandbox.py` | 139 passed, 2 xfailed in 15.55s | 27 failed, 112 passed, 2 xfailed in 15.53s | ✓ |
+| v2 | V2 Sandbox coi mọi lần dbt build là đạt | `tests/test_verifiers/test_safety_and_sandbox.py` | 17 passed in 14.86s | 1 failed, 16 passed in 15.38s | ✓ |
+| v3 | V3 Đối chiếu luôn coi hai kết quả là giống | `tests/test_optimizer/test_optimizer.py` | 20 passed in 18.95s | 2 failed, 18 passed in 12.13s | ✓ |
 
 ## 6. Ca còn lọt và cách giảm rủi ro
 

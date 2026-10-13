@@ -1,6 +1,7 @@
 """Sổ lỗi (SQLite): ghi lỗi V-node, tìm mục giống đã được Reviewer duyệt để gợi ý cho Codegen.
 
 Mục mới mặc định `approved=False`; chỉ mục đã duyệt mới được đưa vào prompt (tối đa 3), và chỉ là gợi ý.
+`warnings` cho người duyệt thấy mục có chữ giống lệnh cài cắm / bí mật (chỉ cảnh báo, không chặn).
 """
 
 import hashlib
@@ -10,6 +11,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
+from src.agents.tools.injection_scan import scan_text
 from src.config import get_settings
 from src.models.evidence import ErrorEntry
 
@@ -115,6 +117,8 @@ class ErrorMemory:
 def _to_entry(row: sqlite3.Row) -> ErrorEntry:
     data = dict(row)
     data["approved"] = bool(data["approved"])
+    # Mục đã duyệt được đưa vào prompt Codegen → cảnh báo người duyệt nếu nội dung giống lệnh cài cắm hoặc lộ bí mật
+    data["warnings"] = scan_text(data["description"], data["cause"], data["fix"], data["sql_before"])
     return ErrorEntry(**data)
 
 

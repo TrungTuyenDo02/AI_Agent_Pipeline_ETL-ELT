@@ -94,7 +94,10 @@ Không có đăng ký tự do: tài khoản do quản trị cấp. Sai vai trò 
 - **Dữ liệu cá nhân** (email, số điện thoại) được che trước khi hiển thị hoặc gửi cho AI.
 - **Code do AI viết** phải qua V1 (chặn lệnh nguy hiểm) rồi mới chạy trong hộp cát không có quyền đọc file ngoài.
 - **Agent không tự đẩy code lên kho chính**: người duyệt tải gói `.zip` và tự mở Pull Request.
-- **Tiến trình dbt** chạy với môi trường đã bỏ mọi biến có đuôi `_API_KEY`, `_TOKEN`, `_SECRET`.
+- **Tiến trình dbt** chạy với môi trường đã bỏ khóa API, mật khẩu và chuỗi kết nối DB (`_API_KEY`, `_TOKEN`, `_SECRET`, `_PASSWORD`, `DATABASE_URL`…).
+- **Chống lệnh cài vào dữ liệu (prompt injection).** Kẻ xấu có thể viết "bỏ qua mọi quy tắc" vào một ô CSV để điều khiển AI. Ba lớp chặn:
+  dữ liệu luôn nằm trong thẻ `<data>` mà code không cho đóng sớm (`llm.neutralize_data_tags`); prompt dặn AI coi chữ đó là giá trị;
+  và code quét dữ liệu nguồn và sổ lỗi để **cảnh báo** người duyệt (`injection_scan.py`). Kể cả khi AI bị lừa, code sinh ra vẫn phải qua V1.
 
 ### Ví dụ một lần chạy (chế độ mô phỏng)
 
@@ -215,9 +218,8 @@ Trước đây báo cáo ghi 7/34 vì bộ chấm còn lỗi; đã sửa và ch�
 1. Mời 3–5 DE làm tay 5–10 ca theo quy trình có sẵn để có số so sánh thời gian.
 2. Thử trên dữ liệu thật của một đội (có sự đồng ý), thu phản hồi người dùng.
 3. Chuyển lưu lần chạy và checkpoint sang PostgreSQL để deploy bền và chạy nhiều bản.
-4. Thêm bước kiểm tăng trưởng 1x/10x/100x (V4) để thấy query chậm lại thế nào khi dữ liệu lớn dần.
-5. Phân xử khi test và code bất đồng: hiện mọi lỗi V1/V2 đều quay về Codegen, nên test sai có thể kéo code sửa theo test sai; cần phân loại lỗi thuộc bên nào trước khi sửa.
-6. Đăng nhập một lần (SSO) thay tài khoản nội bộ.
+4. Phân xử khi test và code bất đồng: hiện mọi lỗi V1/V2 đều quay về Codegen, nên test sai có thể kéo code sửa theo test sai; cần phân loại lỗi thuộc bên nào trước khi sửa.
+5. Đăng nhập một lần (SSO) thay tài khoản nội bộ.
 
 ## 9. Tài liệu tham khảo
 

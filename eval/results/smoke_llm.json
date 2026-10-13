@@ -1,15 +1,12 @@
 {
  "provider": "openai",
- "models": "planner=gpt-5.6-luna, codegen=gpt-5.6-luna, testgen=gpt-5.6-luna, optimizer=gpt-5.6-terra",
+ "models": "planner=gpt-6-luna, codegen=gpt-6-luna, testgen=gpt-6-luna, optimizer=claude-opus-5-5",
  "rows": [
   {
    "case": "g01_three_sources",
-   "plan_rounds": 2,
+   "plan_rounds": 1,
    "spec_errors": [],
-   "questions": [
-    "Nếu cùng một đơn hàng xuất hiện nhiều lần trong cùng nguồn hoặc giữa các nguồn, cần xử lý như thế nào? → Giữ tất cả bản ghi",
-    "Khi chuyển dấu thời gian thành order_date, dùng múi giờ nào? → Giữ ngày theo giá trị thời gian trong nguồn"
-   ],
+   "questions": [],
    "files": [
     "dags/fct_daily_revenue_dag.py",
     "models/marts/fct_daily_revenue.sql",
@@ -19,39 +16,28 @@
    ],
    "v1_issues": [],
    "v1_passed": true,
-   "seconds": 43.8,
+   "seconds": 32.2,
    "calls": [
     {
      "task": "planner",
      "provider": "openai",
-     "model": "gpt-5.6-luna",
-     "input_tokens": 1475,
-     "output_tokens": 1825,
-     "cached_tokens": 1472,
-     "cost_usd": 0.002485,
-     "latency_ms": 17874.0,
-     "simulated": false
-    },
-    {
-     "task": "planner",
-     "provider": "openai",
-     "model": "gpt-5.6-luna",
-     "input_tokens": 1554,
-     "output_tokens": 1279,
+     "model": "gpt-6-luna",
+     "input_tokens": 1572,
+     "output_tokens": 1363,
      "cached_tokens": 0,
-     "cost_usd": 0.001846,
-     "latency_ms": 12220.6,
+     "cost_usd": 0.000839,
+     "latency_ms": 11682.3,
      "simulated": false
     },
     {
      "task": "codegen",
      "provider": "openai",
-     "model": "gpt-5.6-luna",
-     "input_tokens": 2203,
-     "output_tokens": 1244,
+     "model": "gpt-6-luna",
+     "input_tokens": 1700,
+     "output_tokens": 1756,
      "cached_tokens": 0,
-     "cost_usd": 0.001933,
-     "latency_ms": 10703.9,
+     "cost_usd": 0.001048,
+     "latency_ms": 17199.1,
      "simulated": false
     }
    ]
@@ -69,28 +55,28 @@
    ],
    "v1_issues": [],
    "v1_passed": true,
-   "seconds": 24.8,
+   "seconds": 36.0,
    "calls": [
     {
      "task": "planner",
      "provider": "openai",
-     "model": "gpt-5.6-luna",
-     "input_tokens": 1335,
-     "output_tokens": 1200,
-     "cached_tokens": 1332,
-     "cost_usd": 0.001707,
-     "latency_ms": 12506.8,
+     "model": "gpt-6-luna",
+     "input_tokens": 1521,
+     "output_tokens": 2035,
+     "cached_tokens": 1183,
+     "cost_usd": 0.00117,
+     "latency_ms": 16775.9,
      "simulated": false
     },
     {
      "task": "codegen",
      "provider": "openai",
-     "model": "gpt-5.6-luna",
-     "input_tokens": 1822,
-     "output_tokens": 1253,
+     "model": "gpt-6-luna",
+     "input_tokens": 1541,
+     "output_tokens": 1680,
      "cached_tokens": 0,
-     "cost_usd": 0.001868,
-     "latency_ms": 11801.8,
+     "cost_usd": 0.000994,
+     "latency_ms": 18280.9,
      "simulated": false
     }
    ]
@@ -108,28 +94,28 @@
    ],
    "v1_issues": [],
    "v1_passed": true,
-   "seconds": 24.4,
+   "seconds": 26.3,
    "calls": [
     {
      "task": "planner",
      "provider": "openai",
-     "model": "gpt-5.6-luna",
-     "input_tokens": 1291,
-     "output_tokens": 1072,
-     "cached_tokens": 1288,
-     "cost_usd": 0.001545,
-     "latency_ms": 11473.7,
+     "model": "gpt-6-luna",
+     "input_tokens": 1464,
+     "output_tokens": 1515,
+     "cached_tokens": 1183,
+     "cost_usd": 0.000904,
+     "latency_ms": 12388.7,
      "simulated": false
     },
     {
      "task": "codegen",
      "provider": "openai",
-     "model": "gpt-5.6-luna",
-     "input_tokens": 1660,
-     "output_tokens": 1225,
+     "model": "gpt-6-luna",
+     "input_tokens": 1336,
+     "output_tokens": 1365,
      "cached_tokens": 0,
-     "cost_usd": 0.001802,
-     "latency_ms": 12533.8,
+     "cost_usd": 0.000816,
+     "latency_ms": 13272.8,
      "simulated": false
     }
    ]

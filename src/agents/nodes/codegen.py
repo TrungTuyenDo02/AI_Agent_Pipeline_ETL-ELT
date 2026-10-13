@@ -6,6 +6,7 @@ import re
 from src.agents.nodes.common import usage_of
 from src.agents.state import PipelineState
 from src.agents.tools.dbt_tools import is_allowed_path
+from src.agents.tools.pii import mask_literals
 from src.services.error_memory import classify_error, error_signature, get_error_memory
 from src.services.llm import LLMOutputError, call_llm, parse_json_output, to_json
 from src.services.prompt_context import compact_profile, spec_for_build
@@ -78,7 +79,7 @@ def codegen_variables(state: PipelineState) -> dict[str, str]:
     return {
         "spec": to_json(spec_for_build(state.get("spec", {}))),
         "profile": to_json(compact_profile(state.get("profile", {}))),
-        "last_error": error or "(không có)",
+        "last_error": mask_literals(error) or "(không có)",
         "previous_code": previous_code(state),
         "error_hints": to_json(error_hints(error)),
         "review_notes": to_json(state.get("review_notes", [])),

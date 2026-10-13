@@ -49,8 +49,18 @@ def print_event(event: StepEvent | NodeStart) -> None:
     console.print(f" {mark} {event.label:<20} [dim]{event.seconds:>6.2f}s {tokens:>9}[/]  {event.detail}")
 
 
-def ask_clarification(pending: dict) -> dict[str, str]:
-    """Hỏi từng câu, người dùng chọn số thứ tự đáp án."""
+def _pick_many(options: list[str]) -> list[str]:
+    """Câu chọn nhiều: nhập các số cách nhau bởi dấu phẩy (vd `1,3`); nhập sai thì hỏi lại."""
+    while True:
+        raw = Prompt.ask("Chọn một hoặc nhiều số, cách nhau bởi dấu phẩy")
+        parts = [p.strip() for p in raw.split(",") if p.strip()]
+        if parts and all(p.isdigit() and 1 <= int(p) <= len(options) for p in parts):
+            return [options[int(p) - 1] for p in dict.fromkeys(parts)]
+        console.print("[red]Chỉ nhập số có trong danh sách.[/]")
+
+
+def ask_clarification(pending: dict) -> dict[str, str | list[str]]:
+    """Hỏi từng câu, người dùng chọn số thứ tự đáp án (câu về giá trị một cột được chọn nhiều)."""
     console.print(
         Panel(
             "Agent cần bạn làm rõ trước khi viết code:\n- " + "\n- ".join(pending.get("unknowns", [])),
@@ -58,11 +68,14 @@ def ask_clarification(pending: dict) -> dict[str, str]:
             border_style="cyan",
         )
     )
-    answers = {}
+    answers: dict[str, str | list[str]] = {}
     for question in pending.get("questions", []):
         console.print(f"\n[bold]{question['question']}[/]")
         for index, option in enumerate(question["options"], start=1):
             console.print(f"  {index}. {option}")
+        if question.get("multiple"):
+            answers[question["id"]] = _pick_many(question["options"])
+            continue
         choice = IntPrompt.ask("Chọn số", choices=[str(i) for i in range(1, len(question["options"]) + 1)])
         answers[question["id"]] = question["options"][choice - 1]
     return answers

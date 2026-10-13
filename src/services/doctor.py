@@ -11,6 +11,7 @@ from typing import Literal
 
 from dotenv import dotenv_values
 from pydantic import BaseModel
+from sqlalchemy.engine import make_url
 
 from src.config import get_settings, is_real_secret
 
@@ -47,9 +48,16 @@ def _llm() -> CheckResult:
         ok = settings.has_google_key
         message = f"google, model {settings.google_model_name}" + ("" if ok else " — thiếu GOOGLE_API_KEY trong .env")
         return CheckResult(name="LLM", level="ok" if ok else "fail", message=message)
-    if settings.has_openai_key:
-        return CheckResult(name="LLM", level="ok", message=f"openai, {settings.models_summary}")
-    return CheckResult(name="LLM", level="fail", message="LLM_PROVIDER=openai nhưng thiếu OPENAI_API_KEY trong .env")
+    has_key = {
+        "openai": settings.has_openai_key,
+        "anthropic": settings.has_anthropic_key,
+        "google": settings.has_google_key,
+    }
+    missing = sorted(f"{p.upper()}_API_KEY" for p in settings.providers_in_use if not has_key[p])
+    if not missing:
+        return CheckResult(name="LLM", level="ok", message=settings.models_summary)
+    message = f"config/models.yaml cần {', '.join(missing)} nhưng .env chưa có ({settings.models_summary})"
+    return CheckResult(name="LLM", level="fail", message=message)
 
 
 def _fallback() -> CheckResult:
@@ -58,7 +66,7 @@ def _fallback() -> CheckResult:
         return CheckResult(name="LLM dự phòng", level="info", message="không dùng (không bắt buộc)")
     if settings.has_google_key:
         return CheckResult(
-            name="LLM dự phòng", level="ok", message=f"Gemini {settings.google_model_name} khi OpenAI lỗi"
+            name="LLM dự phòng", level="ok", message=f"Gemini {settings.google_model_name} khi model chính gọi lỗi"
         )
     return CheckResult(
         name="LLM dự phòng",
@@ -117,7 +125,29 @@ def _optional() -> list[CheckResult]:
     ]
 
 
+def _database() -> CheckResult:
+    """Cơ sở dữ liệu đăng nhập: chỉ in loại máy chủ + tên database, KHÔNG in chuỗi kết nối hay mật khẩu."""
+    settings = get_settings()
+    if settings.missing_auth_settings:
+        missing = ", ".join(settings.missing_auth_settings)
+        return CheckResult(name="Cơ sở dữ liệu", level="info", message=f"đăng nhập đang tắt (thiếu {missing})")
+    from src.services import auth
+
+    try:
+        url = make_url(settings.database_url)
+        where = "Neon" if (url.host or "").endswith(".neon.tech") else (url.host or url.get_backend_name())
+        target = f"{where}, database {url.database or '—'}"
+    except Exception:  # noqa: BLE001 — chuỗi sai định dạng: không lộ nội dung
+        return CheckResult(name="Cơ sở dữ liệu", level="fail", message="DATABASE_URL sai định dạng")
+    if auth.ping():
+        return CheckResult(name="Cơ sở dữ liệu", level="ok", message=f"kết nối được ({target})")
+    hint = (
+        "kiểm tra mật khẩu, sslmode; Neon: compute có thể đang dậy, thử lại" if where == "Neon" else "kiểm tra máy chủ"
+    )
+    return CheckResult(name="Cơ sở dữ liệu", level="fail", message=f"không kết nối được ({target}) — {hint}")
+
+
 def run_checks() -> list[CheckResult]:
     """Chạy toàn bộ kiểm tra."""
     packages = [_package(p) for p in ("duckdb", "dbt-core", "dbt-duckdb", "sqlglot", "langgraph", "fastapi")]
-    return [_python(), _env_file(), _llm(), _fallback(), *packages, _data(), *_optional()]
+    return [_python(), _env_file(), _llm(), _fallback(), _database(), *packages, _data(), *_optional()]

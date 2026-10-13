@@ -4,31 +4,81 @@ import { formatNumber, formatPct, formatUsd } from "@/lib/format";
 import type { Optimization } from "@/lib/types";
 
 import { CodeDiff } from "../CodeDiff";
-import { Card, Empty, PassMark, Stat } from "../ui";
+import { Card, Empty, PassMark } from "../ui";
 import { useRun } from "./RunContext";
 
-function Metrics({ report }: { report: Optimization }) {
+/** Thẻ so sánh Trước / Sau (CLAUDE.md yêu cầu 6): mọi số do code đo (V3), không do LLM nói. */
+function BeforeAfter({ report }: { report: Optimization }) {
   const applied = report.decision === "applied";
+  const checks = report.equivalence ?? [];
+  const same = checks.filter((c) => c.equal).length;
+  const gain = report.improvement_pct;
+  const before = report.before?.median_ms;
+  const after = report.after?.median_ms;
+  const correct = checks.length === 0 ? "Chưa đối chiếu" : same === checks.length ? "Giống bản gốc" : "Khác bản gốc";
   return (
-    <Card
-      title="Kết luận (V3 đo bằng code)"
-      actions={<span className={applied ? "badge ok" : "badge muted"}>{applied ? "Đã áp dụng" : "Giữ nguyên"}</span>}
-    >
-      <div className="stats">
-        <Stat label="Trước (trung vị)" value={report.before ? `${formatNumber(report.before.median_ms)} ms` : "—"} />
-        <Stat label="Sau (trung vị)" value={report.after ? `${formatNumber(report.after.median_ms)} ms` : "—"} />
-        <Stat label="Cải thiện" value={formatPct(report.improvement_pct)} />
-        <Stat label="Số lần thử" value={report.attempts ?? 0} />
-        <Stat label="Chi phí LLM" value={formatUsd(report.llm_cost_usd)} />
+    <section className="card before-after" aria-labelledby="ba-title">
+      <header className="card-head">
+        <h2 id="ba-title">So sánh trước / sau tối ưu</h2>
+        <span className={applied ? "badge ok" : "badge muted"}>{applied ? "Đã áp dụng bản mới" : "Giữ bản gốc"}</span>
+      </header>
+      <div className="ba-body">
+        <div className="ba-hero">
+          <strong className={gain == null ? "ba-big flat" : gain > 0 ? "ba-big up" : "ba-big"}>
+            {gain != null ? `${gain > 0 ? "−" : "+"}${formatPct(Math.abs(gain))}` : "Không đổi"}
+          </strong>
+          <span>
+            {gain != null
+              ? gain > 0
+                ? "thời gian chạy giảm"
+                : "thời gian chạy tăng"
+              : "không có bản tối ưu đạt yêu cầu, giữ bản gốc"}
+          </span>
+        </div>
+        <table className="figures ba-table">
+          <thead>
+            <tr>
+              <th>Chỉ số</th>
+              <th className="num">Trước</th>
+              <th className="num">Sau</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Thời gian chạy (trung vị)</td>
+              <td className="num">{before != null ? `${formatNumber(before)} ms` : "—"}</td>
+              <td className="num">{after != null ? `${formatNumber(after)} ms` : "—"}</td>
+            </tr>
+            <tr>
+              <td>
+                Chi phí máy mỗi lần chạy
+                <small className="muted ba-note">tỉ lệ theo thời gian chạy</small>
+              </td>
+              <td className="num">100%</td>
+              <td className="num">{before && after != null ? formatPct((100 * after) / before) : "—"}</td>
+            </tr>
+            <tr>
+              <td>Độ đúng kết quả</td>
+              <td className="num">bản gốc</td>
+              <td className="num">
+                <span className={checks.length && same === checks.length ? "badge ok" : "badge warn"}>
+                  {correct}
+                  {checks.length > 0 && ` (${same}/${checks.length} bộ dữ liệu)`}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <p style={{ marginTop: 12 }}>
+      <p className="small">
         <strong>Lý do:</strong> {report.reason || "—"}
       </p>
       <small className="muted">
-        Đo trên bộ dữ liệu large: 1 lần khởi động + {report.before?.runs ?? "N"} lần, lấy trung vị. Chỉ áp dụng khi kết
-        quả giống hệt trên mọi bộ và đạt ngưỡng lợi ích.
+        Chi phí gọi LLM để tối ưu: {formatUsd(report.llm_cost_usd)} · {report.attempts ?? 0} lần thử · đo 1 lần khởi
+        động + {report.before?.runs ?? "N"} lần, lấy trung vị. Chỉ áp dụng khi kết quả giống hệt trên mọi bộ và đạt
+        ngưỡng lợi ích.
       </small>
-    </Card>
+    </section>
   );
 }
 
@@ -97,11 +147,9 @@ export function OptimizationScreen() {
   }
   return (
     <>
+      <BeforeAfter report={report} />
       <div className="grid-2">
-        <div className="stack">
-          <Metrics report={report} />
-          <Equivalence report={report} />
-        </div>
+        <Equivalence report={report} />
         <Findings report={report} />
       </div>
       <Card title="SQL bảng đích: bản gốc ↔ bản đề xuất">

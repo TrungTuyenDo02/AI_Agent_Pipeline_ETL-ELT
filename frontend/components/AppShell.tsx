@@ -4,27 +4,16 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ComponentType, type ReactNode, type SVGProps } from "react";
 
-import { API_URL } from "@/lib/api";
-
 import { useApp } from "./AppContext";
 import type { Role } from "@/lib/types";
 
-import {
-  BookIcon,
-  CheckIcon,
-  DatabaseIcon,
-  DocIcon,
-  HomeIcon,
-  ListIcon,
-  PlusIcon,
-  SparkIcon,
-  UsersIcon,
-} from "./icons";
+import { BookIcon, DatabaseIcon, HomeIcon, ListIcon, SparkIcon, UsersIcon } from "./icons";
 import { NotificationBell } from "./NotificationBell";
 import { RunSearch } from "./RunSearch";
-import { AvatarMenu, ModeBadges, RoleChip, ThemeButton } from "./Topbar";
+import { AvatarMenu, ModeBadges, RoleChip } from "./Topbar";
 
-// Bố cục theo mẫu: thanh trên (logo · tab · tìm · chuông · avatar), thanh thao tác nhanh dọc, thẻ kính trên bầu trời.
+// Bố cục: thanh trên (logo · tab · tìm · vai trò · chuông · avatar), thẻ trắng trên nền phẳng. Không còn thanh icon dọc
+// (trùng menu trên; đổi giao diện và tài liệu API nằm trong menu avatar) — CLAUDE.md yêu cầu 4.
 type IconType = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
 type NavItem = { href: string; label: string; icon: IconType };
 const HOME: NavItem = { href: "/", label: "Trang chủ", icon: HomeIcon };
@@ -37,13 +26,6 @@ const NAV: Record<Role, NavItem[]> = {
   reviewer: [{ ...HOME, label: "Hàng đợi" }, RUNS, ERRORS, SOURCES],
   admin: [HOME, { href: "/admin", label: "Người dùng", icon: UsersIcon }, RUNS, SOURCES],
 };
-// Nút nhanh thứ hai trên thanh dọc theo vai trò
-const QUICK: Record<Role, NavItem> = {
-  engineer: { href: "/#request", label: "Yêu cầu mới", icon: PlusIcon },
-  reviewer: { href: "/#queue", label: "Hàng đợi duyệt", icon: CheckIcon },
-  admin: { href: "/admin", label: "Cấp tài khoản", icon: UsersIcon },
-};
-
 function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
@@ -81,38 +63,6 @@ function TopBar() {
   );
 }
 
-function Rail() {
-  const pathname = usePathname();
-  const { user } = useApp();
-  const { href, label, icon: Quick } = QUICK[user?.role ?? "engineer"];
-  return (
-    <aside className="rail" aria-label="Thao tác nhanh">
-      <Link
-        href="/"
-        className={pathname === "/" ? "rail-btn active" : "rail-btn"}
-        aria-label="Trang chủ"
-        data-tip="Trang chủ"
-      >
-        <HomeIcon size={18} />
-      </Link>
-      <Link href={href} className="rail-btn" aria-label={label} data-tip={label}>
-        <Quick size={18} />
-      </Link>
-      <a
-        href={`${API_URL}/docs`}
-        target="_blank"
-        rel="noreferrer"
-        className="rail-btn"
-        aria-label="Tài liệu API (mở tab mới)"
-        data-tip="Tài liệu API"
-      >
-        <DocIcon size={18} />
-      </a>
-      <ThemeButton />
-    </aside>
-  );
-}
-
 function Footer() {
   const { status, statusError } = useApp();
   return (
@@ -136,15 +86,6 @@ function Splash({ text }: { text: string }) {
   );
 }
 
-function Sky() {
-  return (
-    <div className="sky" aria-hidden>
-      <span className="sky-glow" />
-      <span className="sky-orb" />
-    </div>
-  );
-}
-
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -160,21 +101,18 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (auth !== "in") {
     return (
       <div className="page">
-        <Sky />
         <Splash text={auth === "checking" ? "Đang kiểm tra phiên đăng nhập…" : "Đang chuyển tới trang đăng nhập…"} />
       </div>
     );
   }
   return (
     <div className="page" data-role={user?.role}>
-      <Sky />
       <a href="#main" className="skip-link">
         Bỏ qua tới nội dung
       </a>
       <div className="frame">
         <TopBar />
         <div className="body">
-          <Rail />
           <main id="main" className="content">
             {children}
           </main>

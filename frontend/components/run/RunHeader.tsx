@@ -47,28 +47,34 @@ export function RunHeader() {
     <div className="run-head">
       <div className="run-title">
         <div>
-          <div className="row">
-            <Link href="/runs" className="small">
-              ← Lần chạy
-            </Link>
-            <span className="muted small mono">{record.id}</span>
-          </div>
+          {/* mã lần chạy dài chỉ còn trong tooltip (CLAUDE.md yêu cầu 6) */}
+          <Link href="/runs" className="small" title={`Mã lần chạy: ${record.id}`}>
+            ← Lần chạy
+          </Link>
           <h1>{record.request_text}</h1>
-          <div className="row muted small">
-            <StatusBadge status={record.status} />
-            {detail.busy && <span className="badge info">agent đang chạy…</span>}
+          <div className="row muted small run-meta">
             <span>{record.requester}</span>
             <span>·</span>
-            <span title={record.model}>{record.provider}</span>
-            <span>·</span>
             <span>{formatTime(record.created_at)}</span>
+            <span>·</span>
+            {record.provider === "mock" ? (
+              <span className="badge muted" title="LLM mô phỏng: câu trả lời cố định, chạy trong sandbox">
+                Chạy thử (sandbox)
+              </span>
+            ) : (
+              <span title={record.model}>LLM thật</span>
+            )}
           </div>
         </div>
-        {hasCode && (
-          <a className="btn" href={downloadUrl(runId)} download>
-            Tải gói code (.zip)
-          </a>
-        )}
+        <div className="run-actions">
+          <StatusBadge status={record.status} />
+          {detail.busy && <span className="badge info">agent đang chạy…</span>}
+          {hasCode && (
+            <a className="btn primary" href={downloadUrl(runId)} download>
+              Tải gói code (.zip)
+            </a>
+          )}
+        </div>
       </div>
       <PipelineTrack />
       {error && <ErrorBox message={`Mất kết nối, đang thử lại… (${error})`} />}

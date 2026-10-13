@@ -39,6 +39,7 @@ os.environ.update(
         "APP_ENV": "test",
         "LLM_PROVIDER": "mock",
         "OPENAI_API_KEY": "",
+        "ANTHROPIC_API_KEY": "",
         "GOOGLE_API_KEY": "",  # .env có thể có khóa thật: test không bao giờ gọi Gemini thật
         "LLM_FALLBACK": "none",
         "LANGCHAIN_TRACING_V2": "false",

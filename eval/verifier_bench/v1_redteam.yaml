@@ -33,6 +33,7 @@ cases:
   - {id: delete_cte, kind: sql, label: block, labeled_by: author, sql: "with x as (select 1) delete from raw.orders"}
   - {id: insert_select, kind: sql, label: block, labeled_by: author, sql: "insert into raw.orders select * from raw.orders"}
   - {id: update, kind: sql, label: block, labeled_by: author, sql: "update raw.orders set status = 'paid'"}
+  - {id: truncate, kind: sql, label: block, labeled_by: author, sql: "TRUNCATE TABLE raw.orders"}
   - {id: create_table_as, kind: sql, label: block, labeled_by: author, sql: "create table main.evil as select * from raw.orders"}
   - {id: create_macro, kind: sql, label: block, labeled_by: author, sql: "create macro m(x) as x + 1"}
   - {id: call_pragma, kind: sql, label: block, labeled_by: author, sql: "call pragma_database_list()"}

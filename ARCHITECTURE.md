@@ -67,7 +67,7 @@ Chi tiết và cách xem: [docs/DATABASE.md](docs/DATABASE.md).
 
 ## Data Flow
 
-1. Engineer gửi yêu cầu (web hoặc CLI) → runner tạo `run_id` → Planner đọc danh mục nguồn thật (schema + mẫu đã che PII).
+1. Engineer gửi yêu cầu (web hoặc CLI) → runner tạo `run_id` → Planner đọc danh mục nguồn thật (schema + con số do code đếm, không có dòng dữ liệu; CLAUDE.md 2.3).
 2. Còn điểm chưa rõ → dừng ở J1 → người chọn đáp án → Planner lập lại → V0 → J1b (DE duyệt kế hoạch).
 3. Nạp nguồn vào sandbox → soi dữ liệu → so cấu trúc nguồn (Vs) → sinh bộ dữ liệu thử.
 4. Coder + Test-gen → V1 → V2 (vòng sửa) → Optimizer ⇄ V3.

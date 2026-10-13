@@ -2,13 +2,15 @@
 
 import { ResultCard } from "../ResultCard";
 import { useRun } from "../RunContext";
-import { FlowPanel, MetricsPanel, RuntimeConsole } from "./Panels";
+import { RunLog } from "../RunLog";
+import { FlowPanel, MetricsPanel } from "./Panels";
 import { ClarifyStep, PlanStep, RequestStep, TrackerStep } from "./Steps";
 import { useRunAttention } from "./useRunAttention";
 
 /**
  * Màn tổng quan lần chạy: mỗi lúc chỉ mở bước đang cần chú ý. Yêu cầu, làm rõ, kế hoạch đã xong thì gộp vào một dòng thu gọn;
- * token, chi phí, sơ đồ luồng, console và kết quả mẫu nằm trong ngăn "Chi tiết kỹ thuật" (mặc định đóng).
+ * "Nhật ký chạy" luôn hiện ngay dưới tiến trình; token, chi phí, sơ đồ luồng và kết quả mẫu nằm trong ngăn
+ * "Chi tiết kỹ thuật" (mặc định đóng).
  */
 export function RunStudio() {
   const { detail } = useRun();
@@ -41,10 +43,11 @@ export function RunStudio() {
         steps
       )}
       <TrackerStep detail={detail} />
+      <RunLog detail={detail} />
       <details className="card tech-details">
         <summary>
           <strong>Chi tiết kỹ thuật</strong>
-          <span className="muted">Token, chi phí, luồng dữ liệu, console, kết quả mẫu</span>
+          <span className="muted">Token, chi phí, luồng dữ liệu, kết quả mẫu</span>
         </summary>
         <div className="studio tech-body">
           <div className="studio-main">
@@ -53,7 +56,6 @@ export function RunStudio() {
           <aside className="studio-side">
             <MetricsPanel detail={detail} />
             <FlowPanel detail={detail} />
-            <RuntimeConsole detail={detail} />
           </aside>
         </div>
       </details>

@@ -1,9 +1,9 @@
 {
- "date": "2026-10-10",
+ "date": "2026-10-12",
  "v1": {
-  "attacks": 78,
+  "attacks": 79,
   "valid": 43,
-  "caught": 76,
+  "caught": 77,
   "missed": [
    "recursive_cte_dos",
    "range_explosion_dos"
@@ -231,6 +231,13 @@
    "labeled_by": "author",
    "blocked": true,
    "detail": "Lệnh 'UPDATE' bị chặn: model chỉ được là câu SELECT."
+  },
+  {
+   "id": "truncate",
+   "label": "block",
+   "labeled_by": "author",
+   "blocked": true,
+   "detail": "Lệnh 'TRUNCATETABLE' bị chặn: model chỉ được là câu SELECT."
   },
   {
    "id": "create_table_as",
@@ -1901,11 +1908,11 @@
    ],
    "intact": {
     "failed": 0,
-    "summary": "23 passed in 0.35s"
+    "summary": "23 passed in 0.14s"
    },
    "broken": {
     "failed": 4,
-    "summary": "4 failed, 19 passed in 0.54s"
+    "summary": "4 failed, 19 passed in 0.39s"
    }
   },
   {
@@ -1917,11 +1924,11 @@
    ],
    "intact": {
     "failed": 0,
-    "summary": "138 passed, 2 xfailed in 20.93s"
+    "summary": "139 passed, 2 xfailed in 15.55s"
    },
    "broken": {
     "failed": 27,
-    "summary": "27 failed, 111 passed, 2 xfailed in 19.92s"
+    "summary": "27 failed, 112 passed, 2 xfailed in 15.53s"
    }
   },
   {
@@ -1932,11 +1939,11 @@
    ],
    "intact": {
     "failed": 0,
-    "summary": "17 passed in 17.58s"
+    "summary": "17 passed in 14.86s"
    },
    "broken": {
     "failed": 1,
-    "summary": "1 failed, 16 passed in 17.59s"
+    "summary": "1 failed, 16 passed in 15.38s"
    }
   },
   {
@@ -1947,11 +1954,11 @@
    ],
    "intact": {
     "failed": 0,
-    "summary": "19 passed in 18.88s"
+    "summary": "20 passed in 18.95s"
    },
    "broken": {
     "failed": 2,
-    "summary": "2 failed, 17 passed in 14.31s"
+    "summary": "2 failed, 18 passed in 12.13s"
    }
   }
  ]

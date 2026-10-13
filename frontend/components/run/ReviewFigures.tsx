@@ -91,21 +91,6 @@ export function OptimizationFigures({ report }: { report: Optimization }) {
   );
 }
 
-/** Kiểm tăng trưởng 1x/10x/100x (V4). Chưa có số đo thì nói rõ, không vẽ biểu đồ giả. */
-export function ScaleFigures() {
-  return (
-    <Card title="Tăng trưởng dữ liệu (1x / 10x / 100x)">
-      <p className="not-measured" style={{ margin: 0 }}>
-        Chưa đo.
-      </p>
-      <p className="muted small" style={{ marginTop: 6 }}>
-        Bước kiểm tăng trưởng (V4) chưa chạy cho lần chạy này, nên chưa có biểu đồ thời gian và RAM theo kích thước dữ
-        liệu, cũng chưa có kết quả chạy lại cùng ngày.
-      </p>
-    </Card>
-  );
-}
-
 function totals(rows: UsageRow[]) {
   return rows.reduce(
     (sum, row) => ({

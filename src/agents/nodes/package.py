@@ -94,6 +94,12 @@ def _data_rule_items(state: PipelineState, filters: list[dict]) -> list[Measured
                 passed=True if dropped == 0 else None,
             )
         )
+    for table, info in state.get("profile", {}).items():
+        for column, col in info.get("columns", {}).items():
+            for note in col.get("uncertain", []):
+                items.append(
+                    MeasuredItem(node="P Soi dữ liệu", check=f"Định dạng chưa chắc: {table}.{column}", result=note)
+                )
     outside = [f for f in filters if not f["in_spec"]]
     items.append(
         MeasuredItem(

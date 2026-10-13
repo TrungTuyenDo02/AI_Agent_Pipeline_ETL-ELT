@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from src.agents.nodes.profiler import MONEY_NAME_RE, SAMPLE_VALUES, text_hints
 from src.agents.tools.duckdb_tools import RAW_SCHEMA, connect_read, describe_query, read_catalog
+from src.agents.tools.injection_scan import scan_text
 from src.agents.tools.pii import mask_value
 from src.agents.tools.sql_tools import (
     SOURCE_RE,
@@ -190,6 +191,7 @@ class ColumnProfile(BaseModel):
     invalid: int = 0  # chuỗi dạng ngày/tiền mà biểu thức đọc của bộ soi P không đọc được
     case_variants: int = 0  # số giá trị chỉ khác hoa/thường/khoảng trắng
     formats: list[str] = []  # cách viết ngày/tiền phát hiện được trong cột chuỗi
+    uncertain: list[str] = []  # điều bộ soi P không chứng minh được từ dữ liệu (vd thứ tự ngày/tháng)
     distinct: int = 0
     minimum: str | None = None
     maximum: str | None = None
@@ -199,6 +201,7 @@ class ColumnProfile(BaseModel):
     other: int = 0  # số dòng còn lại ngoài `top`
     bins: list[ValueCount] = []  # phân bố số / ngày theo khoảng đều
     near_unique: bool = False
+    flags: list[str] = []  # dấu hiệu prompt injection / bí mật trong giá trị mẫu (chỉ cảnh báo)
 
 
 class ProfileIssue(BaseModel):
@@ -292,9 +295,12 @@ def _column(con: duckdb.DuckDBPyConnection, ref: str, name_type: tuple[str, str]
     if column.kind == "text":
         column.blank = con.execute(f"SELECT count(*) FROM {ref} WHERE trim({col}) = ''").fetchone()[0]
         sample = f"SELECT DISTINCT {col} FROM {ref} WHERE {col} IS NOT NULL LIMIT {SAMPLE_VALUES}"
-        hints = text_hints(con, (ref, name), [str(r[0]) for r in con.execute(sample).fetchall()])
+        values = [str(r[0]) for r in con.execute(sample).fetchall()]
+        hints = text_hints(con, (ref, name), values)
+        column.flags = scan_text(*values)
         column.invalid, column.case_variants = hints.get("parse_failures", 0), hints.get("case_variants", 0)
         column.formats = hints.get("date_formats", []) + hints.get("money_formats", [])
+        column.uncertain = hints.get("uncertain", [])
     _top(con, ref, col, column)
     if (column.near_unique or column.bins) and not _placeholder(column, total):
         column.top, column.other = [], 0  # dạng mã / đã có biểu đồ khoảng: chỉ giữ khi lộ giá trị giữ chỗ
@@ -331,6 +337,7 @@ def _column_issues(column: ColumnProfile, rows: int) -> list[ProfileIssue]:
     if column.case_variants:
         text = f"{column.case_variants} giá trị chỉ khác hoa/thường/khoảng trắng — nên chuẩn hóa upper(trim(...))."
         out.append(ProfileIssue(level="warn", column=name, text=text))
+    out += [ProfileIssue(level="warn", column=name, text=note) for note in column.uncertain]
     if len(column.formats) > 1:
         text = f"Lẫn {len(column.formats)} cách viết: {', '.join(column.formats)} — đã có biểu thức đọc từ bộ soi P."
         out.append(ProfileIssue(level="info", column=name, text=text))
@@ -344,6 +351,12 @@ def _column_issues(column: ColumnProfile, rows: int) -> list[ProfileIssue]:
         out.append(ProfileIssue(level="info", column=name, text=f"Có số tiền âm (nhỏ nhất {column.minimum})."))
     if money and column.zeros:
         text = f"{column.zeros} dòng có số tiền bằng 0 — xem là hàng tặng, lỗi nhập hay thiếu dữ liệu."
+        out.append(ProfileIssue(level="warn", column=name, text=text))
+    if column.flags:
+        text = (
+            f"Giá trị mẫu đáng ngờ ({', '.join(column.flags)}): có thể là lệnh cài vào dữ liệu để điều khiển agent "
+            "(prompt injection) hoặc bí mật bị lộ. Kiểm tra nguồn trước khi chạy."
+        )
         out.append(ProfileIssue(level="warn", column=name, text=text))
     for bucket in (v for v in column.top if v.label in UNKNOWN_BUCKETS):
         text = (

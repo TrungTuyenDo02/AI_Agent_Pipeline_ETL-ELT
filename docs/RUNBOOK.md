@@ -195,21 +195,20 @@ Trên GitHub: tab **Actions → Eval → Run workflow** (chạy phần không c�
 
 ## 5. Bật LLM thật (khi có khóa)
 
-1. Lấy khóa ở <https://platform.openai.com/api-keys> (cần nạp tiền; xem `docs/guide/cost-management.md`).
+1. Lấy khóa ở <https://platform.openai.com/api-keys> và <https://console.anthropic.com> (cả hai cần nạp tiền; xem `docs/guide/cost-management.md`).
    Khóa dự phòng Gemini (không bắt buộc): <https://aistudio.google.com/apikey>.
-2. Mở file `.env` bằng trình soạn thảo, **tự điền**: `OPENAI_API_KEY=<khóa của bạn>`, `GOOGLE_API_KEY=<khóa>` (nếu có)
+2. Mở file `.env` bằng trình soạn thảo, **tự điền**: `OPENAI_API_KEY=<khóa của bạn>`, `ANTHROPIC_API_KEY=<khóa>`, `GOOGLE_API_KEY=<khóa>` (nếu có)
    và `LLM_PROVIDER=openai`. Không dán khóa vào chat, không commit `.env`.
 3. `python -m src.cli doctor` → dòng LLM và "LLM dự phòng" phải là ✓.
 4. Chạy lại `run`. Token và chi phí ước tính hiện ở `python -m src.cli status <run_id>`.
 
-Model theo từng bước (sửa trong `.env`, để trống thì dùng `MODEL_NAME`):
+Model theo từng bước: sửa [config/models.yaml](../config/models.yaml) (không đặt trong `.env`).
 
-| Biến | Mặc định | Dùng cho |
+| Bước | Model hiện tại | Khóa cần |
 |---|---|---|
-| `MODEL_NAME` | `gpt-5.6-luna` | Planner, Codegen, Testgen |
-| `MODEL_OPTIMIZER` | `gpt-5.6-terra` | Optimizer (viết lại query chậm) |
-| `MODEL_PLANNER` / `MODEL_CODEGEN` / `MODEL_TESTGEN` | (trống) | Đổi model riêng cho một bước |
-| `LLM_FALLBACK` + `GOOGLE_MODEL_NAME` | `google` + `gemini-3.1-flash-lite` | Khi OpenAI gọi lỗi (mạng, hạn mức) thì tự chuyển sang Gemini; `none` để tắt |
+| Planner, Codegen, Testgen | `gpt-5.6-luna` | `OPENAI_API_KEY` |
+| Optimizer (viết lại query chậm) | `claude-opus-5-5`, effort `medium` | `ANTHROPIC_API_KEY` (<https://console.anthropic.com>) |
+| Dự phòng (`LLM_FALLBACK=google`) | `gemini-3.1-flash-lite` | `GOOGLE_API_KEY` |
 
 `LLM_PROVIDER=google` dùng Gemini cho mọi bước. Chạy một lần bằng mô phỏng: `python -m src.cli --provider mock run ...`.
 

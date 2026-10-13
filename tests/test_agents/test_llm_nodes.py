@@ -85,6 +85,7 @@ def test_codegen_reads_last_error_and_only_approved_hints():
     assert error_hints(error) == []
     memory.approve(entry.id, "dùng tên cột trong danh mục")
     assert error_hints(error)[0]["fix"] == "dùng tên cột trong danh mục"
+    assert set(error_hints(error)[0]) == {"code", "description", "fix"}  # `warnings` chỉ cho người duyệt
     assert last_error({"safety": {"passed": True}, "sandbox": {"passed": False, "error": "dbt lỗi"}}) == "dbt lỗi"
 
 

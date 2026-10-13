@@ -14,9 +14,9 @@ class CreateRunBody(BaseModel):
 
 
 class AnswerBody(BaseModel):
-    """Câu trả lời J1: id câu hỏi → lựa chọn (đúng nguyên văn một lựa chọn)."""
+    """Câu trả lời J1: id câu hỏi → lựa chọn (đúng nguyên văn); câu chọn nhiều (`multiple`) nhận danh sách."""
 
-    answers: dict[str, str] = Field(min_length=1)
+    answers: dict[str, str | list[str]] = Field(min_length=1)
 
 
 class PlanBody(BaseModel):

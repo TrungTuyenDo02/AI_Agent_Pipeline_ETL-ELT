@@ -15,7 +15,9 @@ class PipelineState(TypedDict, total=False):
     requester: str  # người tạo yêu cầu (không được tự duyệt)
 
     # E1 Planner ⇄ J1, V0
-    source_catalog: list[dict]  # nguồn phát hiện được: schema thật + mẫu đã che PII
+    source_catalog: list[
+        dict
+    ]  # nguồn phát hiện được: schema thật, `stats` do code đếm (+ mẫu đã che PII cho giao diện)
     answers: dict[str, str]  # câu trả lời làm rõ (J1): id câu hỏi → lựa chọn
     answered: list[dict]  # lịch sử J1 kèm nội dung câu hỏi: {id, question, answer} (để Planner hiểu ngữ cảnh)
     spec: dict  # PipelineSpec.model_dump()

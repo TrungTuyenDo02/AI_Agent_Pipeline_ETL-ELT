@@ -66,6 +66,10 @@ export interface ClarifyQuestion {
   id: string;
   question: string;
   options: string[];
+  /** nguồn.cột khi lựa chọn là giá trị thật của cột (code điền, LLM không thấy) */
+  column?: string;
+  /** chọn được nhiều lựa chọn */
+  multiple?: boolean;
 }
 
 export interface PlanStep {
@@ -387,6 +391,7 @@ export interface ErrorEntry {
   sql_after: string;
   occurrences: number;
   approved: boolean;
+  warnings: string[];
 }
 
 export interface Accepted {

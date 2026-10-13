@@ -7,17 +7,16 @@ Nguồn sự thật của mặc định: [src/config.py](../src/config.py). Cộ
 
 | Biến | Ý nghĩa | Mặc định | Bí mật |
 |---|---|---|---|
-| `LLM_PROVIDER` | `mock` (câu trả lời cố định), `openai`, `google` | `mock` | không |
-| `OPENAI_API_KEY` | Khóa OpenAI (chỉ cần khi `openai`) | trống | **có** |
+| `LLM_PROVIDER` | `mock` (câu trả lời cố định), `openai` (model thật theo `config/models.yaml`), `google` (Gemini mọi bước) | `mock` | không |
+| `OPENAI_API_KEY` | Khóa OpenAI (bước nào khai báo `provider: openai`) | trống | **có** |
+| `ANTHROPIC_API_KEY` | Khóa Anthropic (bước nào khai báo `provider: anthropic`, hiện là Optimizer) | trống | **có** |
 | `GOOGLE_API_KEY` | Khóa Gemini (khi `google` hoặc làm dự phòng) | trống | **có** |
-| `MODEL_NAME` | Model chính (Planner, Codegen, Testgen) | `gpt-5.6-luna` | không |
-| `MODEL_PLANNER` / `MODEL_CODEGEN` / `MODEL_TESTGEN` | Đổi model riêng một bước; trống = dùng `MODEL_NAME` | trống | không |
-| `MODEL_OPTIMIZER` | Model của Optimizer | `gpt-5.6-terra` | không |
-| `LLM_FALLBACK` | `google` = OpenAI lỗi thì chuyển Gemini; `none` = tắt | `google` | không |
-| `GOOGLE_MODEL_NAME` | Model Gemini | `gemini-3.1-flash-lite` | không |
-| `LLM_TEMPERATURE` | Chỉ Codegen dùng, tối đa 0,2; bước khác luôn 0 | `0` | không |
+| `LLM_FALLBACK` | `google` = model chính gọi lỗi thì chuyển Gemini; `none` = tắt | `google` | không |
+| `LLM_TEMPERATURE` | Chỉ Codegen dùng, tối đa 0,2; bước khác luôn 0 (Opus 5.5 không nhận temperature) | `0` | không |
 | `LLM_MAX_TOKENS` | Trần token đầu ra chung (mỗi bước có trần riêng nhỏ hơn) | `16000` | không |
 | `LLM_STRUCTURED_OUTPUT` | Gửi JSON Schema strict; `false` = quay về `json_object` | `true` | không |
+
+**Tên model** không đặt bằng biến môi trường: chỉ khai báo trong [config/models.yaml](../config/models.yaml) (mỗi bước một dòng `provider` + `name`, Anthropic thêm `effort`; mục `fallback` là model Gemini). Hiện tại: Planner/Codegen/Testgen = `gpt-5.6-luna`, Optimizer = `claude-opus-5-5` (effort `medium`), dự phòng = `gemini-3.1-flash-lite`. Các biến cũ `MODEL_NAME`, `MODEL_<BƯỚC>`, `GOOGLE_MODEL_NAME` không còn tác dụng.
 
 ## Đăng nhập và cơ sở dữ liệu
 

@@ -8,11 +8,17 @@
 :root {
   color-scheme: light dark;
 
-  /* Bảng gợi ý mục 7.2 */
-  --bg: light-dark(#f4f6fa, #09121f);
-  --surface: light-dark(#ffffff, #111d30);
-  --text: light-dark(#0e1a2b, #e8eef8);
-  --muted: light-dark(#54627a, #9baac2);
+  /* Nền phẳng + thẻ đặc (CLAUDE.md yêu cầu 1): không gradient, không kính mờ ở thẻ chứa chữ */
+  --bg-page: light-dark(#f4f6fa, #0b1220);
+  --card: light-dark(#ffffff, #111a2e);
+  --card-border: light-dark(#e3e8f0, #24324d);
+  --shadow-card: 0 1px 2px var(--shadow-color), 0 6px 16px -8px var(--shadow-color);
+
+  /* Bảng gợi ý mục 7.2. Chữ chính tối thiểu #0F172A, chữ phụ không nhạt hơn #475569 */
+  --bg: light-dark(#f4f6fa, #0b1220);
+  --surface: light-dark(#ffffff, #111a2e);
+  --text: light-dark(#0f172a, #e2e8f0);
+  --muted: light-dark(#475569, #9baac2);
   --border: light-dark(#d5dce8, #243752);
   --primary: light-dark(#1b4fd8, #6c95ff);
   --primary-ink: light-dark(#ffffff, #09121f);
@@ -35,30 +41,24 @@
   --ai-soft: light-dark(#e9e8fb, #1e2050);
   --shadow-color: light-dark(rgb(14 26 43 / 8%), rgb(0 0 0 / 45%));
 
-  /* Giao diện Studio (bố cục theo mẫu ai-agent-studio): nền gradient, khung kính, màu nhấn, console tối */
-  --page-a: light-dark(#e2e8f0, #060c16);
-  --page-b: light-dark(#e3eefa, #0b1729);
-  --page-c: light-dark(#cbd5e1, #050a12);
-  --frame: light-dark(#f8fafc, #0b1524);
-  --frame-edge: light-dark(#ffffff, #1f3150);
-  --accent: light-dark(#4338ca, #9a9dff);
-  --console-bg: light-dark(#0b1322, #050b14);
-  --console-text: light-dark(#dbe3ef, #dbe3ef);
-  --console-muted: light-dark(#8794ab, #8794ab);
+  /* Khung trang + màu nhấn (xanh dương hiện tại) + console tối */
+  --frame: light-dark(#f4f6fa, #0b1220);
+  --accent: light-dark(#1b4fd8, #6c95ff);
+  /* Nhật ký chạy kiểu terminal (CLAUDE.md yêu cầu 2): nền #0B1220, chữ #E2E8F0; mức độ luôn kèm chữ, không chỉ màu */
+  --console-bg: light-dark(#0b1220, #0b1220);
+  --console-text: light-dark(#e2e8f0, #e2e8f0);
+  --console-muted: light-dark(#94a3b8, #94a3b8);
   --console-ok: light-dark(#4ade80, #4ade80);
   --console-fail: light-dark(#fb7185, #fb7185);
-  --console-info: light-dark(#7dd3fc, #7dd3fc);
+  --console-info: light-dark(#60a5fa, #60a5fa);
+  --console-warn: light-dark(#facc15, #facc15);
+  --console-error-bg: light-dark(#2a1320, #2a1320);
   --console-live: light-dark(#c4b5fd, #c4b5fd);
-  /* Phong cách "kính trên trời" (mẫu bạn gửi): bầu trời dịu, ánh đèn ấm ở chân trời, thẻ kính mờ */
-  --sky-top: light-dark(#b9cde0, #070f1d);
-  --sky-mid: light-dark(#dde7f0, #0f1d33);
-  --horizon: light-dark(#efe4d6, #2a2233);
-  --ground: light-dark(#d8d3cb, #0b111c);
-  --glow: light-dark(#f4c48c, #c27a3a);
-  --glass: light-dark(#ffffff, #101c30);
-  --glass-solid: light-dark(#e3eaf1, #15233b); /* nền thực tế sau lớp kính (kiểm tương phản) */
-  --glass-edge: light-dark(#ffffff, #2b3f5e);
-  --hero-ink: light-dark(#14263d, #eef3fb);
+  /* Tên cũ của thẻ "kính", nay là thẻ đặc: giữ để các khối khác dùng chung một màu thẻ */
+  --glass: light-dark(#ffffff, #111a2e);
+  --glass-solid: light-dark(#ffffff, #111a2e);
+  --glass-edge: light-dark(#e3e8f0, #24324d);
+  --hero-ink: light-dark(#0f172a, #e2e8f0);
   --rail: light-dark(#0f1b2d, #e8eef8);
   --rail-ink: light-dark(#ffffff, #0b1524);
   --shadow-lg: 0 24px 48px -12px var(--shadow-color), 0 2px 6px var(--shadow-color);

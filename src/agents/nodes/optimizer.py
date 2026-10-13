@@ -15,13 +15,14 @@ from src.agents.nodes.compare import BENCH_DATASET, evaluate_candidate
 from src.agents.nodes.safety import check_sql
 from src.agents.state import PipelineState
 from src.agents.tools.duckdb_tools import benchmark_query, explain_outline, materialize_views, read_catalog
+from src.agents.tools.pii import mask_literals
 from src.agents.tools.rewrite_rules import rules_candidate, sqlglot_candidate
 from src.agents.tools.slow_patterns import detect_slow_patterns
 from src.agents.tools.sql_tools import SqlCheckError, render_dbt_sql
 from src.config import get_settings
 from src.models.evidence import Finding, OptimizationReport
 from src.models.schemas import LLMUsage
-from src.services.llm import LLMOutputError, call_llm, parse_json_output, to_json
+from src.services.llm import LLMConfigError, LLMOutputError, call_llm, parse_json_output, to_json
 from src.services.prompt_context import referenced_schema
 
 logger = logging.getLogger(__name__)
@@ -52,7 +53,7 @@ def optimizer_variables(job: ProposalInput) -> dict[str, str]:
     db = Path(job.bench_db)
     findings = [f.model_dump() for f in job.findings]
     if job.feedback:
-        findings.append({"rule": "previous_attempt_rejected", "message": job.feedback})
+        findings.append({"rule": "previous_attempt_rejected", "message": mask_literals(job.feedback)})
     return {
         "sql": job.sql,
         "findings": to_json(findings),
@@ -61,9 +62,13 @@ def optimizer_variables(job: ProposalInput) -> dict[str, str]:
     }
 
 
-def llm_rewrite(job: ProposalInput) -> tuple[dict, LLMUsage]:
+def llm_rewrite(job: ProposalInput) -> tuple[dict, LLMUsage | None]:
     """Gọi LLM đề xuất viết lại dựa trên dấu hiệu chậm + kế hoạch thực thi + phản hồi lần trước."""
-    response = call_llm("optimizer", optimizer_variables(job))
+    try:
+        response = call_llm("optimizer", optimizer_variables(job))
+    except LLMConfigError as exc:  # thiếu khóa của model tối ưu: giữ bản gốc, không làm hỏng lần chạy đã đúng
+        candidate = {"sql": "", "explanation": "", "warehouse_hints": [], "invalid": str(exc)}
+        return {**candidate, "source": "llm", "assumptions": []}, None
     try:
         data = parse_json_output(response.text)
         candidate = {
