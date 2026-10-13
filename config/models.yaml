@@ -11,7 +11,8 @@
 # - 2026-10-13: optimizer → claude-opus-5-5 (chủ dự án chọn). Chưa có số đo A/B so với gpt-5.6-terra.
 # - 2026-10-14: A/B trên 13 query TPC-H, chỉ ứng viên do LLM viết (eval/results/ab_optimizer.md): gpt-5.6-terra 5/13 bản đúng và
 #   nhanh hơn, 0,24 USD; claude-opus-5-5 (medium) 3/13, 0,96 USD. Mẫu nhỏ, 1 lần/model. Chưa đổi cấu hình lúc đó.
-# - 2026-10-14: optimizer → claude-haiku-4-5-20251001 (chủ dự án chọn). Cùng bộ 13 query: 11/13 bản đúng và nhanh hơn (áp dụng 8/13), 0,083 USD
+# - 2026-10-14: optimizer → claude-haiku-4-5-20251001, rồi → claude-haiku-5-5 cùng ngày (chủ dự án chọn; $0,10/$0,50 mỗi triệu token).
+#   A/B Haiku 5.5: 9/13 bản đúng và nhanh hơn (áp dụng 7/13), 0,025 USD. Cùng bộ 13 query: 11/13 bản đúng và nhanh hơn (áp dụng 8/13), 0,083 USD
 #   (terra 5/13 0,24 USD; Opus 3/13 0,96 USD). Khác nhà cung cấp với planner/codegen/testgen (OpenAI) để tránh cùng kiểu sai.
 # - 2026-10-13: planner/codegen/testgen → gpt-6-luna (chủ dự án chọn: $0,10/$0,50 so với $0,20/$1,20 mỗi triệu token).
 #   Model này từ chối temperature=0 nên đặt `temperature: false`.
@@ -20,7 +21,7 @@ models:
   planner:   { provider: openai,    name: gpt-6-luna, temperature: false }
   codegen:   { provider: openai,    name: gpt-6-luna, temperature: false }
   testgen:   { provider: openai,    name: gpt-6-luna, temperature: false }
-  optimizer: { provider: anthropic, name: claude-haiku-4-5-20251001 }
+  optimizer: { provider: anthropic, name: claude-haiku-5-5 }
 
 # Dự phòng khi gọi model chính THẤT BẠI (mạng, hạn mức, từ chối); tắt bằng LLM_FALLBACK=none.
 fallback: { provider: google, name: gemini-3.1-flash-lite }

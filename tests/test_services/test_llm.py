@@ -76,14 +76,14 @@ KEYS = {"openai_api_key": "sk-test-123", "anthropic_api_key": "sk-ant-test-123",
 
 
 def test_model_table_from_yaml():
-    """Tên model chỉ nằm trong config/models.yaml: planner/codegen = gpt-6-luna, optimizer = Haiku 4.5."""
+    """Tên model chỉ nằm trong config/models.yaml: planner/codegen = gpt-6-luna, optimizer = Haiku 5.5."""
     settings = Settings(llm_provider="openai", **KEYS)
     assert settings.model_for("planner") == settings.model_for("codegen") == "gpt-6-luna"
     assert settings.choice_for("planner").temperature is False  # gpt-6-luna từ chối temperature=0
     assert settings.choice_for("optimizer").provider == "anthropic"
-    assert settings.model_for("optimizer") == "claude-haiku-4-5-20251001"
+    assert settings.model_for("optimizer") == "claude-haiku-5-5"
     assert settings.model_for("codegen", "google") == settings.google_model_name == "gemini-3.1-flash-lite"
-    assert "optimizer=claude-haiku-4-5-20251001" in settings.models_summary
+    assert "optimizer=claude-haiku-5-5" in settings.models_summary
     assert settings.providers_in_use == {"openai", "anthropic"}
 
 
@@ -113,8 +113,8 @@ def test_get_provider_wraps_fallback_and_uses_task_model():
 
     provider = get_provider(Settings(llm_provider="openai", llm_fallback="google", **KEYS), task="optimizer")
     assert isinstance(provider, FallbackProvider) and isinstance(provider.primary, AnthropicProvider)
-    assert provider.primary.model == "claude-haiku-4-5-20251001"
-    assert "effort" not in provider.primary.output_config  # Haiku 4.5 không nhận effort
+    assert provider.primary.model == "claude-haiku-5-5"
+    assert "effort" not in provider.primary.output_config  # không khai báo effort thì không gửi
     assert provider.primary.output_config["format"]["type"] == "json_schema"
     plain = get_provider(Settings(llm_provider="openai", llm_fallback="none", **KEYS), task="codegen")
     assert isinstance(plain, OpenAIProvider) and plain.model == "gpt-6-luna"
@@ -156,16 +156,16 @@ def _claude_message(stop_reason: str = "end_turn"):
         input_tokens=100, output_tokens=50, cache_read_input_tokens=20, cache_creation_input_tokens=0
     )
     content = [SimpleNamespace(type="thinking", thinking=""), SimpleNamespace(type="text", text='{"sql": "SELECT 1"}')]
-    return SimpleNamespace(model="claude-haiku-4-5-20251001", stop_reason=stop_reason, usage=usage, content=content)
+    return SimpleNamespace(model="claude-haiku-5-5", stop_reason=stop_reason, usage=usage, content=content)
 
 
 def test_anthropic_provider_reads_text_usage_and_sends_no_temperature():
     fake = _FakeMessages(_claude_message())
     response = _anthropic_with(fake).complete(LLMRequest(task="optimizer", variables={}), ("sys", "user"))
     assert response.text == '{"sql": "SELECT 1"}'  # bỏ khối thinking, chỉ lấy văn bản
-    assert response.usage.provider == "anthropic" and response.usage.model == "claude-haiku-4-5-20251001"
+    assert response.usage.provider == "anthropic" and response.usage.model == "claude-haiku-5-5"
     assert (response.usage.input_tokens, response.usage.cached_tokens) == (120, 20)
-    assert response.usage.cost_usd == pytest.approx((120 * 1 + 50 * 5) / 1_000_000)
+    assert response.usage.cost_usd == pytest.approx((120 * 0.10 + 50 * 0.50) / 1_000_000)
     assert "temperature" not in fake.kwargs and "thinking" not in fake.kwargs  # Anthropic có thể trả 400 nếu gửi
     assert fake.kwargs["system"] == "sys" and fake.kwargs["messages"] == [{"role": "user", "content": "user"}]
     assert fake.kwargs["fallbacks"] == "default"
