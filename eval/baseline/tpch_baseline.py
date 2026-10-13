@@ -99,20 +99,25 @@ def main() -> None:
 
     settings = get_settings()
     sums = {
-        side: {key: sum(r[side][key] for r in rows) for key in ("median_ms", "rows_scanned", "bytes_read", "cost_month_usd")}
+        side: {
+            key: sum(r[side][key] for r in rows)
+            for key in ("median_ms", "rows_scanned", "bytes_read", "cost_month_usd")
+        }
         for side in ("before", "after")
     }
     OUT_JSON.write_text(
-        json.dumps({"date": date.today().isoformat(), "sf": args.sf, "runs": args.runs, "rows": rows, "totals": sums}, indent=2),
+        json.dumps(
+            {"date": date.today().isoformat(), "sf": args.sf, "runs": args.runs, "rows": rows, "totals": sums}, indent=2
+        ),
         encoding="utf-8",
     )
     lines = [
         "# Baseline TPC-H: truy vấn viết tay không tối ưu = 100%",
         "",
         f"- Ngày đo: {date.today().isoformat()} • sf={args.sf} • DuckDB local • trung vị {args.runs} lần (sau 1 lần khởi động) • 1 lần chạy cả bộ.",
-        "- Mốc 100% = truy vấn chậm viết tay (`eval/benchmarks/tpch/slow/`). Cột \"Sau\" = % so với mốc, tối ưu bằng luật cố định + sqlglot (LLM mô phỏng, 0 token).",
+        '- Mốc 100% = truy vấn chậm viết tay (`eval/benchmarks/tpch/slow/`). Cột "Sau" = % so với mốc, tối ưu bằng luật cố định + sqlglot (LLM mô phỏng, 0 token).',
         f"- Chi phí ước tính/tháng = giây × {settings.opt_runs_per_month} lần/tháng × {settings.opt_compute_cost_per_hour_usd} USD/giờ tính toán (**giả định**, không phải hóa đơn).",
-        "- \"Dữ liệu quét\" = số dòng DuckDB đọc từ bảng. Số byte đọc từ đĩa (`total_bytes_read`) luôn bằng 0 vì DuckDB local đã đọc sẵn vào bộ nhớ, nên KHÔNG dùng làm số đo (chỉ lưu trong JSON).",
+        '- "Dữ liệu quét" = số dòng DuckDB đọc từ bảng. Số byte đọc từ đĩa (`total_bytes_read`) luôn bằng 0 vì DuckDB local đã đọc sẵn vào bộ nhớ, nên KHÔNG dùng làm số đo (chỉ lưu trong JSON).',
         "",
         "| Query | Quyết định | Thời gian trước (ms) | Sau | Dòng quét trước | Sau | Chi phí/tháng trước (USD) | Sau |",
         "|---|---|---|---|---|---|---|---|",

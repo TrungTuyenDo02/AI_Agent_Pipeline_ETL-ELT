@@ -40,7 +40,12 @@ def _models_file(spec: str) -> Path:
 
 def run(spec: str, label: str, sf: float, attempts: int, only: list[str]) -> None:
     os.environ.update(
-        {"MODELS_FILE": str(_models_file(spec)), "LLM_PROVIDER": "openai", "LLM_FALLBACK": "none", "OPT_MAX_ATTEMPTS": str(attempts)}
+        {
+            "MODELS_FILE": str(_models_file(spec)),
+            "LLM_PROVIDER": "openai",
+            "LLM_FALLBACK": "none",
+            "OPT_MAX_ATTEMPTS": str(attempts),
+        }
     )
     from eval.benchmarks.tpch.run_tpch import SLOW_DIR, prepare_db, run_one
     from src.agents.nodes import optimizer
@@ -71,9 +76,18 @@ def run(spec: str, label: str, sf: float, attempts: int, only: list[str]) -> Non
     total = round(sum(x["cost_usd"] for x in rows), 4)
     (OUT_DIR / f"{label}.json").write_text(
         json.dumps(
-            {"label": label, "model": spec, "date": date.today().isoformat(), "sf": sf, "attempts": attempts,
-             "bench_runs": settings.opt_bench_runs, "total_cost_usd": total, "rows": rows},
-            ensure_ascii=False, indent=2,
+            {
+                "label": label,
+                "model": spec,
+                "date": date.today().isoformat(),
+                "sf": sf,
+                "attempts": attempts,
+                "bench_runs": settings.opt_bench_runs,
+                "total_cost_usd": total,
+                "rows": rows,
+            },
+            ensure_ascii=False,
+            indent=2,
         ),
         encoding="utf-8",
     )
@@ -88,14 +102,16 @@ def report(labels: list[str]) -> None:
         "",
         f"- Ngày đo: {runs[0]['date']} • sf={runs[0]['sf']} • tối đa {runs[0]['attempts']} lần thử/query • "
         f"trung vị {runs[0]['bench_runs']} lần đo • **chỉ ứng viên do LLM viết** (bỏ luật cố định và sqlglot) • mỗi cấu hình chạy 1 lần.",
-        "- \"Bản đúng và nhanh hơn ngưỡng\" = qua V3 (kết quả giống hệt) và nhanh hơn ≥ 15%. \"Áp dụng\" còn phải qua cổng chi phí (tiết kiệm/năm > chi phí gọi LLM); trên TPC-H nhỏ cổng này loại nhiều ca dù bản viết lại tốt. Chi phí = số token thật × bảng giá trong src/services/cost.py.",
+        '- "Bản đúng và nhanh hơn ngưỡng" = qua V3 (kết quả giống hệt) và nhanh hơn ≥ 15%. "Áp dụng" còn phải qua cổng chi phí (tiết kiệm/năm > chi phí gọi LLM); trên TPC-H nhỏ cổng này loại nhiều ca dù bản viết lại tốt. Chi phí = số token thật × bảng giá trong src/services/cost.py.',
         "",
         "| Model | Bản đúng và nhanh hơn ngưỡng | Áp dụng (qua cổng chi phí) | Cải thiện trung vị | Số lần gọi LLM | Tổng chi phí (USD) |",
         "|---|---|---|---|---|---|",
     ]
     for run_ in runs:
         applied = [r for r in run_["rows"] if r["decision"] == "applied"]
-        good = [r for r in run_["rows"] if r["gain_pct"] is not None and r["gain_pct"] >= 15]  # đã qua V3 (giống hệt) và đủ nhanh
+        good = [
+            r for r in run_["rows"] if r["gain_pct"] is not None and r["gain_pct"] >= 15
+        ]  # đã qua V3 (giống hệt) và đủ nhanh
         gains = sorted(r["gain_pct"] for r in good)
         median = f"{gains[len(gains) // 2]:.1f}%" if gains else "—"
         calls = sum(r["llm_calls"] for r in run_["rows"])
@@ -103,15 +119,28 @@ def report(labels: list[str]) -> None:
         lines.append(
             f"| {run_['model']} | {len(good)}/{total_rows} | {len(applied)}/{total_rows} | {median} | {calls} | {run_['total_cost_usd']} |"
         )
-    lines += ["", "## Từng query", "", "| Query | " + " | ".join(r["model"] for r in runs) + " |", "|---|" + "---|" * len(runs)]
+    lines += [
+        "",
+        "## Từng query",
+        "",
+        "| Query | " + " | ".join(r["model"] for r in runs) + " |",
+        "|---|" + "---|" * len(runs),
+    ]
     for query in queries:
         cells = []
         for run_ in runs:
             row = next((r for r in run_["rows"] if r["query"] == query), None)
-            cells.append("—" if row is None else f"{row['decision']}" + (f" ({row['gain_pct']}%)" if row["gain_pct"] is not None else ""))
+            cells.append(
+                "—"
+                if row is None
+                else f"{row['decision']}" + (f" ({row['gain_pct']}%)" if row["gain_pct"] is not None else "")
+            )
         lines.append(f"| {query} | " + " | ".join(cells) + " |")
-    lines += ["", "Giới hạn: 1 lần chạy mỗi model, chưa lặp lại; thời gian query dao động giữa các lần đo; chỉ 13 query TPC-H, "
-              "chưa phản ánh query thật của doanh nghiệp."]
+    lines += [
+        "",
+        "Giới hạn: 1 lần chạy mỗi model, chưa lặp lại; thời gian query dao động giữa các lần đo; chỉ 13 query TPC-H, "
+        "chưa phản ánh query thật của doanh nghiệp.",
+    ]
     REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"Đã ghi {REPORT}")
 

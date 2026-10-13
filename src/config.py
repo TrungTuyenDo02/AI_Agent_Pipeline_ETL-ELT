@@ -12,7 +12,7 @@ APP_VERSION = "0.1.0"
 PLACEHOLDER_MARKERS = ("<", "your-", "sk-your", "-here")
 # Trần token đầu ra theo node: ≥ 5 lần mức cao nhất đo được ở golden thật 2026-10-02 (planner 1.104, codegen 1.638,
 # testgen 841, optimizer 295 — đã gồm token suy luận; trần 4.000 cũ từng bị dùng hết). Chỉnh lại sau khi có số đo mới.
-# Optimizer 16.000: Opus 5.5 luôn suy luận và token suy luận tính vào trần (chưa có số đo thật).
+# Optimizer 16.000: trần rộng từ thời dùng Opus (suy luận tính vào trần); Haiku không suy luận nên thực tế dùng ít hơn nhiều.
 TASK_MAX_TOKENS = {"planner": 6000, "codegen": 12000, "testgen": 5000, "optimizer": 16000}
 CODEGEN_MAX_TEMPERATURE = 0.2
 MODELS_FILE = Path(__file__).resolve().parent.parent / "config" / "models.yaml"

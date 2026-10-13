@@ -163,9 +163,9 @@ class OpenAIProvider:
         return _response(request, message, info)
 
 
-def anthropic_output_config(settings: Settings, task: str, effort: str) -> dict:
-    """`output_config` của Anthropic: mức effort + JSON Schema đầu ra (cùng schema strict với OpenAI)."""
-    config: dict = {"effort": effort}
+def anthropic_output_config(settings: Settings, task: str, effort: str | None) -> dict:
+    """`output_config` của Anthropic: mức effort (chỉ khi models.yaml khai báo; Haiku không nhận) + JSON Schema đầu ra."""
+    config: dict = {"effort": effort} if effort else {}
     schema = output_schema(task) if settings.llm_structured_output else None
     if schema is not None:
         config["format"] = {"type": "json_schema", "schema": schema}
@@ -175,8 +175,8 @@ def anthropic_output_config(settings: Settings, task: str, effort: str) -> dict:
 class AnthropicProvider:
     """Gọi Claude qua SDK chính thức `anthropic`, ép đầu ra theo schema.
 
-    Opus 5.5 luôn suy luận và không nhận `temperature`: độ sâu suy luận chỉnh bằng `effort` trong models.yaml (mặc
-    định medium). Bật dự phòng phía máy chủ (`fallbacks="default"`): nếu model từ chối vì bộ lọc an toàn, Anthropic tự
+    Không gửi `temperature`. `effort` chỉ gửi khi models.yaml khai báo (Opus/Sonnet nhận; Haiku 4.5 không nhận nên để trống).
+    Bật dự phòng phía máy chủ (`fallbacks="default"`): nếu model từ chối vì bộ lọc an toàn, Anthropic tự
     chạy lại bằng model khác trong cùng lời gọi; `usage.model` ghi đúng model đã trả lời.
     """
 
@@ -191,7 +191,7 @@ class AnthropicProvider:
         choice = settings.choice_for(task)
         self.model = model or choice.name
         self.max_tokens = settings.max_tokens_for(task)
-        self.output_config = anthropic_output_config(settings, task, choice.effort or "medium")
+        self.output_config = anthropic_output_config(settings, task, choice.effort)
         self.client = anthropic.Anthropic(api_key=settings.anthropic_api_key, timeout=300, max_retries=2)
 
     def complete(self, request: LLMRequest, prompt: tuple[str, str]) -> LLMResponse:

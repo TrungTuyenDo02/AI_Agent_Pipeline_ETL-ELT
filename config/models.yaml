@@ -3,14 +3,16 @@
 # Đổi model = sửa file này rồi chạy lại golden/eval (CLAUDE.md mục 3: ghi 4 số trước khi giữ cấu hình mới).
 #
 # provider: openai (cần OPENAI_API_KEY) | anthropic (cần ANTHROPIC_API_KEY) | google (cần GOOGLE_API_KEY)
-# effort:   chỉ dùng cho anthropic (low|medium|high|xhigh|max). Opus 5.5 luôn suy luận, không nhận temperature.
+# effort:   chỉ dùng cho anthropic và chỉ khi khai báo (low|medium|high|xhigh|max); Opus/Sonnet nhận, Haiku 4.5 không nhận → để trống.
 # temperature: false khi model chỉ nhận nhiệt độ mặc định (code không gửi tham số; kết quả kém tất định hơn).
 #
 # Nhật ký:
 # - 2026-10-02: planner/codegen/testgen = gpt-5.6-luna, optimizer = gpt-5.6-terra (hướng C, JOURNAL.md).
 # - 2026-10-13: optimizer → claude-opus-5-5 (chủ dự án chọn). Chưa có số đo A/B so với gpt-5.6-terra.
 # - 2026-10-14: A/B trên 13 query TPC-H, chỉ ứng viên do LLM viết (eval/results/ab_optimizer.md): gpt-5.6-terra 5/13 bản đúng và
-#   nhanh hơn, 0,24 USD; claude-opus-5-5 (medium) 3/13, 0,96 USD. Mẫu nhỏ, 1 lần/model. CHƯA đổi cấu hình: chủ dự án quyết.
+#   nhanh hơn, 0,24 USD; claude-opus-5-5 (medium) 3/13, 0,96 USD. Mẫu nhỏ, 1 lần/model. Chưa đổi cấu hình lúc đó.
+# - 2026-10-14: optimizer → claude-haiku-4-5-20251001 (chủ dự án chọn). Cùng bộ 13 query: 9/13 bản đúng và nhanh hơn, 0,083 USD
+#   (terra 5/13 0,24 USD; Opus 3/13 0,96 USD). Khác nhà cung cấp với planner/codegen/testgen (OpenAI) để tránh cùng kiểu sai.
 # - 2026-10-13: planner/codegen/testgen → gpt-6-luna (chủ dự án chọn: $0,10/$0,50 so với $0,20/$1,20 mỗi triệu token).
 #   Model này từ chối temperature=0 nên đặt `temperature: false`.
 
@@ -18,7 +20,7 @@ models:
   planner:   { provider: openai,    name: gpt-6-luna, temperature: false }
   codegen:   { provider: openai,    name: gpt-6-luna, temperature: false }
   testgen:   { provider: openai,    name: gpt-6-luna, temperature: false }
-  optimizer: { provider: anthropic, name: claude-opus-5-5, effort: medium }
+  optimizer: { provider: anthropic, name: claude-haiku-4-5-20251001 }
 
 # Dự phòng khi gọi model chính THẤT BẠI (mạng, hạn mức, từ chối); tắt bằng LLM_FALLBACK=none.
 fallback: { provider: google, name: gemini-3.1-flash-lite }

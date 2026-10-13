@@ -69,7 +69,7 @@ Chi tiết và điều kiện đo: [eval/results/report.md](eval/results/report.
 | Mutation: bắt lỗi giả | code, 0 token | **11/12** (91,7%), báo nhầm 0/1 |
 | TPC-H sf=0,1: query chậm được tối ưu | `mock`, 2026-10-02 | **11/13**, nhanh hơn 51%–94,7%, 10/11 không tốn token |
 | ELT-Bench-Verified: khớp bảng đúng | LLM thật, 34 bảng, 1 lần, chấm lại 2026-10-07 | **11/34** (gồm 2 model lỗi của benchmark) |
-| Optimizer: model LLM nào tốt hơn | LLM thật, chỉ ứng viên do LLM viết, 13 query, 1 lần, 2026-10-14 | gpt-5.6-terra **5/13** bản đúng và nhanh hơn, 0,24 USD; Claude Opus 5.5 (medium) **3/13**, 0,96 USD • [ab_optimizer.md](eval/results/ab_optimizer.md) |
+| Optimizer: model LLM nào tốt hơn | LLM thật, chỉ ứng viên do LLM viết, 13 query, 1 lần, 2026-10-14 | Claude Haiku 4.5 **9/13** bản đúng và nhanh hơn, 0,083 USD; gpt-5.6-terra 5/13, 0,24 USD; Claude Opus 5.5 3/13, 0,96 USD • [ab_optimizer.md](eval/results/ab_optimizer.md) |
 | Baseline: truy vấn viết tay không tối ưu = 100% | `mock` (luật cố định + sqlglot), sf=0,1, 1 lần, 2026-10-14 | cả bộ còn **14%** thời gian, **86%** dòng quét; chi phí tính toán ước tính (giả định) cũng còn 14% • [tpch_baseline.md](eval/results/tpch_baseline.md) |
 | Test tự động | `mock`, độ phủ ngưỡng 60% | 717 passed, 2 xfailed, độ phủ 92,13% (2026-10-14) |
 | Thời gian phản hồi API | trong tiến trình, SQLite, 100 lần | p50 2,2 ms, p95 4,3 ms (`/health`) • [api_latency.md](eval/results/api_latency.md) |

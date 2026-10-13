@@ -207,7 +207,7 @@ Model theo từng bước: sửa [config/models.yaml](../config/models.yaml) (kh
 | Bước | Model hiện tại | Khóa cần |
 |---|---|---|
 | Planner, Codegen, Testgen | `gpt-5.6-luna` | `OPENAI_API_KEY` |
-| Optimizer (viết lại query chậm) | `claude-opus-5-5`, effort `medium` | `ANTHROPIC_API_KEY` (<https://console.anthropic.com>) |
+| Optimizer (viết lại query chậm) | `claude-haiku-4-5-20251001` (không đặt effort) | `ANTHROPIC_API_KEY` (<https://console.anthropic.com>) |
 | Dự phòng (`LLM_FALLBACK=google`) | `gemini-3.1-flash-lite` | `GOOGLE_API_KEY` |
 
 `LLM_PROVIDER=google` dùng Gemini cho mọi bước. Chạy một lần bằng mô phỏng: `python -m src.cli --provider mock run ...`.

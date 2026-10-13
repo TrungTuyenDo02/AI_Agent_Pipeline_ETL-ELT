@@ -9,6 +9,7 @@ PRICES_PER_MILLION: dict[str, tuple[float, float]] = {
     "gpt-5.6-luna": (0.20, 1.20),
     "gpt-5.6-terra": (2.00, 12.00),
     "gpt-5.6-sol": (4.00, 20.00),
+    "claude-haiku-4-5-20251001": (1.00, 5.00),  # trang giá Anthropic, Haiku 4.5; tra lại trước khi báo cáo
     "claude-opus-5-5": (4.00, 20.00),  # trang giá Anthropic (bản lưu 2026-09-25), token suy luận tính như đầu ra
     "gemini-3.1-flash-lite": (0.25, 1.50),
     "gemini-2.5-flash": (0.30, 2.50),
