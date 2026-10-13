@@ -122,12 +122,22 @@ body {
   padding: 18px 22px 16px;
 }
 
-/* Thanh trên */
+/* Thanh trên: lớp nổi dính đầu trang khi cuộn, nền kính mờ (CLAUDE.md 9.2: kính chỉ cho lớp nổi).
+   Các viên bên trong giữ nền đặc để không chồng nhiều lớp kính. */
 .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 16px;
+  padding: 8px 10px 8px 16px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
 }
 
 .brand {
@@ -182,10 +192,34 @@ body {
   text-decoration: none;
 }
 
+.nav-pill {
+  position: relative;
+  isolation: isolate;
+}
+
 .nav-pill.active {
-  background: var(--surface);
   color: var(--primary);
+}
+
+/* Nền viên đang chọn: một phần tử duy nhất trượt giữa các mục (framer-motion layoutId) */
+.nav-pill-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 999px;
+  background: var(--surface);
   box-shadow: var(--shadow);
+}
+
+kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font: 600 11px/1.4 var(--font);
+  white-space: nowrap;
 }
 
 .topbar-tools {
@@ -292,11 +326,36 @@ body {
   z-index: 30;
   width: min(380px, calc(100vw - 32px));
   padding: 10px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge);
   border-radius: 22px;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-3);
   animation: pop 0.16s ease-out;
+}
+
+/* Máy không hỗ trợ kính mờ hoặc người dùng muốn giảm trong suốt: dùng nền đặc */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .topbar {
+    background: var(--glass-solid);
+  }
+
+  .flyout {
+    background: var(--surface);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .topbar {
+    background: var(--glass-solid);
+    backdrop-filter: none;
+  }
+
+  .flyout {
+    background: var(--surface);
+    backdrop-filter: none;
+  }
 }
 
 .flyout.menu {
@@ -412,6 +471,10 @@ body {
 
 .hero h1 {
   color: var(--hero-ink);
+  background: linear-gradient(100deg, var(--primary) 10%, var(--indigo) 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent; /* chữ gradient (CLAUDE.md 9.4); máy không hỗ trợ thì giữ màu --hero-ink */
   font-size: clamp(36px, 4.6vw, 60px);
   font-weight: 700;
   line-height: 1.08;
@@ -464,15 +527,56 @@ body {
   padding-left: 0;
 }
 
+/* Ô biểu tượng kiểu ứng dụng iOS (CLAUDE.md 9.11): vuông bo góc, gradient nhẹ của màu nhấn, icon trắng */
 .stat-icon {
+  --tone: var(--blue);
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   margin-bottom: 8px;
-  border-radius: 50%;
-  background: var(--primary-soft);
-  color: var(--primary);
+  border-radius: 12px;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--tone) 82%, white),
+    color-mix(in srgb, var(--tone) 82%, black)
+  );
+  color: white;
+  box-shadow: var(--shadow-1);
+}
+
+.stat-icon.tone-amber {
+  --tone: var(--amber);
+}
+
+.stat-icon.tone-indigo {
+  --tone: var(--indigo);
+}
+
+.stat-icon.tone-green {
+  --tone: var(--green);
+}
+
+.clickable-stat {
+  border-radius: var(--radius-sm);
+  color: inherit;
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.clickable-stat:hover {
+  background: var(--surface-2);
+  text-decoration: none;
+}
+
+.clickable-stat:active {
+  transform: scale(0.97);
+}
+
+.clickable-stat:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .overview-stat strong {
@@ -592,27 +696,11 @@ body {
   place-items: center;
   width: 15px;
   height: 15px;
-  border-radius: 50%;
-  background: var(--muted);
-  color: var(--surface);
-  font-size: 10px;
-  font-weight: 800;
+  color: inherit; /* icon fill lấy màu chữ của nhãn (xanh/cam/đỏ) */
 }
 
-.status-pill.ok .status-glyph {
-  background: var(--ok);
-}
-
-.status-pill.warn .status-glyph {
-  background: var(--warn);
-}
-
-.status-pill.danger .status-glyph {
-  background: var(--fail);
-}
-
-.status-pill.info .status-glyph {
-  background: none;
+.icon-spin {
+  animation: spin 0.9s linear infinite;
 }
 
 .status-pill.info .pulse-dot {
@@ -980,7 +1068,8 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .spinner {
+  .spinner,
+  .icon-spin {
     animation-duration: 2.4s;
   }
 }
@@ -2973,7 +3062,7 @@ button.role-chip {
   gap: 8px;
 }
 
-/* ---------- Trang đăng nhập: thẻ kính trên đồng cỏ ---------- */
+/* ---------- Trang đăng nhập: thẻ kính trên nền gradient lưới (CLAUDE.md 9.4) ---------- */
 
 .login-page {
   position: relative;
@@ -2982,89 +3071,48 @@ button.role-chip {
   min-height: 100vh;
   padding: 32px 16px;
   overflow: hidden;
-  background: linear-gradient(180deg, var(--meadow-sky-top) 0%, var(--meadow-sky-low) 58%, var(--hill-far) 100%);
-}
-
-.meadow {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.meadow svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.meadow-sun {
-  position: absolute;
-  left: 18%;
-  top: 8%;
-  width: 46vw;
-  height: 46vw;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, var(--meadow-sun), transparent);
-  opacity: 0.85;
-}
-
-.hill-far {
-  fill: var(--hill-far);
-}
-
-.hill-mid {
-  fill: var(--hill-mid);
-}
-
-.hill-trees {
-  fill: var(--hill-trees);
-}
-
-.hill-near {
-  fill: var(--hill-near);
-}
-
-.hill-front {
-  fill: var(--hill-front);
-}
-
-.grass {
-  fill: none;
-  stroke: var(--grass);
-  stroke-width: 5;
-  stroke-linecap: round;
+  background:
+    radial-gradient(60vmax 50vmax at 12% 18%, var(--login-mesh-a), transparent 60%),
+    radial-gradient(55vmax 45vmax at 88% 22%, var(--login-mesh-b), transparent 60%),
+    radial-gradient(60vmax 50vmax at 70% 92%, var(--login-mesh-c), transparent 60%), var(--login-mesh-base);
 }
 
 .login-card {
-  --check-a: var(--login-cta-a);
-  --check-b: var(--login-cta-b);
-  --check-ink: var(--login-cta-ink);
-  --check-off: transparent;
-  --check-edge: var(--login-edge);
-  --btn-top: transparent;
-  --btn-shine: transparent;
-
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  width: min(440px, 100%);
+  width: min(420px, 100%);
   padding: 40px 36px 30px;
-  border-radius: 30px;
-  border: 1.5px solid var(--login-edge);
-  background: var(--login-glass-solid); /* thẻ chứa chữ: nền đặc, không kính mờ (CLAUDE.md yêu cầu 1) */
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--login-edge);
+  background: var(--glass); /* lớp nổi: kính mờ (CLAUDE.md 9.2) */
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   box-shadow:
     inset 0 1px 0 var(--login-edge),
-    0 30px 60px -20px color-mix(in srgb, var(--login-glass) 70%, transparent);
+    var(--shadow-3);
   color: var(--login-ink);
-  animation: login-in 0.45s ease-out;
+  animation: login-in 0.25s ease-out;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .login-card {
+    background: var(--login-glass-solid);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .login-card {
+    background: var(--login-glass-solid);
+    backdrop-filter: none;
+  }
 }
 
 @keyframes login-in {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.98);
+    transform: translateY(8px) scale(0.98);
   }
 }
 
@@ -3079,15 +3127,17 @@ button.role-chip {
 }
 
 .login-card h1 {
-  font-size: 34px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .login-sub {
-  margin: -6px 0 10px;
+  margin: -8px 0 8px;
   color: var(--login-muted);
   font-size: 15px;
+  line-height: 22px;
 }
 
 .login-field {
@@ -3096,17 +3146,16 @@ button.role-chip {
 
 .login-field input {
   width: 100%;
-  height: 56px;
-  padding: 0 52px 0 20px;
-  border-radius: 16px;
-  border: 1.5px solid var(--login-edge);
+  height: 52px;
+  padding: 0 52px 0 46px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--login-field-edge);
   background: var(--login-field);
   color: var(--login-ink);
   font-size: 15px;
   transition:
     border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    background 0.15s ease;
+    box-shadow 0.15s ease;
 }
 
 .login-field input::placeholder {
@@ -3115,40 +3164,55 @@ button.role-chip {
 
 .login-field input:focus {
   outline: none;
-  border-color: var(--login-ink);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--login-ink) 22%, transparent);
+  border-color: var(--login-cta-b);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--login-cta-b) 25%, transparent);
 }
 
 .login-field input[aria-invalid="true"] {
-  border-color: var(--login-error-bg);
+  border-color: var(--fail);
 }
 
-.login-field-icon {
+.login-field-lead {
   position: absolute;
-  right: 8px;
-  top: 50%;
+  left: 14px;
+  top: 26px;
+  display: grid;
+  place-items: center;
+  transform: translateY(-50%);
+  color: var(--login-muted);
+  pointer-events: none;
+}
+
+.login-eye {
+  position: absolute;
+  right: 6px;
+  top: 26px;
   display: grid;
   place-items: center;
   width: 40px;
   height: 40px;
   transform: translateY(-50%);
-  color: var(--login-ink);
-  opacity: 0.9;
-}
-
-.login-eye {
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   background: transparent;
+  color: var(--login-muted);
   cursor: pointer;
 }
 
 .login-eye:hover {
+  color: var(--login-ink);
   background: var(--login-field);
 }
 
 .login-eye:focus-visible {
-  outline: 2px solid var(--login-ink);
+  outline: 2px solid var(--login-cta-b);
+}
+
+.login-field-error {
+  margin: 6px 4px 0;
+  color: var(--fail);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .login-card .check {
@@ -3157,55 +3221,54 @@ button.role-chip {
 }
 
 .login-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   background: var(--login-error-bg);
   color: var(--login-error);
   font-weight: 600;
 }
 
 .login-btn {
-  height: 58px;
-  margin-top: 6px;
-  border-radius: 16px;
-  border: 1.5px solid var(--login-edge);
-  background: linear-gradient(100deg, var(--login-cta-a) -40%, var(--login-cta-b) 55%, var(--login-cta-solid) 100%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 52px;
+  margin-top: 4px;
+  border-radius: var(--radius-md);
+  border: 0;
+  background: linear-gradient(180deg, var(--login-cta-b), var(--login-cta-solid));
   color: var(--login-cta-ink);
-  font-size: 19px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  font-size: 17px;
+  font-weight: 600;
   cursor: pointer;
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--login-cta-ink) 45%, transparent),
-    0 14px 28px -14px var(--login-cta-solid);
+  box-shadow: var(--shadow-2);
   transition:
     transform 0.15s ease,
-    box-shadow 0.15s ease,
     filter 0.15s ease;
 }
 
 .login-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
+  transform: scale(1.02);
   filter: brightness(1.05);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--login-cta-ink) 45%, transparent),
-    0 18px 32px -14px var(--login-cta-solid);
 }
 
 .login-btn:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
 .login-btn:focus-visible {
-  outline: 3px solid var(--login-ink);
+  outline: 3px solid var(--login-cta-b);
   outline-offset: 3px;
 }
 
 .login-btn:disabled {
-  cursor: not-allowed;
-  filter: saturate(0.6);
-  opacity: 0.75;
+  cursor: progress;
+  opacity: 0.85;
 }
 
 .login-foot {
@@ -3222,17 +3285,17 @@ button.role-chip {
 @media (max-width: 480px) {
   .login-card {
     padding: 30px 22px 24px;
-    border-radius: 24px;
-  }
-
-  .login-card h1 {
-    font-size: 28px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .login-card {
     animation: none;
+  }
+
+  .login-btn:hover:not(:disabled),
+  .login-btn:active:not(:disabled) {
+    transform: none;
   }
 }
 
@@ -3308,11 +3371,6 @@ button.role-chip {
 .page[data-role] .avatar {
   border-color: var(--role);
   box-shadow: 0 0 0 3px var(--role-soft);
-}
-
-.page[data-role] .stat-icon {
-  background: var(--role-soft);
-  color: var(--role);
 }
 
 .role-chip {
@@ -4463,4 +4521,18 @@ main > .schema-watch {
 /* Sổ lỗi: tên test/model rất dài không có chỗ ngắt → cho ngắt giữa chừng, không tràn ngang */
 .error-entry p {
   overflow-wrap: anywhere;
+}
+
+/* Thanh "Đang lọc" của danh sách lần chạy (bấm thẻ thống kê trang chủ) */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 12px;
+}
+
+.char-count {
+  margin-left: auto;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }

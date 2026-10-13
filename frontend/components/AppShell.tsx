@@ -1,20 +1,21 @@
 "use client";
 
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, type ComponentType, type ReactNode, type SVGProps } from "react";
+import { useEffect, type ComponentType, type ReactNode } from "react";
 
 import { useApp } from "./AppContext";
 import type { Role } from "@/lib/types";
 
-import { BookIcon, DatabaseIcon, HomeIcon, ListIcon, SparkIcon, UsersIcon } from "./icons";
+import { BookIcon, DatabaseIcon, HomeIcon, type IconComponentProps, ListIcon, SparkIcon, UsersIcon } from "./icons";
 import { NotificationBell } from "./NotificationBell";
 import { RunSearch } from "./RunSearch";
 import { AvatarMenu, ModeBadges, RoleChip } from "./Topbar";
 
 // Bố cục: thanh trên (logo · tab · tìm · vai trò · chuông · avatar), thẻ trắng trên nền phẳng. Không còn thanh icon dọc
 // (trùng menu trên; đổi giao diện và tài liệu API nằm trong menu avatar) — CLAUDE.md yêu cầu 4.
-type IconType = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
+type IconType = ComponentType<IconComponentProps>;
 type NavItem = { href: string; label: string; icon: IconType };
 const HOME: NavItem = { href: "/", label: "Trang chủ", icon: HomeIcon };
 const RUNS: NavItem = { href: "/runs", label: "Lần chạy", icon: ListIcon };
@@ -41,17 +42,22 @@ function TopBar() {
         <span>P-113 Agent Studio</span>
       </Link>
       <nav className="nav-pills" aria-label="Điều hướng chính">
-        {nav.map(({ href, label, icon: Glyph }) => (
-          <Link
-            key={href}
-            href={href}
-            className={isActive(pathname, href) ? "nav-pill active" : "nav-pill"}
-            aria-current={isActive(pathname, href) ? "page" : undefined}
-          >
-            <Glyph size={16} />
-            <span>{label}</span>
-          </Link>
-        ))}
+        {nav.map(({ href, label, icon: Glyph }) => {
+          const active = isActive(pathname, href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={active ? "nav-pill active" : "nav-pill"}
+              aria-current={active ? "page" : undefined}
+            >
+              {/* nền viên đang chọn trượt sang mục mới (CLAUDE.md 9.2: layoutId="active-pill") */}
+              {active && <motion.span layoutId="active-pill" className="nav-pill-bg" aria-hidden />}
+              <Glyph size={16} weight={active ? "fill" : "regular"} />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
       </nav>
       <div className="topbar-tools">
         <RunSearch />

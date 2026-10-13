@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 
 import { AppProvider } from "@/components/AppContext";
 import { AppShell } from "@/components/AppShell";
+import { IconProvider } from "@/components/icons";
+import { MotionProvider } from "@/components/MotionProvider";
 import { mono, sans } from "@/lib/fonts";
 
 import "../styles/tokens.css";
@@ -24,9 +26,13 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body>
-        <AppProvider>
-          <AppShell>{children}</AppShell>
-        </AppProvider>
+        <IconProvider>
+          <MotionProvider>
+            <AppProvider>
+              <AppShell>{children}</AppShell>
+            </AppProvider>
+          </MotionProvider>
+        </IconProvider>
       </body>
     </html>
   );

@@ -32,6 +32,7 @@ export function CreateRunForm({ draft = "" }: { draft?: string }) {
   const [error, setError] = useState("");
   const engineer = useHasRole("engineer");
   const tooShort = text.trim().length < 5;
+  // Bộ đếm ký tự (CLAUDE.md 9.4); trần 4000 khớp CreateRunBody ở backend
 
   // Liên kết tới #request (ví dụ từ thông báo): đưa con trỏ vào ô nhập
   useEffect(() => {
@@ -99,6 +100,9 @@ export function CreateRunForm({ draft = "" }: { draft?: string }) {
             </button>
           ))}
         </div>
+        <span className="char-count small muted" aria-live="polite">
+          {text.length.toLocaleString("vi-VN")}/4.000 ký tự
+        </span>
       </div>
       <RoleNote need="engineer" />
       {error && <ErrorBox message={error} />}

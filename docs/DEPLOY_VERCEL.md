@@ -42,6 +42,8 @@ Neon chỉ chứa tài khoản thử (quyết định 2026-10-13 trong [JOURNAL.
 1. Render → **New → Web Service** → nối GitHub, chọn repo. **Language: Docker**, Dockerfile Path `./Dockerfile` (thư mục gốc).
 2. Chọn gói trả phí để gắn đĩa: **Disks → Add Disk**, Mount Path `/app/data`, dung lượng nhỏ (vài GB).
    Thêm biến `WORKSPACES_DIR=/app/data/workspaces` để workspace dbt cũng nằm trên đĩa bền.
+   **Bản demo (chốt 2026-10-13):** dùng gói miễn phí, bỏ bước gắn đĩa; lịch sử lần chạy/sổ lỗi (SQLite) mất khi khởi động
+   lại, server tự nạp lại dữ liệu mẫu. Danh sách biến đầy đủ: [.env.production.example](../.env.production.example).
 3. **Health Check Path:** `/health`.
 4. **Environment** (giá trị bí mật chỉ nhập ở đây, không commit):
 

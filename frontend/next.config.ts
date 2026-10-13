@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
   // Bản chạy gọn cho Docker: .next/standalone/server.js (không cần node_modules đầy đủ).
   output: "standalone",
   poweredByHeader: false,
+  // Chỉ nạp các icon Phosphor thật sự dùng (CLAUDE.md 9.11)
+  experimental: { optimizePackageImports: ["@phosphor-icons/react"] },
   async rewrites() {
     return backendUrl ? [{ source: "/api/v1/:path*", destination: `${backendUrl}/api/v1/:path*` }] : [];
   },

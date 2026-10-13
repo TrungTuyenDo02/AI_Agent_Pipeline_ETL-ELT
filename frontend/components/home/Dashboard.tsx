@@ -1,9 +1,11 @@
 "use client";
 
+import { animate, useReducedMotion } from "framer-motion";
 import Link from "next/link";
-import { Suspense, type ReactNode } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 
 import { STATUS_LABELS, formatAgo, formatClock } from "@/lib/format";
+import { runFilterHref } from "@/lib/runFilters";
 import type { AdminUser, AuditEntry, ErrorEntry, RunRecord, SchemaReport } from "@/lib/types";
 import { useNow } from "@/lib/useNow";
 import { usePoll } from "@/lib/usePoll";
@@ -17,11 +19,11 @@ import {
   ClockIcon,
   DatabaseIcon,
   FlowIcon,
+  Icon,
   LayersIcon,
   LockIcon,
   PulseIcon,
   SparkIcon,
-  UserIcon,
   UsersIcon,
 } from "../icons";
 import { ENGINEER_ACTION, runHref, waitingFor } from "../NotificationBell";
@@ -37,6 +39,34 @@ interface StatItem {
   value: string;
   label: string;
   hint?: string;
+  /** Màu ô biểu tượng kiểu iOS (CLAUDE.md 9.11): Đã tạo xanh dương, Chờ tôi cam, Chờ Reviewer tím, Đã duyệt xanh lá. */
+  tone?: "blue" | "amber" | "indigo" | "green";
+  /** Bấm thẻ → danh sách đã lọc tương ứng. */
+  href?: string;
+}
+
+/** Số đếm nhảy từ 0 lên giá trị thật (tắt khi người dùng chọn giảm chuyển động). "4+" giữ hậu tố. */
+function CountUp({ value }: { value: string }) {
+  const target = Number.parseInt(value, 10);
+  const suffix = Number.isNaN(target) ? "" : value.slice(String(target).length);
+  const reduce = useReducedMotion();
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    if (Number.isNaN(target) || reduce) return;
+    const controls = animate(0, target, {
+      duration: 0.6,
+      ease: "easeOut",
+      onUpdate: (v) => setShown(Math.round(v)),
+    });
+    return () => controls.stop();
+  }, [target, reduce]);
+  if (Number.isNaN(target)) return <>{value}</>;
+  return (
+    <>
+      {reduce ? target : shown}
+      {suffix}
+    </>
+  );
 }
 
 const count = (n: number | null | undefined) => (n === null || n === undefined ? "—" : String(n));
@@ -66,13 +96,33 @@ function StatsPanel({ title, stats }: { title: string; stats: StatItem[] }) {
         </span>
       </header>
       <div className="overview-grid">
-        {stats.map((stat) => (
-          <div key={stat.label} className="overview-stat" title={stat.hint || undefined}>
-            <span className="stat-icon">{stat.icon}</span>
-            <strong>{stat.value}</strong>
-            <span>{stat.label}</span>
-          </div>
-        ))}
+        {stats.map((stat) => {
+          const body = (
+            <>
+              <span className={`stat-icon tone-${stat.tone ?? "blue"}`} aria-hidden>
+                {stat.icon}
+              </span>
+              <strong aria-label={stat.value}>
+                <CountUp value={stat.value} />
+              </strong>
+              <span>{stat.label}</span>
+            </>
+          );
+          return stat.href ? (
+            <Link
+              key={stat.label}
+              href={stat.href}
+              className="overview-stat clickable-stat"
+              title={stat.hint || `Xem danh sách: ${stat.label}`}
+            >
+              {body}
+            </Link>
+          ) : (
+            <div key={stat.label} className="overview-stat" title={stat.hint || undefined}>
+              {body}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
@@ -262,21 +312,33 @@ export function EngineerHome() {
           title="Yêu cầu của tôi"
           stats={[
             {
-              icon: <LayersIcon size={18} />,
+              icon: <Icon name="layers" size={22} weight="duotone" />,
               value: loaded ? `${mine.length}${mine.length === RUNS_LIMIT ? "+" : ""}` : "—",
               label: "Đã tạo",
+              tone: "blue",
+              href: runFilterHref("cua-toi"),
             },
             {
-              icon: <ClockIcon size={18} />,
+              icon: <Icon name="pending" size={22} weight="duotone" />,
               value: loaded ? String(waitingFor(user, runs).length) : "—",
               label: "Chờ tôi",
+              tone: "amber",
+              href: runFilterHref("cho-toi"),
             },
             {
-              icon: <UserIcon size={18} />,
+              icon: <Icon name="awaitingReview" size={22} weight="duotone" />,
               value: loaded ? String(mine.filter((r) => r.status === "waiting_review").length) : "—",
               label: "Chờ Reviewer",
+              tone: "indigo",
+              href: runFilterHref("cho-reviewer"),
             },
-            { icon: <CheckIcon size={18} />, value: loaded ? String(approved) : "—", label: "Đã duyệt" },
+            {
+              icon: <Icon name="approve" size={22} weight="duotone" />,
+              value: loaded ? String(approved) : "—",
+              label: "Đã duyệt",
+              tone: "green",
+              href: runFilterHref("da-duyet"),
+            },
           ]}
         />
         <SchemaWatchCard />
@@ -352,15 +414,28 @@ export function ReviewerHome() {
       <StatsPanel
         title="Tổng quan duyệt"
         stats={[
-          { icon: <ClockIcon size={18} />, value: loaded ? String(queue.length) : "—", label: "Chờ duyệt" },
           {
-            icon: <CheckIcon size={18} />,
+            icon: <Icon name="awaitingReview" size={22} weight="duotone" />,
+            value: loaded ? String(queue.length) : "—",
+            label: "Chờ duyệt",
+            tone: "amber",
+            href: runFilterHref("cho-toi"),
+          },
+          {
+            icon: <Icon name="approve" size={22} weight="duotone" />,
             value: loaded ? String(decided.filter((r) => r.status === "approved").length) : "—",
             label: "Đã duyệt",
+            tone: "green",
           },
-          { icon: <BookIcon size={18} />, value: count(errors.data?.length), label: "Sổ lỗi chờ" },
           {
-            icon: <LayersIcon size={18} />,
+            icon: <Icon name="errors" size={22} weight="duotone" />,
+            value: count(errors.data?.length),
+            label: "Sổ lỗi chờ",
+            tone: "indigo",
+            href: "/errors",
+          },
+          {
+            icon: <Icon name="layers" size={22} weight="duotone" />,
             value: loaded ? String((runs ?? []).filter((r) => ENGINEER_ACTION.includes(r.status)).length) : "—",
             label: "Đang chờ Engineer",
             hint: "Lần chạy đang chờ Engineer trả lời / duyệt kế hoạch / xác nhận cấu trúc / cứu hộ",

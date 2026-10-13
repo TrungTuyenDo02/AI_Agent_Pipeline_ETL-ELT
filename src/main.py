@@ -16,6 +16,7 @@ from src.api.routes import router
 from src.config import APP_VERSION, get_settings
 from src.logging_config import setup_logging
 from src.services.seed import ensure_demo_sources
+from src.services.store import get_store
 from src.services.tracing import configure_tracing
 
 logger = logging.getLogger(__name__)
@@ -32,6 +33,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         logger.warning(warning)
     if settings.missing_auth_settings:
         logger.warning("login disabled: missing env", extra={"missing": settings.missing_auth_settings})
+    if stuck := get_store().fail_interrupted_runs():  # mục 14.1: không còn tiến trình nào chạy các lần này
+        logger.warning("interrupted runs marked failed", extra={"count": stuck})
     if ensure_demo_sources(settings.sources_dir, settings.seed):
         logger.info("demo sources seeded", extra={"dir": str(settings.sources_dir)})
     logger.info("app starting", extra={"env": settings.app_env, "llm_provider": settings.llm_provider})

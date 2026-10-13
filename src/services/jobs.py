@@ -36,6 +36,28 @@ TIMING_MIN_SAMPLES = 3  # ít hơn thì không ước lượng (trả None)
 AUDITED_NODES = {"codegen": "code.generate", "sandbox_run": "sandbox.run"}  # CLAUDE.md mục 7
 
 
+class JobLimitError(Exception):
+    """Vượt giới hạn theo người (số lần chạy cùng lúc hoặc trần chi phí LLM trong ngày); thông báo tiếng Việt."""
+
+
+def check_limits(owner: str, active: int) -> None:
+    """CLAUDE.md mục 14.2-14.3: chặn TRƯỚC khi tạo/chạy tiếp lần chạy của `owner` (người tạo yêu cầu)."""
+    settings = get_settings()
+    if active >= settings.max_active_runs_per_user:
+        raise JobLimitError(
+            f"Bạn đang có {active} lần chạy đang chờ hoặc đang chạy (tối đa {settings.max_active_runs_per_user}). "
+            "Đợi một lần chạy xong rồi gửi tiếp."
+        )
+    budget = settings.llm_daily_budget_usd
+    if budget and settings.llm_provider != "mock":
+        spent = get_store().spent_today(owner)
+        if spent >= budget:
+            raise JobLimitError(
+                f"Đã dùng {spent:.2f} USD chi phí AI hôm nay, chạm trần {budget:.2f} USD/người/ngày. "
+                "Liên hệ quản trị viên nếu cần thêm."
+            )
+
+
 class NodeTimings:
     """Thời gian chạy đo thật của từng node (giây), lưu ra file để còn sau khi khởi động lại."""
 
@@ -74,6 +96,8 @@ class JobQueue:
         self._events: dict[str, list[dict]] = {}
         self._futures: dict[str, Future] = {}
         self._current: dict[str, NodeStart] = {}
+        self._owners: dict[str, str] = {}  # run_id → người tạo yêu cầu (giới hạn theo người)
+        self._order: list[str] = []  # thứ tự đưa vào hàng đợi (tính vị trí chờ)
         self._timings = NodeTimings(timings_path)
 
     def _record(self, run_id: str, actor: str = "") -> EventSink:
@@ -106,11 +130,36 @@ class JobQueue:
             with self._lock:
                 self._current.pop(run_id, None)  # dừng ở J1/J2 hoặc lỗi: không còn node nào đang chạy
 
-    def submit(self, run_id: str, job: Job, actor: str = "") -> None:
-        """Đánh dấu đang chạy rồi đưa vào hàng đợi (`actor` = người khởi động, để ghi nhật ký kiểm toán)."""
+    def _active(self, owner: str, exclude: str = "") -> int:
+        return sum(
+            1
+            for run_id, future in self._futures.items()
+            if run_id != exclude and not future.done() and self._owners.get(run_id) == owner
+        )
+
+    def check(self, owner: str, run_id: str = "") -> None:
+        """Ném JobLimitError nếu `owner` đã đủ số lần chạy cùng lúc hoặc chạm trần chi phí hôm nay."""
+        with self._lock:
+            active = self._active(owner, exclude=run_id)
+        check_limits(owner, active)
+
+    def submit(self, run_id: str, job: Job, actor: str = "", owner: str = "") -> None:
+        """Đánh dấu đang chạy rồi đưa vào hàng đợi (`actor` = người khởi động, để ghi nhật ký kiểm toán;
+        `owner` = người tạo yêu cầu, để giới hạn theo người)."""
         get_store().update_run(run_id, RunStatus.RUNNING)
         with self._lock:
+            self._owners[run_id] = owner or actor
+            self._order = [r for r in self._order if r != run_id and not self._futures[r].done()] + [run_id]
             self._futures[run_id] = self._executor.submit(self._run, run_id, job, actor)
+
+    def position(self, run_id: str) -> int | None:
+        """Số lần chạy đứng TRƯỚC trong hàng (0 = đang chạy hoặc sắp chạy); None nếu không ở trong hàng."""
+        with self._lock:
+            future = self._futures.get(run_id)
+            if not future or future.done() or run_id not in self._order:
+                return None
+            ahead = self._order[: self._order.index(run_id)]
+            return sum(1 for r in ahead if not self._futures[r].done())
 
     def events(self, run_id: str) -> list[dict]:
         """Các bước đã chạy của lần chạy (theo thứ tự)."""

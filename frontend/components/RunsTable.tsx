@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { formatPct, formatTime, formatUsd } from "@/lib/format";
+import { filterRuns, isRunFilter, RUN_FILTERS } from "@/lib/runFilters";
 import type { RunRecord } from "@/lib/types";
 
 import { useApp } from "./AppContext";
 import { NEEDS_ACTION, runHref } from "./NotificationBell";
+import { Icon } from "./icons";
 import { StatusPill } from "./StatusPill";
 import { Card, Empty, ErrorBox, Loading } from "./ui";
 
@@ -36,17 +38,34 @@ function RunRow({ run }: { run: RunRecord }) {
 }
 
 export function RunsTable() {
-  const { runs: data, runsError: error, refreshRuns: refresh } = useApp();
-  const loading = !data && !error;
-  const waiting = data?.filter((r) => NEEDS_ACTION.includes(r.status)).length ?? 0;
+  const { runs: all, runsError: error, refreshRuns: refresh, user } = useApp();
+  const key = useSearchParams().get("loc");
+  const filter = isRunFilter(key) ? key : null;
+  const data = all && filter ? filterRuns(all, filter, user) : all;
+  const loading = !all && !error;
+  const waiting = all?.filter((r) => NEEDS_ACTION.includes(r.status)).length ?? 0;
   return (
     <Card
       title="Lần chạy gần đây"
       actions={waiting > 0 && <span className="badge warn">{waiting} lần chạy cần bạn xử lý</span>}
     >
+      {filter && (
+        <p className="filter-bar">
+          <span className="badge info">Đang lọc: {RUN_FILTERS[filter].label}</span>
+          <Link href="/runs" className="small link-arrow">
+            <Icon name="close" size={14} /> Bỏ lọc
+          </Link>
+        </p>
+      )}
       {error && <ErrorBox message={error} onRetry={refresh} />}
-      {loading && !data && <Loading text="Đang tải danh sách lần chạy…" />}
-      {data && data.length === 0 && <Empty>Chưa có lần chạy nào. Hãy mô tả pipeline bạn cần ở ô phía trên.</Empty>}
+      {loading && <Loading text="Đang tải danh sách lần chạy…" />}
+      {data && data.length === 0 && (
+        <Empty>
+          {filter
+            ? "Không có lần chạy nào khớp bộ lọc."
+            : "Chưa có lần chạy nào. Hãy mô tả pipeline bạn cần ở ô phía trên."}
+        </Empty>
+      )}
       {data && data.length > 0 && (
         <div className="table-wrap">
           <table>

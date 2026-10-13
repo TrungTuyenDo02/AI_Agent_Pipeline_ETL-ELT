@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import type { Stage, StageState } from "@/lib/types";
 
+import { Icon } from "../icons";
 import { useRun } from "./RunContext";
 
 const STATE_TEXT: Record<StageState, string> = {
@@ -33,8 +34,9 @@ function phaseState(stages: Stage[]): StageState {
 
 function StateIcon({ state }: { state: StageState }) {
   if (state === "running") return <span className="spinner" aria-hidden />;
-  const glyph = { waiting: "", passed: "✓", failed: "!", human: "…" }[state];
-  return <span aria-hidden>{glyph}</span>;
+  if (state === "waiting") return null;
+  const name = ({ passed: "check", failed: "close", human: "awaitingReview" } as const)[state];
+  return <Icon name={name} size={12} weight="bold" />;
 }
 
 function SubStep({ stage }: { stage: Stage }) {

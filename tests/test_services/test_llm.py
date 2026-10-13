@@ -82,7 +82,7 @@ def test_model_table_from_yaml():
     assert settings.choice_for("planner").temperature is False  # gpt-6-luna từ chối temperature=0
     assert settings.choice_for("optimizer").provider == "anthropic"
     assert settings.model_for("optimizer") == "claude-opus-5-5"
-    assert settings.model_for("codegen", "google") == settings.google_model_name == "gemini-3.8-flash"
+    assert settings.model_for("codegen", "google") == settings.google_model_name == "gemini-3.1-flash-lite"
     assert "optimizer=claude-opus-5-5" in settings.models_summary
     assert settings.providers_in_use == {"openai", "anthropic"}
 

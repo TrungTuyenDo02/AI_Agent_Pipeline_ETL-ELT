@@ -1,4 +1,7 @@
+import { Suspense } from "react";
+
 import { RunsTable } from "@/components/RunsTable";
+import { Loading } from "@/components/ui";
 
 export default function RunsPage() {
   return (
@@ -9,7 +12,10 @@ export default function RunsPage() {
           <p>Mọi yêu cầu đã gửi: trạng thái, bảng đích, tối ưu, chi phí LLM. Lần chạy cần bạn xử lý được đánh dấu.</p>
         </div>
       </div>
-      <RunsTable />
+      {/* bộ lọc đọc từ đường dẫn (?loc=…) nên cần Suspense khi dựng trang tĩnh */}
+      <Suspense fallback={<Loading text="Đang tải danh sách lần chạy…" />}>
+        <RunsTable />
+      </Suspense>
     </>
   );
 }

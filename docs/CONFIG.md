@@ -65,6 +65,8 @@ Nguồn sự thật của mặc định: [src/config.py](../src/config.py). Cộ
 | `SANDBOX_MEMORY_LIMIT` | Giới hạn bộ nhớ DuckDB | `1GB` | không |
 | `SANDBOX_THREADS` | Số luồng DuckDB | `2` | không |
 | `MAX_FIX_ATTEMPTS` | Số vòng sửa V1/V2 tối đa trước khi cứu hộ | `3` | không |
+| `MAX_ACTIVE_RUNS_PER_USER` | Số lần chạy đang chờ/đang chạy cùng lúc của một người tạo yêu cầu; vượt → 429 | `2` | không |
+| `LLM_DAILY_BUDGET_USD` | Trần chi phí LLM mỗi người mỗi ngày (giờ VN), tính từ `cost_usd` các lần chạy; `0` = không chặn | `1` | không |
 | `MAX_PLAN_ROUNDS` | Số vòng lập kế hoạch/làm rõ tối đa | `5` | không |
 | `MAX_REVIEW_ROUNDS` | Số lần yêu cầu sửa kế hoạch tối đa | `3` | không |
 | `SEED` | Hạt giống dữ liệu thử | `42` | không |

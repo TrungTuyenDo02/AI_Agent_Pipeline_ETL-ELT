@@ -12,6 +12,7 @@ import { draftRequest, issueKey, useIssueDecisions } from "@/lib/issuePlan";
 import type { CatalogView, ColumnKind, ColumnProfile, ProfileIssue, TableInfo, TableProfile } from "@/lib/types";
 import { usePoll } from "@/lib/usePoll";
 
+import { StatusIcon } from "../icons";
 import { Checkbox, Empty, ErrorBox, Loading } from "../ui";
 
 // Nhãn kiểu cột bằng chữ thường dùng (CLAUDE.md yêu cầu 5): "Chữ", "Số" thay cho "Abc", "123"
@@ -470,8 +471,14 @@ function ProfileBody({ profile }: { profile: TableProfile }) {
         <h3>Hồ sơ từng cột</h3>
         <div className="row small">
           <span className="legend-q">
-            <i className="q-valid">✓</i> hợp lệ <i className="q-invalid">✗</i> không đọc được{" "}
-            <i className="q-blank">␣</i> chuỗi rỗng <i className="q-nulls">∅</i> NULL
+            <i className="q-valid">
+              <StatusIcon tone="ok" size={12} />
+            </i>{" "}
+            hợp lệ{" "}
+            <i className="q-invalid">
+              <StatusIcon tone="danger" size={12} />
+            </i>{" "}
+            không đọc được <i className="q-blank">␣</i> chuỗi rỗng <i className="q-nulls">∅</i> NULL
           </span>
           {byColumn.size > 0 && (
             <Checkbox checked={onlyIssues} onChange={setOnlyIssues}>
