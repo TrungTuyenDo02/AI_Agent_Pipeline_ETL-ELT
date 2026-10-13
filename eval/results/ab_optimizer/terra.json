@@ -1,0 +1,128 @@
+{
+  "label": "terra",
+  "model": "openai:gpt-5.6-terra",
+  "date": "2026-10-14",
+  "sf": 0.1,
+  "attempts": 2,
+  "bench_runs": 5,
+  "total_cost_usd": 0.2373,
+  "rows": [
+    {
+      "query": "q01_distinct_star",
+      "decision": "skipped",
+      "gain_pct": null,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.01502,
+      "reason": "Optimizer không đề xuất thay đổi nào an toàn; giữ nguyên bản gốc."
+    },
+    {
+      "query": "q01_order_in_subquery",
+      "decision": "applied",
+      "gain_pct": 92.1,
+      "attempts": 1,
+      "llm_calls": 1,
+      "cost_usd": 0.005144,
+      "reason": "Nhanh hơn 92.1% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu."
+    },
+    {
+      "query": "q01_union_select_star",
+      "decision": "skipped",
+      "gain_pct": null,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.019414,
+      "reason": "Optimizer không đề xuất thay đổi nào an toàn; giữ nguyên bản gốc."
+    },
+    {
+      "query": "q01_window_dedupe",
+      "decision": "skipped",
+      "gain_pct": null,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.022335999999999998,
+      "reason": "Optimizer không đề xuất thay đổi nào an toàn; giữ nguyên bản gốc."
+    },
+    {
+      "query": "q03_cast_join",
+      "decision": "skipped",
+      "gain_pct": null,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.012848,
+      "reason": "Optimizer không đề xuất thay đổi nào an toàn; giữ nguyên bản gốc."
+    },
+    {
+      "query": "q03_filter_after_join",
+      "decision": "skipped",
+      "gain_pct": 25.7,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.016178,
+      "reason": "Nhanh hơn 25.7% nhưng tiết kiệm/năm < chi phí tối ưu (0.0162 USD)."
+    },
+    {
+      "query": "q03_order_in_subquery",
+      "decision": "skipped",
+      "gain_pct": null,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.013034,
+      "reason": "Optimizer không đề xuất thay đổi nào an toàn; giữ nguyên bản gốc."
+    },
+    {
+      "query": "q05_range_join",
+      "decision": "applied",
+      "gain_pct": 93.0,
+      "attempts": 1,
+      "llm_calls": 1,
+      "cost_usd": 0.00716,
+      "reason": "Nhanh hơn 93.0% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu."
+    },
+    {
+      "query": "q09_distinct_star",
+      "decision": "skipped",
+      "gain_pct": null,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.018860000000000002,
+      "reason": "Optimizer không đề xuất thay đổi nào an toàn; giữ nguyên bản gốc."
+    },
+    {
+      "query": "q09_window_dedupe",
+      "decision": "skipped",
+      "gain_pct": null,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.024416,
+      "reason": "Optimizer không đề xuất thay đổi nào an toàn; giữ nguyên bản gốc."
+    },
+    {
+      "query": "q15_repeated_subquery",
+      "decision": "skipped",
+      "gain_pct": null,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.015578,
+      "reason": "Optimizer không đề xuất thay đổi nào an toàn; giữ nguyên bản gốc."
+    },
+    {
+      "query": "q18_union_subquery",
+      "decision": "skipped",
+      "gain_pct": 36.9,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.029968,
+      "reason": "Nhanh hơn 36.9% nhưng tiết kiệm/năm < chi phí tối ưu (0.0300 USD)."
+    },
+    {
+      "query": "q21_union_lineitem",
+      "decision": "skipped",
+      "gain_pct": 52.0,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.037326,
+      "reason": "Nhanh hơn 52.0% nhưng tiết kiệm/năm < chi phí tối ưu (0.0373 USD)."
+    }
+  ]
+}

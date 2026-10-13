@@ -9,6 +9,8 @@
 # Nhật ký:
 # - 2026-10-02: planner/codegen/testgen = gpt-5.6-luna, optimizer = gpt-5.6-terra (hướng C, JOURNAL.md).
 # - 2026-10-13: optimizer → claude-opus-5-5 (chủ dự án chọn). Chưa có số đo A/B so với gpt-5.6-terra.
+# - 2026-10-14: A/B trên 13 query TPC-H, chỉ ứng viên do LLM viết (eval/results/ab_optimizer.md): gpt-5.6-terra 5/13 bản đúng và
+#   nhanh hơn, 0,24 USD; claude-opus-5-5 (medium) 3/13, 0,96 USD. Mẫu nhỏ, 1 lần/model. CHƯA đổi cấu hình: chủ dự án quyết.
 # - 2026-10-13: planner/codegen/testgen → gpt-6-luna (chủ dự án chọn: $0,10/$0,50 so với $0,20/$1,20 mỗi triệu token).
 #   Model này từ chối temperature=0 nên đặt `temperature: false`.
 
