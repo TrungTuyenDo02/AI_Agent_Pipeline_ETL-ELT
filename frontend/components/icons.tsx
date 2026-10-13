@@ -5,6 +5,7 @@
 // Icon đứng một mình trong nút: truyền `aria-label` (và đặt tooltip ở nút).
 
 import { IconContext, type IconProps, type IconWeight } from "@phosphor-icons/react";
+import { motion, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
 
 import { ICONS, type IconName } from "@/lib/icons";
@@ -32,6 +33,42 @@ export function Icon({
       focusable="false"
       {...props}
     />
+  );
+}
+
+/**
+ * Dấu tích tự vẽ khi một bước xong (CLAUDE.md 9.11: hoạt ảnh pathLength ~250ms). Cùng hình học với `Check` của Phosphor
+ * (polyline 40,144 → 96,200 → 224,72 trên khung 256) nhưng vẽ bằng nét để hoạt ảnh được. Giảm chuyển động: hiện ngay.
+ */
+export function DrawnCheck({ size = 16, weight = "bold" }: { size?: number; weight?: "regular" | "bold" }) {
+  const reduce = useReducedMotion();
+  return (
+    <svg width={size} height={size} viewBox="0 0 256 256" aria-hidden focusable="false">
+      <motion.polyline
+        points="40 144 96 200 224 72"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={weight === "bold" ? 24 : 16}
+        initial={{ pathLength: reduce ? 1 : 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+      />
+    </svg>
+  );
+}
+
+/** Vòng xoay "đang chạy" (CircleNotch) quay đều bằng framer-motion; máy giảm chuyển động thì đứng yên. */
+export function SpinningIcon({ size = 16 }: { size?: number }) {
+  return (
+    <motion.span
+      style={{ display: "inline-grid" }}
+      animate={{ rotate: 360 }}
+      transition={{ repeat: Infinity, duration: 0.9, ease: "linear" }}
+    >
+      <Icon name="running" size={size} weight="bold" />
+    </motion.span>
   );
 }
 

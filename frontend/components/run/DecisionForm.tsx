@@ -5,6 +5,7 @@ import { useState } from "react";
 import { STATUS_LABELS } from "@/lib/format";
 
 import { useHasRole } from "../AppContext";
+import { ConfirmDialog } from "../ConfirmDialog";
 import { RoleNote } from "../Topbar";
 import { Card, ErrorBox } from "../ui";
 import { useRun } from "./RunContext";
@@ -15,12 +16,21 @@ export function DecisionForm() {
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [confirming, setConfirming] = useState(false);
   if (!detail) return null;
   const waiting = detail.record.status === "waiting_review" && !detail.busy && reviewer;
 
   async function decide(decision: "approve" | "reject") {
     setSending(true);
-    setError(await act("/review", { decision, note }));
+    setError(
+      await act(
+        "/review",
+        { decision, note },
+        decision === "approve"
+          ? "Đã duyệt. Engineer sẽ thấy trong thông báo."
+          : "Đã gửi yêu cầu sửa, agent đang sửa theo ghi chú.",
+      ),
+    );
     setSending(false);
   }
 
@@ -59,9 +69,24 @@ export function DecisionForm() {
           >
             Từ chối và ghi chú
           </button>
-          <button type="button" className="btn ok" disabled={!waiting || sending} onClick={() => decide("approve")}>
+          <button type="button" className="btn ok" disabled={!waiting || sending} onClick={() => setConfirming(true)}>
             Duyệt
           </button>
+          <ConfirmDialog
+            open={confirming}
+            onOpenChange={setConfirming}
+            title="Duyệt pipeline này?"
+            confirmLabel="Duyệt"
+            onConfirm={() => decide("approve")}
+          >
+            <p>
+              Bảng đích: <strong className="mono">{detail.record.summary.target ?? "chưa rõ"}</strong>.
+            </p>
+            <p>
+              Quyết định được ghi vào nhật ký kiểm toán (ai, lúc nào) và báo cho Engineer. Agent không tự merge:
+              Engineer tải gói code và mở Pull Request.
+            </p>
+          </ConfirmDialog>
         </div>
         <small className="muted">
           Duyệt xong: tải gói code (.zip) ở góc trên, đưa vào repo và mở Pull Request để CI/CD chạy. Agent không tự

@@ -6,6 +6,7 @@ import { plainStepLabel } from "@/lib/format";
 import type { CurrentNode } from "@/lib/types";
 import { useNow } from "@/lib/useNow";
 
+import { SpinningIcon } from "../../icons";
 import { useRun } from "../RunContext";
 
 const ROTATE_MS = 3500; // đổi câu mô tả
@@ -146,7 +147,7 @@ export function LiveNode({ current, compact = false }: { current: CurrentNode; c
     <div className="live-node">
       <div className="live-head">
         <span className="row">
-          <span className="spinner" aria-hidden />
+          <SpinningIcon size={16} />
           <strong title={`Mã bước: ${current.node}`}>{plainStepLabel(current.label)}</strong>
         </span>
         <span className="row">

@@ -11,6 +11,7 @@ import {
   Bell,
   BookOpen,
   Bug,
+  CaretDown,
   ChartBar,
   Check,
   CheckCircle,
@@ -131,6 +132,7 @@ export const ICONS = {
   external: ArrowUpRight,
   add: Plus,
   check: Check,
+  caret: CaretDown,
   // Giao diện sáng/tối
   light: Sun,
   dark: Moon,

@@ -26,13 +26,22 @@ function RunRow({ run }: { run: RunRecord }) {
           {run.id} · {run.requester}
         </small>
       </td>
-      <td>
+      {/* data-label: tên cột hiện cạnh giá trị khi bảng xếp thành thẻ dọc trên điện thoại (CLAUDE.md 9.9) */}
+      <td data-label="Trạng thái">
         <StatusPill status={run.status} />
       </td>
-      <td className="mono">{run.summary.target ?? "—"}</td>
-      <td>{run.summary.optimization === "applied" ? `+${formatPct(run.summary.improvement_pct)}` : "—"}</td>
-      <td className="num">{run.summary.simulated ? "mô phỏng" : formatUsd(run.summary.cost_usd)}</td>
-      <td className="muted small">{formatTime(run.updated_at)}</td>
+      <td className="mono" data-label="Bảng đích">
+        {run.summary.target ?? "—"}
+      </td>
+      <td data-label="Tối ưu">
+        {run.summary.optimization === "applied" ? `+${formatPct(run.summary.improvement_pct)}` : "—"}
+      </td>
+      <td className="num" data-label="Chi phí LLM">
+        {run.summary.simulated ? "mô phỏng" : formatUsd(run.summary.cost_usd)}
+      </td>
+      <td className="muted small" data-label="Cập nhật">
+        {formatTime(run.updated_at)}
+      </td>
     </tr>
   );
 }
@@ -60,15 +69,28 @@ export function RunsTable() {
       {error && <ErrorBox message={error} onRetry={refresh} />}
       {loading && <Loading text="Đang tải danh sách lần chạy…" />}
       {data && data.length === 0 && (
-        <Empty>
+        <Empty
+          icon="runs"
+          action={
+            filter ? (
+              <Link href="/runs" className="btn small">
+                Bỏ lọc
+              </Link>
+            ) : (
+              <Link href="/#request" className="btn primary small">
+                <Icon name="create" size={16} /> Tạo yêu cầu mới
+              </Link>
+            )
+          }
+        >
           {filter
             ? "Không có lần chạy nào khớp bộ lọc."
-            : "Chưa có lần chạy nào. Hãy mô tả pipeline bạn cần ở ô phía trên."}
+            : "Chưa có lần chạy nào. Mô tả bằng lời bảng số liệu bạn cần, agent sẽ viết pipeline."}
         </Empty>
       )}
       {data && data.length > 0 && (
         <div className="table-wrap">
-          <table>
+          <table className="stack-on-phone">
             <thead>
               <tr>
                 <th>Yêu cầu</th>

@@ -7,6 +7,8 @@ import type { AgentStatus, CurrentUser, Role, RunRecord } from "@/lib/types";
 import { usePoll } from "@/lib/usePoll";
 
 export type ThemeChoice = "system" | "light" | "dark";
+export const THEME_LABELS: Record<ThemeChoice, string> = { system: "Theo máy", light: "Sáng", dark: "Tối" };
+export const THEME_ORDER: ThemeChoice[] = ["system", "light", "dark"];
 const THEME_KEY = "p113.theme";
 export const RUNS_LIMIT = 100; // API trả tối đa 100 lần chạy mới nhất
 

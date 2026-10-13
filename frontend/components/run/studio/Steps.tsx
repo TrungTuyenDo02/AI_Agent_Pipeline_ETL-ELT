@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import type { RunDetail, Stage } from "@/lib/types";
 
-import { CheckIcon, Icon } from "../../icons";
+import { CheckIcon, Icon, SpinningIcon } from "../../icons";
 import { StatusPill } from "../../StatusPill";
 import { Loading, StepCard } from "../../ui";
 import { ClarifyForm, RescueForm, SchemaForm } from "../PendingAction";
@@ -178,7 +178,7 @@ function TrackerRow({ stage, detail }: { stage: Stage; detail: RunDetail }) {
   return (
     <li className="track-row" data-state={stage.state} data-kind={stage.kind}>
       <span className="track-dot" aria-hidden>
-        {stage.state === "running" ? <span className="spinner" /> : glyph}
+        {stage.state === "running" ? <SpinningIcon size={12} /> : glyph}
       </span>
       <div className="track-text">
         {/* mã kỹ thuật (E3, V2…) chỉ trong tooltip, không hiện trên nhãn */}

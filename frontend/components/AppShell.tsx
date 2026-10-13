@@ -3,29 +3,29 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, type ComponentType, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import { useApp } from "./AppContext";
 import type { Role } from "@/lib/types";
 
-import { BookIcon, DatabaseIcon, HomeIcon, type IconComponentProps, ListIcon, SparkIcon, UsersIcon } from "./icons";
+import { BottomNav, Dock, type NavLinkItem } from "./Dock";
+import { Icon, SparkIcon } from "./icons";
 import { NotificationBell } from "./NotificationBell";
 import { RunSearch } from "./RunSearch";
 import { AvatarMenu, ModeBadges, RoleChip } from "./Topbar";
 
-// Bố cục: thanh trên (logo · tab · tìm · vai trò · chuông · avatar), thẻ trắng trên nền phẳng. Không còn thanh icon dọc
-// (trùng menu trên; đổi giao diện và tài liệu API nằm trong menu avatar) — CLAUDE.md yêu cầu 4.
-type IconType = ComponentType<IconComponentProps>;
-type NavItem = { href: string; label: string; icon: IconType };
-const HOME: NavItem = { href: "/", label: "Trang chủ", icon: HomeIcon };
-const RUNS: NavItem = { href: "/runs", label: "Lần chạy", icon: ListIcon };
-const SOURCES: NavItem = { href: "/catalog", label: "Dữ liệu nguồn", icon: DatabaseIcon };
-const ERRORS: NavItem = { href: "/errors", label: "Sổ lỗi", icon: BookIcon };
+// Bố cục (CLAUDE.md 9.4): thanh trên (logo · tab · tìm · vai trò · chuông · avatar), dock nổi bên trái (lối tắt),
+// thẻ nền đặc trên nền phẳng. Điện thoại (< 640px): tab chuyển xuống thanh dưới đáy, ẩn dock.
+type NavItem = NavLinkItem;
+const HOME: NavItem = { href: "/", label: "Trang chủ", icon: "home" };
+const RUNS: NavItem = { href: "/runs", label: "Lần chạy", icon: "runs" };
+const SOURCES: NavItem = { href: "/catalog", label: "Dữ liệu nguồn", icon: "sources" };
+const ERRORS: NavItem = { href: "/errors", label: "Sổ lỗi", icon: "errors" };
 // Mỗi vai trò thấy trước việc của mình (ẩn mục chỉ để gọn; quyền thật kiểm ở backend).
 const NAV: Record<Role, NavItem[]> = {
   engineer: [HOME, RUNS, SOURCES, ERRORS],
   reviewer: [{ ...HOME, label: "Hàng đợi" }, RUNS, ERRORS, SOURCES],
-  admin: [HOME, { href: "/admin", label: "Người dùng", icon: UsersIcon }, RUNS, SOURCES],
+  admin: [HOME, { href: "/admin", label: "Người dùng", icon: "users" }, RUNS, SOURCES],
 };
 function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -42,7 +42,7 @@ function TopBar() {
         <span>P-113 Agent Studio</span>
       </Link>
       <nav className="nav-pills" aria-label="Điều hướng chính">
-        {nav.map(({ href, label, icon: Glyph }) => {
+        {nav.map(({ href, label, icon }) => {
           const active = isActive(pathname, href);
           return (
             <Link
@@ -53,7 +53,7 @@ function TopBar() {
             >
               {/* nền viên đang chọn trượt sang mục mới (CLAUDE.md 9.2: layoutId="active-pill") */}
               {active && <motion.span layoutId="active-pill" className="nav-pill-bg" aria-hidden />}
-              <Glyph size={16} weight={active ? "fill" : "regular"} />
+              <Icon name={icon} size={16} weight={active ? "fill" : "regular"} />
               <span>{label}</span>
             </Link>
           );
@@ -116,6 +116,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <a href="#main" className="skip-link">
         Bỏ qua tới nội dung
       </a>
+      <Dock />
       <div className="frame">
         <TopBar />
         <div className="body">
@@ -125,6 +126,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <Footer />
       </div>
+      <BottomNav items={NAV[user?.role ?? "engineer"]} isActive={(href) => isActive(pathname, href)} />
     </div>
   );
 }

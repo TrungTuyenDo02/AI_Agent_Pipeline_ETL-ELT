@@ -99,6 +99,14 @@ function defaultTable(catalog: CatalogView): string {
 
 type View = "profile" | "diagram";
 
+function ReloadButton({ onRetry }: { onRetry: () => void }) {
+  return (
+    <button type="button" className="btn small" onClick={onRetry}>
+      Tải lại
+    </button>
+  );
+}
+
 export function CatalogScreen({ path, emptyText }: { path: string; emptyText: string }) {
   const { data, error, loading, refresh } = usePoll<CatalogView>(path, null);
   const [picked, setPicked] = useState<string | null>(null);
@@ -107,7 +115,12 @@ export function CatalogScreen({ path, emptyText }: { path: string; emptyText: st
   const canSeeData = useApp().user?.role !== "admin";
   if (loading && !data) return <Loading text="Đang đọc cấu trúc dữ liệu (DuckDB + sqlglot)…" />;
   if (!data) return <ErrorBox message={error || "Không tải được cấu trúc dữ liệu."} onRetry={refresh} />;
-  if (data.tables.length === 0) return <Empty>{emptyText}</Empty>;
+  if (data.tables.length === 0)
+    return (
+      <Empty icon="sources" action={<ReloadButton onRetry={refresh} />}>
+        {emptyText}
+      </Empty>
+    );
   // Mặc định chọn sẵn bảng đích (mart), hoặc bảng nguồn có nhiều quan hệ nhất; bấm lại bảng đang chọn để bỏ chọn.
   const selected = picked ?? defaultTable(data);
   const toggle = (id: string) => setPicked(id === selected ? "" : id);

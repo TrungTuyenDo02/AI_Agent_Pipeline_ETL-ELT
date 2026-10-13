@@ -1043,24 +1043,6 @@ kbd {
   color: var(--ok);
 }
 
-.loading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 16px;
-  color: var(--muted);
-}
-
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--border);
-  border-top-color: var(--primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  flex: none;
-}
-
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -1068,7 +1050,6 @@ kbd {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .spinner,
   .icon-spin {
     animation-duration: 2.4s;
   }
@@ -1078,6 +1059,132 @@ kbd {
   margin: 0;
   padding: 12px 0;
   color: var(--muted);
+}
+
+/* ---------- Đang tải / rỗng / lỗi (CLAUDE.md 9.9) ---------- */
+
+/* Đang tải: các thanh .skeleton (khai báo ở mục "Khung xương khi chờ") xếp dọc + chú thích */
+.loading-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 0;
+}
+
+.loading-skeleton .skeleton:first-child {
+  height: 18px;
+}
+
+.skeleton-caption {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 32px 16px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.empty-state > svg {
+  opacity: 0.85;
+}
+
+.empty-state p {
+  margin: 0;
+  max-width: 46ch;
+}
+
+.alert-text {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.alert-text > svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* ---------- Thông báo nhanh (toast): lớp nổi kính mờ góc dưới phải ---------- */
+
+.toast-stack {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + var(--bottom-nav-h, 0px));
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(380px, calc(100vw - 32px));
+  padding: 12px 8px 12px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-3);
+  color: var(--text);
+  font-size: 14px;
+  pointer-events: auto;
+}
+
+.toast.ok > svg:first-child {
+  color: var(--ok);
+}
+
+.toast.danger > svg:first-child {
+  color: var(--fail);
+}
+
+.toast.info > svg:first-child {
+  color: var(--primary);
+}
+
+.toast-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-close {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.toast-close:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.toast-close:focus-visible {
+  outline: 2px solid var(--primary);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .toast {
+    background: var(--surface);
+    backdrop-filter: none;
+  }
 }
 
 .stats {
@@ -1747,9 +1854,9 @@ ul.plain {
 .phase + .phase::before {
   content: "";
   position: absolute;
-  top: 25px;
-  right: calc(50% + 24px);
-  width: calc(100% - 48px);
+  top: 19px; /* giữa vòng 28px: đệm 6px + 14px − nửa nét */
+  right: calc(50% + 18px);
+  width: calc(100% - 36px);
   height: 2px;
   background: var(--border);
 }
@@ -1779,11 +1886,12 @@ ul.plain {
   background: var(--surface-2);
 }
 
+/* Vòng tròn bước 28px (CLAUDE.md 9.11) */
 .phase-dot {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 28px;
+  height: 28px;
   border: 2px solid var(--border);
   border-radius: 50%;
   background: var(--surface);
@@ -1983,11 +2091,6 @@ ul.plain {
 .stage[data-state="failed"] .stage-label {
   color: var(--text);
   font-weight: 600;
-}
-
-.stage-dot .spinner {
-  width: 14px;
-  height: 14px;
 }
 
 /* chỉ chạy khi nút vừa đổi trạng thái (icon gắn key theo trạng thái) */
@@ -2755,11 +2858,6 @@ legend,
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-
-  .spinner {
-    animation: none;
-    border-top-color: var(--primary);
-  }
 }
 
 /* ---------- Màn nhỏ (vẫn dùng được, ưu tiên laptop) ---------- */
@@ -2999,7 +3097,7 @@ button.role-chip {
 }
 
 .role-caret {
-  font-size: 11px;
+  flex: none;
 }
 
 .role-menu p {
@@ -4247,14 +4345,20 @@ main > .schema-watch {
 
 .tech-details > summary::before,
 .done-group > summary::before {
-  content: "▸";
-  color: var(--muted);
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin: 0 4px 0 2px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg); /* mũi tên vẽ bằng viền, không dùng ký tự (CLAUDE.md 9.11) */
   transition: transform 0.15s ease;
 }
 
 .tech-details[open] > summary::before,
 .done-group[open] > summary::before {
-  transform: rotate(90deg);
+  transform: rotate(45deg);
 }
 
 .done-group-body,
@@ -4535,4 +4639,395 @@ main > .schema-watch {
   margin-left: auto;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Hộp xác nhận (Radix AlertDialog): lớp nổi kính mờ, mờ dần + phóng nhẹ ---------- */
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgb(0 0 0 / 35%);
+  animation: dialog-fade 0.18s ease-out;
+}
+
+.dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 71;
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 24px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-3);
+  color: var(--text);
+  animation: dialog-in 0.2s ease-out;
+}
+
+.dialog:focus {
+  outline: none;
+}
+
+.dialog-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.dialog-title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 650;
+}
+
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.dialog-body p {
+  margin: 0;
+}
+
+.dialog-body strong {
+  color: var(--text);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+@keyframes dialog-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.97);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .dialog {
+    background: var(--surface);
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog {
+    animation: dialog-fade 0.18s ease-out;
+  }
+}
+
+/* ---------- Dock nổi bên trái + thanh dưới đáy điện thoại (CLAUDE.md 9.4, 9.9) ---------- */
+
+.dock {
+  position: fixed;
+  left: 16px;
+  top: 50%;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  transform: translateY(-50%);
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-2);
+}
+
+/* Chừa lề trái cho dock để không đè lên nội dung */
+.page[data-role] {
+  padding-left: 96px;
+}
+
+.dock-item {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.dock-item:hover {
+  transform: scale(1.08);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.dock-item:active {
+  transform: scale(0.97);
+}
+
+.dock-item:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Mục đang chọn: icon fill trên nền kính sáng hơn (CLAUDE.md 9.11) */
+.dock-item.active {
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: var(--shadow-1);
+}
+
+/* Chú thích khi rê chuột / focus bằng bàn phím */
+.dock-item[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  padding: 5px 10px;
+  transform: translate(-4px, -50%);
+  border-radius: 8px;
+  background: var(--text);
+  color: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.dock-item[data-tip]:hover::after,
+.dock-item[data-tip]:focus-visible::after {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+
+.dock-sep {
+  width: 24px;
+  height: 1px;
+  margin: 2px 0;
+  background: var(--border);
+}
+
+.dock-flyout {
+  left: calc(100% + 14px);
+  right: auto;
+  top: auto;
+  bottom: -8px;
+  width: 240px;
+  /* Nền đặc: bảng nằm trong lớp kính của dock, nền trong suốt bị Chrome vẽ lộ chữ phía sau (đã thử: chỉ nền đặc hết lỗi) */
+  background: var(--surface);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.dock-flyout .small {
+  margin: 0;
+}
+
+.bottom-nav {
+  display: none;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .dock,
+  .bottom-nav {
+    background: var(--glass-strong);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .dock,
+  .bottom-nav {
+    background: var(--surface);
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-item:hover,
+  .dock-item:active {
+    transform: none;
+  }
+}
+
+/* 640–1023px: dock thu gọn */
+@media (max-width: 1023px) {
+  .dock {
+    left: 10px;
+    gap: 4px;
+    padding: 6px;
+    border-radius: 18px;
+  }
+
+  .dock-item {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+
+  .page[data-role] {
+    padding-left: 70px;
+  }
+}
+
+/* < 640px: ẩn dock và tab trên; điều hướng chính xuống thanh dưới đáy */
+@media (max-width: 639px) {
+  :root {
+    --bottom-nav-h: calc(68px + env(safe-area-inset-bottom));
+  }
+
+  .dock,
+  .topbar .nav-pills {
+    display: none;
+  }
+
+  .page[data-role] {
+    padding-left: 0;
+    padding-bottom: calc(var(--bottom-nav-h) + 12px);
+  }
+
+  .bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 45;
+    display: flex;
+    justify-content: space-around;
+    align-items: stretch;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--glass-border);
+    background: var(--glass);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: 0 -4px 16px rgb(0 0 0 / 6%);
+  }
+
+  .bottom-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    min-height: 52px;
+    border-radius: 12px;
+    color: var(--text-2);
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .bottom-item span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bottom-item:hover {
+    text-decoration: none;
+  }
+
+  .bottom-item.active {
+    color: var(--primary);
+  }
+
+  .bottom-item.create {
+    color: var(--primary);
+  }
+
+  .bottom-item:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+  }
+}
+
+/* Bảng xếp thành thẻ dọc trên điện thoại: mỗi dòng một thẻ, tên cột (data-label) đứng trước giá trị */
+@media (max-width: 639px) {
+  table.stack-on-phone thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  table.stack-on-phone,
+  table.stack-on-phone tbody,
+  table.stack-on-phone tr,
+  table.stack-on-phone td {
+    display: block;
+    width: 100%;
+  }
+
+  table.stack-on-phone tr {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  table.stack-on-phone td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 3px 0;
+    border: 0;
+    text-align: right;
+  }
+
+  table.stack-on-phone td:first-child {
+    display: block;
+    padding-bottom: 6px;
+    text-align: left;
+  }
+
+  table.stack-on-phone td:first-child .truncate {
+    white-space: normal;
+  }
+
+  table.stack-on-phone td[data-label]::before {
+    content: attr(data-label);
+    font-family: var(--font);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+  }
 }

@@ -10,6 +10,7 @@ import { useHasRole } from "./AppContext";
 import { ArrowRightIcon } from "./icons";
 import { RoleNote } from "./Topbar";
 import { ErrorBox } from "./ui";
+import { useToast } from "./Toast";
 
 // Nhãn ngắn trên nút gợi ý; bấm vào điền câu yêu cầu đầy đủ.
 const EXAMPLES = [
@@ -31,6 +32,7 @@ export function CreateRunForm({ draft = "" }: { draft?: string }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const engineer = useHasRole("engineer");
+  const toast = useToast();
   const tooShort = text.trim().length < 5;
   // Bộ đếm ký tự (CLAUDE.md 9.4); trần 4000 khớp CreateRunBody ở backend
 
@@ -54,6 +56,7 @@ export function CreateRunForm({ draft = "" }: { draft?: string }) {
     setError("");
     try {
       const accepted = await apiPost<Accepted>("/runs", { request_text: text.trim() });
+      toast("Đã gửi yêu cầu, agent bắt đầu lập kế hoạch.");
       router.push(`/runs/${accepted.run_id}`);
     } catch (exc) {
       setError(messageOf(exc));

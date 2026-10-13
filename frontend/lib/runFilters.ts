@@ -18,6 +18,10 @@ export const RUN_FILTERS = {
     label: "Yêu cầu của tôi đang chờ Reviewer",
     test: (run: RunRecord, user: CurrentUser | null) => run.requester === user?.name && run.status === "waiting_review",
   },
+  "dang-chay": {
+    label: "Đang chạy (Giám sát)",
+    test: (run: RunRecord) => run.status === "running",
+  },
   "da-duyet": {
     label: "Yêu cầu của tôi đã duyệt",
     test: (run: RunRecord, user: CurrentUser | null) => run.requester === user?.name && run.status === "approved",

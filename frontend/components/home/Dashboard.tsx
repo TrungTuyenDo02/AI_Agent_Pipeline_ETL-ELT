@@ -165,7 +165,7 @@ function RunListCard({
           Xem tất cả <ArrowRightIcon size={14} />
         </Link>
       </header>
-      {loaded && runs.length === 0 && <Empty>{empty}</Empty>}
+      {loaded && runs.length === 0 && <Empty icon="runs">{empty}</Empty>}
       <ul className="recent-list">
         {runs.map((run) => (
           <li key={run.id}>

@@ -5,6 +5,7 @@ import { AppProvider } from "@/components/AppContext";
 import { AppShell } from "@/components/AppShell";
 import { IconProvider } from "@/components/icons";
 import { MotionProvider } from "@/components/MotionProvider";
+import { ToastProvider } from "@/components/Toast";
 import { mono, sans } from "@/lib/fonts";
 
 import "../styles/tokens.css";
@@ -28,9 +29,11 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       <body>
         <IconProvider>
           <MotionProvider>
-            <AppProvider>
-              <AppShell>{children}</AppShell>
-            </AppProvider>
+            <ToastProvider>
+              <AppProvider>
+                <AppShell>{children}</AppShell>
+              </AppProvider>
+            </ToastProvider>
           </MotionProvider>
         </IconProvider>
       </body>

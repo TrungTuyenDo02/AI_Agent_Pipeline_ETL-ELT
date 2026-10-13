@@ -107,7 +107,9 @@
 | TrungTuyenDo02 | Giao diện mục 9 bước 1–2: bảng màu kiểu Apple, kính mờ cho thanh trên và menu | ✅ Done | Mọi cặp chữ/nền ≥ 4.5:1 (sáng + tối); không còn mã màu cứng | — |
 | TrungTuyenDo02 | Bước 3: đăng nhập gradient lưới + thẻ kính; thẻ thống kê màu, số nhảy, bấm để lọc | ✅ Done | Thử form thật: sai mật khẩu báo chung, đúng vào trang chủ; `/runs?loc=…` lọc khớp số | — |
 | TrungTuyenDo02 | Bước 4: thanh trượt điều hướng, Ctrl/Cmd + K, MotionConfig giảm chuyển động | ✅ Done | Thử bằng phím thật trên Chrome headless; `make frontend-check` đạt | — |
-| TrungTuyenDo02 | Phần còn lại mục 9: dock trái, thanh dưới đáy điện thoại, toast, khung đang tải, hộp xác nhận | ⏳ Chưa làm | Chờ người dùng chọn thứ tự | — |
+| TrungTuyenDo02 | Bước 5: toast, khung xám khi tải, trạng thái rỗng có icon, hộp xác nhận khi Duyệt (Radix) | ✅ Done | Thử thật: Esc hủy không gửi, xác nhận thì ghi duyệt và hiện toast | — |
+| TrungTuyenDo02 | Bước 6: dock trái, thanh dưới đáy điện thoại, bảng Lần chạy xếp dọc trên điện thoại | ✅ Done | Chụp 1440/820/390px; không tràn ngang; sửa bảng Cài đặt lộ chữ phía sau | — |
+| TrungTuyenDo02 | Bước 7: dòng thời gian vòng 28px, icon xoay khi chạy, dấu tích tự vẽ khi xong | ✅ Done | Đo góc xoay thay đổi; lint, kiểu, định dạng, tương phản, build đều đạt | — |
 
 ---
 
