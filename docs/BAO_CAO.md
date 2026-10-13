@@ -210,7 +210,7 @@ Trước đây báo cáo ghi 7/34 vì bộ chấm còn lỗi; đã sửa và ch�
 - **Mỗi phép đo chạy 1 lần:** chênh một ca chưa đủ kết luận; tốc độ dao động giữa các lần đo.
 - **Nhãn kiểm thử do tác giả tự gán** (một phần do Claude viết thay, nhãn `ai_proxy`), chưa có người ngoài nhóm; kết quả bộ kiểm chứng chỉ nói về các ca đã có.
 - **Dữ liệu là kho giả lập** "P113 Retail" (8 hệ thống, 19 bảng, bẩn có chủ đích), chưa chạy trên dữ liệu công ty thật.
-- **Chưa deploy thật:** chưa có địa chỉ chạy công khai; lần chạy và checkpoint còn ở SQLite nên backend chỉ chạy một bản ([DATABASE.md](DATABASE.md)).
+- **Chưa deploy thật:** chưa có địa chỉ chạy công khai. Mã đã hỗ trợ lưu lần chạy/checkpoint trên Neon (kiểm thử trên nhánh dev, 2 lần chạy song song); chưa đo tải thật trên Render.
 - Chế độ `mock` chỉ chứng minh luồng chạy, không chứng minh chất lượng AI.
 - **ELT-Bench chỉ 11/34 bảng (khoảng 32%)** và có ca pipeline **được duyệt nhưng kết quả sai**: bộ kiểm chứng hiện chưa bắt hết, đây là rủi ro thật, không phải sai số nhỏ.
 - **Golden 12/12 chưa phải điểm kiểm độc lập:** bộ golden chưa tách thành tập chỉnh và tập kiểm riêng, nên không nên đọc là độ đúng trên yêu cầu lạ.

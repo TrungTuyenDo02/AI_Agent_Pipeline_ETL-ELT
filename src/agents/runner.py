@@ -1,6 +1,6 @@
 """Chạy graph theo từng lần chạy (run_id = thread_id): bắt đầu, tạm dừng ở J1/J2/cứu hộ, chạy tiếp.
 
-Dùng chung cho CLI và API. Trạng thái graph lưu bằng checkpointer SQLite; tóm tắt lưu trong store.
+Dùng chung cho CLI và API. Trạng thái graph lưu bằng checkpointer (SQLite hoặc PostgreSQL theo STATE_BACKEND); tóm tắt lưu trong store.
 """
 
 import logging
@@ -9,9 +9,12 @@ import time
 from collections.abc import Callable
 from functools import lru_cache
 
+from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command
+from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
 from pydantic import BaseModel
 
 from src.agents.graph import build_graph
@@ -59,16 +62,40 @@ class ResumeRequest(BaseModel):
 
 
 @lru_cache
-def _graph(checkpoint_path: str) -> CompiledStateGraph:
+def _postgres_pool() -> ConnectionPool:
+    """Pool kết nối tới Neon cho checkpointer (nhiều luồng chạy cùng lúc).
+
+    autocommit + dict_row là yêu cầu của langgraph-checkpoint-postgres. `prepare_threshold=None` tắt prepared statement
+    vì host `-pooler` của Neon (PgBouncer) không giữ được chúng giữa các lần mượn kết nối. `check` thử kết nối trước khi
+    đưa ra dùng, vì Neon tự ngủ sau 5 phút và làm đứt kết nối cũ.
+    """
+    settings = get_settings()
+    url = settings.database_url.replace("postgresql+psycopg", "postgresql", 1)
+    return ConnectionPool(
+        url,
+        min_size=1,
+        max_size=settings.run_workers + 2,
+        kwargs={"autocommit": True, "prepare_threshold": None, "row_factory": dict_row, "connect_timeout": 15},
+        check=ConnectionPool.check_connection,
+        open=True,
+    )
+
+
+@lru_cache
+def _graph(backend: str, checkpoint_path: str) -> CompiledStateGraph:
+    if backend == "postgres":
+        return build_graph(PostgresSaver(_postgres_pool()))
     conn = sqlite3.connect(checkpoint_path, check_same_thread=False)
     return build_graph(SqliteSaver(conn))
 
 
 def get_graph() -> CompiledStateGraph:
-    """Graph đã gắn checkpointer SQLite (mỗi tiến trình một kết nối)."""
-    path = get_settings().checkpoint_path
-    path.parent.mkdir(parents=True, exist_ok=True)
-    return _graph(str(path.resolve()))
+    """Graph đã gắn checkpointer (SQLite: mỗi tiến trình một kết nối; PostgreSQL: pool kết nối)."""
+    settings = get_settings()
+    path = settings.checkpoint_path
+    if settings.state_backend == "sqlite":
+        path.parent.mkdir(parents=True, exist_ok=True)
+    return _graph(settings.state_backend, str(path.resolve()))
 
 
 def _config(run_id: str) -> dict:

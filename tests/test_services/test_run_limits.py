@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import text
 
 from src.config import Settings
 from src.models.schemas import RunStatus
@@ -41,8 +42,8 @@ def test_spent_today_counts_real_cost_of_today_only(store: Store):
     old = store.create_run("x", "an")
     store.update_run(old.id, RunStatus.APPROVED, {"cost_usd": 5.0})
     yesterday = (datetime.now(UTC) - timedelta(days=2)).isoformat(timespec="seconds")
-    with store._connect() as conn:
-        conn.execute("UPDATE runs SET created_at=? WHERE id=?", (yesterday, old.id))
+    with store.engine.begin() as conn:
+        conn.execute(text("UPDATE runs SET created_at=:t WHERE id=:id"), {"t": yesterday, "id": old.id})
     other = store.create_run("x", "binh")
     store.update_run(other.id, RunStatus.APPROVED, {"cost_usd": 2.0})
     assert store.spent_today("an") == pytest.approx(0.7)  # bỏ lần mô phỏng, lần hôm trước, người khác

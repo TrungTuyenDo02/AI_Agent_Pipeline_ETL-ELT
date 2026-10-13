@@ -99,6 +99,11 @@ class Settings(BaseSettings):
     # Lưu trữ
     data_dir: Path = Path("./data")
     sources_dir: Path = Path("./data/sources")
+    # Nơi lưu lần chạy, quyết định duyệt, sổ lỗi, bộ nhớ agent và checkpoint: sqlite (file trong data/) hoặc postgres (Neon,
+    # dùng DATABASE_URL). Render xóa ổ đĩa khi khởi động lại nên triển khai thật dùng postgres.
+    state_backend: Literal["sqlite", "postgres"] = "sqlite"
+    # Số lần chạy đồng thời. SQLite chỉ an toàn với 1 luồng (một kết nối checkpoint); chỉ có tác dụng khi state_backend=postgres.
+    run_workers: int = Field(default=2, ge=1, le=4)
     store_path: Path = Path("./data/app.db")
     checkpoint_path: Path = Path("./data/checkpoints.db")
     template_dir: Path = Path("./pipelines/template")

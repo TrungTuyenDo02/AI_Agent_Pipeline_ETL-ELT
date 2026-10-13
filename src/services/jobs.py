@@ -1,7 +1,7 @@
 """Hàng đợi chạy nền cho API: graph chạy lâu (tới vài phút) nên API trả về ngay, web hỏi tiến trình định kỳ.
 
-Các lần chạy được xếp hàng **lần lượt trên một luồng**: checkpointer SQLite dùng chung một kết nối nên không chạy
-song song (đủ cho bản demo một DE). Tiến trình từng bước giữ trong bộ nhớ (mất khi khởi động lại; trạng thái và
+Các lần chạy được xếp hàng: với SQLite **lần lượt trên một luồng** (checkpointer dùng chung một kết nối nên không chạy
+song song, đủ cho bản demo); với PostgreSQL chạy tối đa `RUN_WORKERS` lần cùng lúc. Tiến trình từng bước giữ trong bộ nhớ (mất khi khởi động lại; trạng thái và
 kết quả vẫn nằm trong store/checkpointer).
 
 Bước sinh code (codegen) và chạy sandbox (sandbox_run) được ghi `audit_log` kèm người khởi động thao tác.
@@ -91,7 +91,10 @@ class JobQueue:
     """Một luồng nền chạy graph; lưu sự kiện từng bước theo run_id."""
 
     def __init__(self, timings_path: Path | None = None) -> None:
-        self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="p113-run")
+        settings = get_settings()
+        # SQLite dùng chung một kết nối checkpoint nên chỉ an toàn với 1 luồng; PostgreSQL (pool kết nối) chạy song song được
+        self._workers = settings.run_workers if settings.state_backend == "postgres" else 1
+        self._executor = ThreadPoolExecutor(max_workers=self._workers, thread_name_prefix="p113-run")
         self._lock = threading.Lock()
         self._events: dict[str, list[dict]] = {}
         self._futures: dict[str, Future] = {}
@@ -159,7 +162,8 @@ class JobQueue:
             if not future or future.done() or run_id not in self._order:
                 return None
             ahead = self._order[: self._order.index(run_id)]
-            return sum(1 for r in ahead if not self._futures[r].done())
+            waiting = sum(1 for r in ahead if not self._futures[r].done())
+            return max(0, waiting - (self._workers - 1))  # các luồng còn trống chạy ngay, không phải chờ
 
     def events(self, run_id: str) -> list[dict]:
         """Các bước đã chạy của lần chạy (theo thứ tự)."""
