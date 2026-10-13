@@ -5,7 +5,7 @@ import Link from "next/link";
 import { formatNumber, formatUsd } from "@/lib/format";
 import type { RunDetail } from "@/lib/types";
 
-import { ChartIcon, CpuIcon, DatabaseIcon, FlowIcon, LayersIcon } from "../../icons";
+import { ArrowRightIcon, ChartIcon, CpuIcon, DatabaseIcon, FlowIcon, LayersIcon } from "../../icons";
 import { useRun } from "../RunContext";
 import { formatSeconds } from "./LiveNode";
 
@@ -84,7 +84,7 @@ export function FlowPanel({ detail }: { detail: RunDetail }) {
         title="Luồng dữ liệu"
         aside={
           <Link href={`/runs/${runId}/catalog`} className="small">
-            Chi tiết →
+            Chi tiết <ArrowRightIcon size={14} />
           </Link>
         }
       />

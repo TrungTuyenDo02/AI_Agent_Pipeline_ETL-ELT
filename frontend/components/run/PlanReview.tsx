@@ -72,7 +72,15 @@ export function PlanReview({ pending }: { pending: PlanPending }) {
 
   async function decide(decision: "approve" | "revise") {
     setSending(true);
-    setError(await act("/plan", { decision, note }));
+    setError(
+      await act(
+        "/plan",
+        { decision, note },
+        decision === "approve"
+          ? "Đã duyệt kế hoạch, agent bắt đầu sinh code."
+          : "Đã gửi góp ý, agent lập lại kế hoạch.",
+      ),
+    );
     setSending(false);
   }
 

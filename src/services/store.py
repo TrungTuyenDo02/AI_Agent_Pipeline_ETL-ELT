@@ -6,7 +6,7 @@ import sqlite3
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 from src.config import get_settings
@@ -14,6 +14,8 @@ from src.models.evidence import ReviewDecision
 from src.models.schemas import RunRecord, RunStatus
 
 logger = logging.getLogger(__name__)
+VN_TZ = timezone(timedelta(hours=7))  # "hôm nay" của trần chi phí tính theo giờ Việt Nam
+INTERRUPTED = "Server khởi động lại khi lần chạy đang chạy nên lần chạy bị dừng. Hãy tạo lại yêu cầu."
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
@@ -93,6 +95,33 @@ class Store:
                     "UPDATE runs SET status=?, updated_at=?, summary=? WHERE id=?",
                     (status, _now(), json.dumps(summary, ensure_ascii=False, default=str), run_id),
                 )
+
+    def fail_interrupted_runs(self) -> int:
+        """Lúc khởi động: lần chạy còn `running` không còn tiến trình nào chạy → đánh dấu lỗi kèm lý do."""
+        with self._connect() as conn:
+            rows = conn.execute("SELECT id, summary FROM runs WHERE status=?", (RunStatus.RUNNING,)).fetchall()
+            for row in rows:
+                summary = {**json.loads(row["summary"] or "{}"), "error": INTERRUPTED}
+                conn.execute(
+                    "UPDATE runs SET status=?, updated_at=?, summary=? WHERE id=?",
+                    (RunStatus.FAILED, _now(), json.dumps(summary, ensure_ascii=False), row["id"]),
+                )
+        return len(rows)
+
+    def spent_today(self, requester: str) -> float:
+        """Chi phí LLM thật (USD) của các lần chạy người này tạo hôm nay (giờ VN); bỏ lần chạy mô phỏng."""
+        start = datetime.now(VN_TZ).replace(hour=0, minute=0, second=0, microsecond=0).astimezone(UTC)
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT summary FROM runs WHERE requester=? AND created_at>=?",
+                (requester, start.isoformat(timespec="seconds")),
+            ).fetchall()
+        total = 0.0
+        for row in rows:
+            summary = json.loads(row["summary"] or "{}")
+            if not summary.get("simulated"):
+                total += float(summary.get("cost_usd") or 0.0)
+        return round(total, 6)
 
     def get_run(self, run_id: str) -> RunRecord | None:
         """Lấy một lần chạy theo id; không có thì trả None."""

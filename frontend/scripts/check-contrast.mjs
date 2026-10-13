@@ -66,7 +66,9 @@ const PAIRS = [
   ["login-ink", "login-glass-solid", "tiêu đề, chữ nhập trên thẻ kính đăng nhập"],
   ["login-muted", "login-glass-solid", "chữ phụ, gợi ý trên thẻ kính đăng nhập"],
   ["login-cta-ink", "login-cta-b", "chữ nút Đăng nhập (giữa)"],
-  ["login-cta-ink", "login-cta-solid", "chữ nút Đăng nhập (mép phải)"],
+  ["login-cta-ink", "login-cta-solid", "chữ nút Đăng nhập (mép dưới)"],
+  ["fail", "login-glass-solid", "lỗi dưới ô nhập trên thẻ kính đăng nhập"],
+  ["login-cta-b", "login-glass-solid", "viền ô đang nhập, vòng focus trên thẻ đăng nhập"],
   ["login-error", "login-error-bg", "lỗi đăng nhập"],
   ["warn", "warn-soft", "nhãn vai trò Admin"],
 ];

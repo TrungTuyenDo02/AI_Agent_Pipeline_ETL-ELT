@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import type { Stage, StageState } from "@/lib/types";
 
+import { DrawnCheck, Icon, SpinningIcon } from "../icons";
 import { useRun } from "./RunContext";
 
 const STATE_TEXT: Record<StageState, string> = {
@@ -31,10 +32,12 @@ function phaseState(stages: Stage[]): StageState {
   return stages.length > 0 && stages.every((s) => s.state === "passed") ? "passed" : "waiting";
 }
 
-function StateIcon({ state }: { state: StageState }) {
-  if (state === "running") return <span className="spinner" aria-hidden />;
-  const glyph = { waiting: "", passed: "✓", failed: "!", human: "…" }[state];
-  return <span aria-hidden>{glyph}</span>;
+/** Icon trong vòng tròn bước (CLAUDE.md 9.11): đang chạy = CircleNotch xoay, xong = dấu tích tự vẽ, lỗi/chờ bạn = icon. */
+function StateIcon({ state, size = 14 }: { state: StageState; size?: number }) {
+  if (state === "running") return <SpinningIcon size={size} />;
+  if (state === "passed") return <DrawnCheck size={size} />;
+  if (state === "waiting") return null;
+  return <Icon name={state === "failed" ? "close" : "awaitingReview"} size={size} weight="bold" />;
 }
 
 function SubStep({ stage }: { stage: Stage }) {
@@ -93,7 +96,7 @@ export function PipelineTrack() {
             >
               <span className="phase-dot">
                 <span className="stage-icon" key={phase.state}>
-                  <StateIcon state={phase.state} />
+                  <StateIcon state={phase.state} size={16} />
                 </span>
               </span>
               <span className="phase-label">{phase.label}</span>

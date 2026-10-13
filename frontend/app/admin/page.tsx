@@ -8,6 +8,7 @@ import { Card, Checkbox, ErrorBox, Loading } from "@/components/ui";
 import { apiPatch, apiPost, messageOf } from "@/lib/api";
 import type { AdminUser, Role } from "@/lib/types";
 import { usePoll } from "@/lib/usePoll";
+import { useToast } from "@/components/Toast";
 
 // Quản lý tài khoản (chỉ Admin; backend kiểm từng API). Không có đăng ký tự do: Admin cấp tài khoản + mật khẩu tạm.
 const ROLES: Role[] = ["engineer", "reviewer", "admin"];
@@ -118,12 +119,14 @@ function UserRow({ user, self, onDone }: { user: AdminUser; self: boolean; onDon
   const [error, setError] = useState("");
   const [resetting, setResetting] = useState(false);
   const [password, setPassword] = useState("");
+  const toast = useToast();
 
   async function update(body: Partial<{ role: Role; is_active: boolean; password: string }>) {
     setBusy(true);
     setError("");
     try {
       await apiPatch(`/admin/users/${user.id}`, body);
+      toast(`Đã cập nhật tài khoản @${user.username}.`);
       setResetting(false);
       setPassword("");
       await onDone();

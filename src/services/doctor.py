@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from sqlalchemy.engine import make_url
 
 from src.config import get_settings, is_real_secret
+from src.services.cost import PRICES_PER_MILLION
 
 
 class CheckResult(BaseModel):
@@ -72,6 +73,25 @@ def _fallback() -> CheckResult:
         name="LLM dự phòng",
         level="warn",
         message="LLM_FALLBACK=google nhưng thiếu GOOGLE_API_KEY — sẽ không có dự phòng",
+    )
+
+
+def _prices() -> CheckResult:
+    """Mục 14.3: model không có trong bảng giá bị tính 0 đồng → trần chi phí mất tác dụng."""
+    settings = get_settings()
+    if settings.is_mock:
+        return CheckResult(name="Bảng giá LLM", level="info", message="mô phỏng, không tính tiền")
+    table = settings.model_table
+    names = {choice.name for choice in table.models.values()} | {table.fallback.name}
+    missing = sorted(n for n in names if n not in PRICES_PER_MILLION)
+    if missing:
+        return CheckResult(
+            name="Bảng giá LLM",
+            level="warn",
+            message=f"chưa có giá cho {', '.join(missing)} (đang tính 0 USD) — thêm vào src/services/cost.py",
+        )
+    return CheckResult(
+        name="Bảng giá LLM", level="ok", message=f"đủ giá; trần {settings.llm_daily_budget_usd:g} USD/người/ngày"
     )
 
 
@@ -150,4 +170,4 @@ def _database() -> CheckResult:
 def run_checks() -> list[CheckResult]:
     """Chạy toàn bộ kiểm tra."""
     packages = [_package(p) for p in ("duckdb", "dbt-core", "dbt-duckdb", "sqlglot", "langgraph", "fastapi")]
-    return [_python(), _env_file(), _llm(), _fallback(), _database(), *packages, _data(), *_optional()]
+    return [_python(), _env_file(), _llm(), _fallback(), _prices(), _database(), *packages, _data(), *_optional()]

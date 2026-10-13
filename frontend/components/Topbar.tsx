@@ -8,12 +8,10 @@ import Link from "next/link";
 import { API_URL } from "@/lib/api";
 import type { Role } from "@/lib/types";
 
-import { useApp, type ThemeChoice } from "./AppContext";
-import { ArrowUpRightIcon, CheckIcon, DocIcon, LogoutIcon } from "./icons";
+import { THEME_LABELS, THEME_ORDER, useApp } from "./AppContext";
+import { ArrowUpRightIcon, CheckIcon, DocIcon, Icon, LogoutIcon } from "./icons";
 import { useDismiss, waitingFor } from "./NotificationBell";
 
-const THEME_LABELS: Record<ThemeChoice, string> = { system: "Theo máy", light: "Sáng", dark: "Tối" };
-const THEME_ORDER: ThemeChoice[] = ["system", "light", "dark"];
 export const ROLE_LABELS: Record<Role, string> = { engineer: "Engineer", reviewer: "Reviewer", admin: "Admin" };
 
 export function ModeBadges() {
@@ -136,9 +134,7 @@ export function RoleChip() {
         <span className="role-dot" aria-hidden />
         {ROLE_LABELS[user.role]}
         {queue > 0 && <span className="role-count">{queue} chờ duyệt</span>}
-        <span className="role-caret" aria-hidden>
-          ▾
-        </span>
+        <Icon name="caret" size={12} weight="bold" className="role-caret" />
       </button>
       {open && (
         <div className="flyout menu role-menu" role="dialog" aria-label="Đổi vai trò">

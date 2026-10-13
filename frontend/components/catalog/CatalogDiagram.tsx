@@ -66,7 +66,12 @@ function TableNode({
       </text>
       <text className="sub" x={16} y={43}>
         {parts.filter(Boolean).join(" · ")}
-        {duplicates > 0 && <tspan fill="var(--warn)"> · ⚠ {formatNumber(duplicates)} khóa trùng</tspan>}
+        {duplicates > 0 && (
+          <tspan fill="var(--warn)" fontWeight={600}>
+            {" "}
+            · {formatNumber(duplicates)} khóa trùng
+          </tspan>
+        )}
       </text>
     </g>
   );

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { downloadUrl } from "@/lib/api";
 import { formatTime } from "@/lib/format";
 
+import { ArrowLeftIcon } from "../icons";
 import { ErrorBox, Loading, StatusBadge } from "../ui";
 import { PipelineTrack } from "./PipelineTrack";
 import { useRun } from "./RunContext";
@@ -49,7 +50,7 @@ export function RunHeader() {
         <div>
           {/* mã lần chạy dài chỉ còn trong tooltip (CLAUDE.md yêu cầu 6) */}
           <Link href="/runs" className="small" title={`Mã lần chạy: ${record.id}`}>
-            ← Lần chạy
+            <ArrowLeftIcon size={14} /> Lần chạy
           </Link>
           <h1>{record.request_text}</h1>
           <div className="row muted small run-meta">
@@ -68,7 +69,12 @@ export function RunHeader() {
         </div>
         <div className="run-actions">
           <StatusBadge status={record.status} />
-          {detail.busy && <span className="badge info">agent đang chạy…</span>}
+          {detail.busy &&
+            (detail.queue_position ? (
+              <span className="badge info">đang xếp hàng: còn {detail.queue_position} lần chạy phía trước</span>
+            ) : (
+              <span className="badge info">agent đang chạy…</span>
+            ))}
           {hasCode && (
             <a className="btn primary" href={downloadUrl(runId)} download>
               Tải gói code (.zip)

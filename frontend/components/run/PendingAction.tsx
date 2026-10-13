@@ -34,7 +34,7 @@ export function ClarifyForm({ unknowns, questions }: { unknowns: string[]; quest
   async function submit(event: FormEvent) {
     event.preventDefault();
     setSending(true);
-    setError(await act("/answers", { answers }));
+    setError(await act("/answers", { answers }, "Đã gửi câu trả lời, agent chạy tiếp."));
     setSending(false);
   }
 
@@ -94,7 +94,9 @@ export function RescueForm({ error, attempts }: { error: string; attempts: numbe
 
   async function send(action: "retry" | "abort") {
     setSending(true);
-    setFailure(await act("/rescue", { action, hint }));
+    setFailure(
+      await act("/rescue", { action, hint }, action === "retry" ? "Đã gửi gợi ý, agent thử lại." : "Đã dừng lần chạy."),
+    );
     setSending(false);
   }
 
@@ -134,7 +136,13 @@ export function SchemaForm({ report }: { report: SchemaReport }) {
 
   async function send(action: "continue" | "abort") {
     setSending(true);
-    setFailure(await act("/schema", { action, renames: action === "continue" ? renames : {} }));
+    setFailure(
+      await act(
+        "/schema",
+        { action, renames: action === "continue" ? renames : {} },
+        action === "continue" ? "Đã xác nhận cấu trúc mới, agent chạy tiếp." : "Đã dừng lần chạy.",
+      ),
+    );
     setSending(false);
   }
 

@@ -96,6 +96,20 @@
 | TrungTuyenDo02 | Chọn dd/mm hay mm/dd theo bằng chứng; chưa chắc thì báo ở Dữ liệu nguồn và màn duyệt | ✅ Done | 4 ca test (VN, Mỹ, lẫn, mơ hồ) | — |
 | TrungTuyenDo02 | CLAUDE.md 2.3: LLM chỉ thấy cấu trúc và con số; code điền giá trị cột cho người tick | ✅ Done | Planner v8 (tĩnh +79, động −213 token/3 nguồn); `pytest` 696 passed; độ phủ 91,92% | — |
 | TrungTuyenDo02 | Đổi sang gpt-6-luna (`temperature: false`), đo Planner v8 bằng LLM thật (`smoke-llm`) | ✅ Done | 3/3 qua V0/V1, 0 câu hỏi thừa, 0,00577 USD (trước 0,00997); g06 lỗi cú pháp 1/4 lần | — |
+| TrungTuyenDo02 | Tạo `.env.production.example`; thử pooler Neon với prepared statement | ✅ Done | 60/60 lượt, 3 luồng, 0 lỗi; bản Render là demo (SQLite mất khi khởi động lại) | — |
+| TrungTuyenDo02 | Mục 14: lần chạy kẹt, tối đa 2 lần chạy/người, vị trí hàng đợi, trần 1 USD/người/ngày | ✅ Done | Vượt giới hạn trả 429; `doctor` báo model thiếu giá; 6 test mới | — |
+| TrungTuyenDo02 | Đổi icon sang Phosphor, bỏ ký tự ✓ ✗ ⚠ làm icon | ✅ Done | `lib/icons.ts`; build + chụp 8 màn (sáng/tối) bằng Chrome headless | — |
+
+## 2026-10-14
+
+| Member | Task | Status | Output | Time |
+|--------|------|--------|--------|------|
+| TrungTuyenDo02 | Giao diện mục 9 bước 1–2: bảng màu kiểu Apple, kính mờ cho thanh trên và menu | ✅ Done | Mọi cặp chữ/nền ≥ 4.5:1 (sáng + tối); không còn mã màu cứng | — |
+| TrungTuyenDo02 | Bước 3: đăng nhập gradient lưới + thẻ kính; thẻ thống kê màu, số nhảy, bấm để lọc | ✅ Done | Thử form thật: sai mật khẩu báo chung, đúng vào trang chủ; `/runs?loc=…` lọc khớp số | — |
+| TrungTuyenDo02 | Bước 4: thanh trượt điều hướng, Ctrl/Cmd + K, MotionConfig giảm chuyển động | ✅ Done | Thử bằng phím thật trên Chrome headless; `make frontend-check` đạt | — |
+| TrungTuyenDo02 | Bước 5: toast, khung xám khi tải, trạng thái rỗng có icon, hộp xác nhận khi Duyệt (Radix) | ✅ Done | Thử thật: Esc hủy không gửi, xác nhận thì ghi duyệt và hiện toast | — |
+| TrungTuyenDo02 | Bước 6: dock trái, thanh dưới đáy điện thoại, bảng Lần chạy xếp dọc trên điện thoại | ✅ Done | Chụp 1440/820/390px; không tràn ngang; sửa bảng Cài đặt lộ chữ phía sau | — |
+| TrungTuyenDo02 | Bước 7: dòng thời gian vòng 28px, icon xoay khi chạy, dấu tích tự vẽ khi xong | ✅ Done | Đo góc xoay thay đổi; lint, kiểu, định dạng, tương phản, build đều đạt | — |
 
 ---
 

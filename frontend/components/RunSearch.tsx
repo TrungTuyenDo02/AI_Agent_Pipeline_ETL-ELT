@@ -1,20 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useApp } from "./AppContext";
+import { Icon } from "./icons";
 import { runHref, useDismiss } from "./NotificationBell";
 import { StatusPill } from "./StatusPill";
-
-function SearchIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-      <circle cx="11" cy="11" r="7" />
-      <path d="M20 20l-3.5-3.5" />
-    </svg>
-  );
-}
 
 /** Tìm lần chạy theo yêu cầu, bảng đích hoặc mã (trên danh sách thật đã tải). */
 export function RunSearch() {
@@ -22,6 +14,20 @@ export function RunSearch() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const box = useDismiss(open, () => setOpen(false));
+  const input = useRef<HTMLInputElement>(null);
+
+  // Cmd + K (máy Mac) hoặc Ctrl + K: nhảy vào ô tìm từ bất kỳ đâu (CLAUDE.md 9.2)
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        input.current?.focus();
+        input.current?.select();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const needle = query.trim().toLowerCase();
   const found = needle
     ? (runs ?? [])
@@ -32,11 +38,13 @@ export function RunSearch() {
     : [];
   return (
     <div className="popover search" ref={box}>
-      <label className="search-box">
-        <SearchIcon />
+      <label className="search-box" title="Tìm lần chạy (Ctrl + K hoặc Cmd + K)">
+        <Icon name="search" size={16} />
         <span className="sr-only">Tìm lần chạy</span>
         <input
+          ref={input}
           type="search"
+          aria-keyshortcuts="Control+K Meta+K"
           placeholder="Tìm lần chạy…"
           value={query}
           onChange={(e) => {
@@ -45,6 +53,7 @@ export function RunSearch() {
           }}
           onFocus={() => setOpen(true)}
         />
+        <kbd aria-hidden>Ctrl K</kbd>
       </label>
       {open && needle && (
         <div className="flyout" role="dialog" aria-label="Kết quả tìm">

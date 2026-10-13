@@ -80,6 +80,7 @@ class RunDetail(BaseModel):
     # node đang chạy: {node, label, stage, started_at, elapsed_s, typical_s, samples, activity}; None khi rảnh.
     # typical_s là trung vị thời gian ĐO THẬT các lần trước (None khi chưa đủ mẫu); activity là mô tả, không phải log đo.
     current: dict | None = None
+    queue_position: int | None = None  # số lần chạy đứng trước trong hàng (0 = đang chạy); None khi không xếp hàng
     schema_report: dict = {}  # mục 8: cấu trúc nguồn so với bản đã duyệt + đề xuất sửa
     schema_decision: dict = {}  # Engineer đã xác nhận gì khi có cột bị xóa/đổi tên
     value_filters: list[dict] = []  # mục 9: điều kiện cứng theo giá trị (tô sáng ở màn duyệt)

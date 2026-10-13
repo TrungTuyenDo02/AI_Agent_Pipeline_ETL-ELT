@@ -28,7 +28,7 @@ from src.models.spec import ClarifyQuestion
 from src.services import auth
 from src.services.cost import usage_breakdown
 from src.services.export import export_zip
-from src.services.jobs import get_jobs
+from src.services.jobs import JobLimitError, get_jobs
 from src.services.store import get_store
 
 router = APIRouter(prefix="/runs", tags=["runs"])
@@ -46,9 +46,10 @@ async def list_runs(limit: int = Query(default=20, ge=1, le=100)) -> list[RunRec
 @router.post("", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
 def create_run(body: CreateRunBody, user: Engineer, request: Request) -> Accepted:
     """Tạo yêu cầu mới; agent chạy nền tới điểm dừng đầu tiên (câu hỏi làm rõ hoặc bản duyệt)."""
+    _check_limits(user.name)  # trước khi tạo: bị chặn thì không để lại lần chạy treo
     run_id = runner.create_run(body.request_text.strip(), user.name)
     auth.audit("run.create", user.name, target=run_id, ip=client_ip(request))
-    get_jobs().submit(run_id, lambda sink: runner.run_created(run_id, sink), actor=user.name)
+    get_jobs().submit(run_id, lambda sink: runner.run_created(run_id, sink), actor=user.name, owner=user.name)
     return Accepted(run_id=run_id, status="running", message="Đã nhận yêu cầu, agent đang chạy.")
 
 
@@ -86,6 +87,7 @@ def get_run(run_id: str) -> RunDetail:
         ],
         usage=usage_breakdown(values.get("llm_usage", [])),
         current=current,
+        queue_position=jobs.position(run_id) if busy else None,
         schema_report=values.get("schema_report", {}),
         schema_decision=values.get("schema_decision", {}),
         value_filters=values.get("value_filters", []),
@@ -127,9 +129,19 @@ def _pending(run_id: str, kind: str) -> dict:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
+def _check_limits(owner: str, run_id: str = "") -> None:
+    """Mục 14.2-14.3: quá số lần chạy cùng lúc hoặc chạm trần chi phí hôm nay → 429 kèm lý do tiếng Việt."""
+    try:
+        get_jobs().check(owner, run_id)
+    except JobLimitError as exc:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(exc)) from exc
+
+
 def _resume(run_id: str, kind: str, value: dict, user: CurrentUser) -> Accepted:
+    owner = run_or_404(run_id).requester  # giới hạn tính cho người tạo yêu cầu, kể cả khi Reviewer bấm duyệt
+    _check_limits(owner, run_id)
     request = ResumeRequest(run_id=run_id, kind=kind, value=value)
-    get_jobs().submit(run_id, lambda sink: runner.resume_run(request, sink), actor=user.name)
+    get_jobs().submit(run_id, lambda sink: runner.resume_run(request, sink), actor=user.name, owner=owner)
     return Accepted(run_id=run_id, status="running", message="Đã nhận, agent chạy tiếp.")
 
 

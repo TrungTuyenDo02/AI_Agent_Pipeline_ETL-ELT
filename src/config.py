@@ -114,6 +114,10 @@ class Settings(BaseSettings):
     max_plan_rounds: int = Field(default=5, ge=1)
     max_review_rounds: int = Field(default=3, ge=1)
 
+    # Giới hạn theo người (CLAUDE.md mục 14): số lần chạy đang chờ/đang chạy; trần chi phí LLM mỗi ngày (0 = không chặn)
+    max_active_runs_per_user: int = Field(default=2, ge=1)
+    llm_daily_budget_usd: float = Field(default=1.0, ge=0.0)
+
     # Dữ liệu thử (E2)
     seed: int = 42
     mock_small_rows: int = Field(default=200, ge=10)

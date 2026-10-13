@@ -9,17 +9,20 @@ import { usePoll } from "@/lib/usePoll";
 import { useHasRole } from "./AppContext";
 import { RoleNote } from "./Topbar";
 import { Card, Empty, ErrorBox, Loading } from "./ui";
+import { useToast } from "./Toast";
 
 function EntryCard({ entry, onDone }: { entry: ErrorEntry; onDone: () => Promise<void> }) {
   const [fix, setFix] = useState(entry.fix);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const reviewer = useHasRole("reviewer");
+  const toast = useToast();
 
   async function send(action: "approve" | "discard") {
     setSending(true);
     try {
       await apiPost(`/errors/${entry.id}/${action}`, action === "approve" ? { fix } : {});
+      toast(action === "approve" ? `Đã duyệt ${entry.code} vào sổ lỗi.` : `Đã bỏ ${entry.code}.`);
       await onDone();
     } catch (exc) {
       setError(messageOf(exc));
@@ -74,7 +77,10 @@ export function ErrorBook() {
   const { data, error, loading, refresh } = usePoll<ErrorEntry[]>("/errors", null);
   if (loading && !data) return <Loading text="Đang tải sổ lỗi…" />;
   if (!data) return <ErrorBox message={error || "Không tải được sổ lỗi."} onRetry={refresh} />;
-  if (data.length === 0) return <Empty>Không có mục nào chờ duyệt.</Empty>;
+  if (data.length === 0)
+    return (
+      <Empty icon="errors">Không có mục nào chờ duyệt. Lỗi mới agent gặp khi chạy sẽ hiện ở đây để Reviewer xem.</Empty>
+    );
   return (
     <div className="stack">
       <RoleNote need="reviewer" />

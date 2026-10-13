@@ -1,24 +1,30 @@
-// Nhãn trạng thái có biểu tượng (kiểu mẫu: ✓ Hoàn thành, ✗ Thất bại, • Đang chạy).
+// Nhãn trạng thái: icon Phosphor + màu + chữ (CLAUDE.md 9.11, không dùng ký tự ✓ ✗ làm icon).
 
 import { STATUS_LABELS, STATUS_TONES } from "@/lib/format";
+import type { IconName } from "@/lib/icons";
 import type { RunStatus } from "@/lib/types";
 
-const GLYPH: Record<RunStatus, string> = {
-  running: "",
-  waiting_clarification: "?",
-  waiting_plan_review: "!",
-  waiting_schema: "!",
-  waiting_rescue: "!",
-  waiting_review: "!",
-  approved: "✓",
-  failed: "✗",
+import { Icon } from "./icons";
+
+const STATUS_ICON: Record<Exclude<RunStatus, "running">, IconName> = {
+  waiting_clarification: "warning",
+  waiting_plan_review: "warning",
+  waiting_schema: "warning",
+  waiting_rescue: "warning",
+  waiting_review: "awaitingReview",
+  approved: "success",
+  failed: "failure",
 };
 
 export function StatusPill({ status }: { status: RunStatus }) {
   return (
     <span className={`status-pill ${STATUS_TONES[status]}`}>
       <span className="status-glyph" aria-hidden>
-        {status === "running" ? <span className="pulse-dot" /> : GLYPH[status]}
+        {status === "running" ? (
+          <span className="pulse-dot" />
+        ) : (
+          <Icon name={STATUS_ICON[status]} size={15} weight="fill" />
+        )}
       </span>
       {STATUS_LABELS[status]}
     </span>

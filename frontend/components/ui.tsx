@@ -2,16 +2,22 @@
 
 import type { ReactNode } from "react";
 
-import { STATUS_LABELS, STATUS_TONES } from "@/lib/format";
+import type { IconName } from "@/lib/icons";
 import type { RunStatus } from "@/lib/types";
 
-import { CheckIcon } from "./icons";
+import { CheckIcon, Icon, StatusIcon } from "./icons";
+import { StatusPill } from "./StatusPill";
 
-export function Loading({ text = "Đang tải…" }: { text?: string }) {
+const SKELETON_WIDTHS = ["92%", "76%", "84%", "60%", "70%"];
+
+/** Đang tải: khung xám nhấp nháy giữ chỗ nội dung (CLAUDE.md 9.9) + một dòng chú thích việc đang làm. */
+export function Loading({ text = "Đang tải…", lines = 3 }: { text?: string; lines?: number }) {
   return (
-    <div className="loading" role="status" aria-live="polite">
-      <span className="spinner" aria-hidden />
-      {text}
+    <div className="loading-skeleton" role="status" aria-live="polite" aria-busy="true">
+      {Array.from({ length: lines }, (_, i) => (
+        <span key={i} className="skeleton" style={{ width: SKELETON_WIDTHS[i % SKELETON_WIDTHS.length] }} />
+      ))}
+      <span className="skeleton-caption">{text}</span>
     </div>
   );
 }
@@ -19,7 +25,10 @@ export function Loading({ text = "Đang tải…" }: { text?: string }) {
 export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div className="alert danger" role="alert">
-      <span>{message}</span>
+      <span className="alert-text">
+        <StatusIcon tone="danger" size={18} />
+        {message}
+      </span>
       {onRetry && (
         <button type="button" className="btn small" onClick={onRetry}>
           Thử lại
@@ -29,8 +38,9 @@ export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () =
   );
 }
 
+/** Trạng thái lần chạy: dùng chung nhãn có icon + màu + chữ (CLAUDE.md 9.11). */
 export function StatusBadge({ status }: { status: RunStatus }) {
-  return <span className={`badge ${STATUS_TONES[status]}`}>{STATUS_LABELS[status]}</span>;
+  return <StatusPill status={status} />;
 }
 
 export function Card({ title, actions, children }: { title: ReactNode; actions?: ReactNode; children: ReactNode }) {
@@ -45,8 +55,16 @@ export function Card({ title, actions, children }: { title: ReactNode; actions?:
   );
 }
 
-export function Empty({ children }: { children: ReactNode }) {
-  return <p className="empty">{children}</p>;
+/** Rỗng. Có `icon` → trạng thái rỗng cả khung (icon duotone 56px, câu hướng dẫn, nút hành động); không có → một dòng chữ phụ. */
+export function Empty({ children, icon, action }: { children: ReactNode; icon?: IconName; action?: ReactNode }) {
+  if (!icon) return <p className="empty">{children}</p>;
+  return (
+    <div className="empty-state">
+      <Icon name={icon} size={56} weight="duotone" />
+      <p>{children}</p>
+      {action}
+    </div>
+  );
 }
 
 export function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) {
@@ -61,17 +79,17 @@ export function Stat({ label, value, hint }: { label: string; value: ReactNode; 
 export function PassMark({ passed }: { passed: boolean | null }) {
   if (passed === null)
     return (
-      <span className="mark info" aria-label="Thông tin">
-        •
+      <span className="mark info" role="img" aria-label="Thông tin">
+        <StatusIcon tone="info" size={14} />
       </span>
     );
   return passed ? (
-    <span className="mark ok" aria-label="Đạt">
-      ✓
+    <span className="mark ok" role="img" aria-label="Đạt">
+      <StatusIcon tone="ok" size={14} />
     </span>
   ) : (
-    <span className="mark danger" aria-label="Không đạt">
-      ✗
+    <span className="mark danger" role="img" aria-label="Không đạt">
+      <StatusIcon tone="danger" size={14} />
     </span>
   );
 }

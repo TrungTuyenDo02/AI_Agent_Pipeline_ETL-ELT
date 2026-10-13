@@ -181,6 +181,8 @@ export interface RunDetail {
   stages?: Stage[];
   usage?: UsageReport;
   current?: CurrentNode | null;
+  /** số lần chạy đứng trước trong hàng đợi (0 = đang chạy); null khi không xếp hàng */
+  queue_position?: number | null;
   schema_report?: SchemaReport | Record<string, never>;
   schema_decision?: { by?: string; renames?: Record<string, string> };
   value_filters?: ValueFilter[];

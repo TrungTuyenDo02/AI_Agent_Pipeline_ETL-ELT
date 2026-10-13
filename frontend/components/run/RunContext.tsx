@@ -6,6 +6,8 @@ import { apiPost, messageOf } from "@/lib/api";
 import type { Accepted, RunDetail } from "@/lib/types";
 import { usePoll } from "@/lib/usePoll";
 
+import { useToast } from "../Toast";
+
 interface RunState {
   runId: string;
   detail: RunDetail | null;
@@ -14,8 +16,8 @@ interface RunState {
   error: string;
   loading: boolean;
   refresh: () => Promise<void>;
-  /** Gửi thao tác (trả lời, duyệt, cứu hộ); trả về thông báo lỗi hoặc chuỗi rỗng. */
-  act: (path: string, body: unknown) => Promise<string>;
+  /** Gửi thao tác (trả lời, duyệt, cứu hộ); trả về thông báo lỗi hoặc chuỗi rỗng. `done`: câu toast khi thành công. */
+  act: (path: string, body: unknown, done?: string) => Promise<string>;
 }
 
 const RunContext = createContext<RunState | null>(null);
@@ -28,10 +30,12 @@ export function RunProvider({ runId, children }: { runId: string; children: Reac
   if (detail && active !== fast) setFast(active);
 
   const { refresh } = polled;
+  const toast = useToast();
   const act = useCallback(
-    async (path: string, body: unknown) => {
+    async (path: string, body: unknown, done?: string) => {
       try {
         await apiPost<Accepted>(`/runs/${runId}${path}`, body);
+        if (done) toast(done);
         setFast(true);
         await refresh();
         return "";
@@ -39,7 +43,7 @@ export function RunProvider({ runId, children }: { runId: string; children: Reac
         return messageOf(exc);
       }
     },
-    [runId, refresh],
+    [runId, refresh, toast],
   );
 
   const value = useMemo<RunState>(
