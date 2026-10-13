@@ -92,6 +92,7 @@ def get_run(run_id: str) -> RunDetail:
         schema_decision=values.get("schema_decision", {}),
         value_filters=values.get("value_filters", []),
         reconciliation=values.get("reconciliation", []),
+        retryable=not busy and str(record.status) == "failed" and not runner.retry_problem(run_id),
     )
 
 
@@ -143,6 +144,21 @@ def _resume(run_id: str, kind: str, value: dict, user: CurrentUser) -> Accepted:
     request = ResumeRequest(run_id=run_id, kind=kind, value=value)
     get_jobs().submit(run_id, lambda sink: runner.resume_run(request, sink), actor=user.name, owner=owner)
     return Accepted(run_id=run_id, status="running", message="Đã nhận, agent chạy tiếp.")
+
+
+@router.post("/{run_id}/retry", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
+def retry(run_id: str, user: Engineer, request: Request) -> Accepted:
+    """Chạy lại từ bước lỗi: các bước đã xong giữ nguyên, chỉ làm lại bước đang dở (xem runner.retry_problem)."""
+    record = run_or_404(run_id)
+    if get_jobs().busy(run_id):
+        raise HTTPException(status_code=409, detail="Lần chạy đang chạy, vui lòng đợi.")
+    problem = runner.retry_problem(run_id)
+    if problem:
+        raise HTTPException(status_code=409, detail=problem)
+    _check_limits(record.requester, run_id)
+    auth.audit("run.retry", user.name, target=run_id, ip=client_ip(request))
+    get_jobs().submit(run_id, lambda sink: runner.retry_run(run_id, sink), actor=user.name, owner=record.requester)
+    return Accepted(run_id=run_id, status="running", message="Đã nhận, agent chạy lại từ bước lỗi.")
 
 
 @router.post("/{run_id}/answers", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)

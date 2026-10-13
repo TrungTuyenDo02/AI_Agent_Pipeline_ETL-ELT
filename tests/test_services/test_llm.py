@@ -117,8 +117,10 @@ def test_get_provider_wraps_fallback_and_uses_task_model():
     assert "effort" not in provider.primary.output_config  # không khai báo effort thì không gửi
     assert provider.primary.output_config["format"]["type"] == "json_schema"
     plain = get_provider(Settings(llm_provider="openai", llm_fallback="none", **KEYS), task="codegen")
-    assert isinstance(plain, OpenAIProvider) and plain.model == "gpt-6-luna"
-    assert plain.client.bound.temperature is None  # `temperature: false` trong models.yaml → không gửi tham số
+    # luôn có bộ ngắt mạch bao ngoài; llm_fallback=none thì chỉ ngắt mạch, không có dự phòng
+    assert isinstance(plain, FallbackProvider) and not plain.use_fallback
+    assert isinstance(plain.primary, OpenAIProvider) and plain.primary.model == "gpt-6-luna"
+    assert plain.primary.client.bound.temperature is None  # `temperature: false` trong models.yaml → không gửi tham số
 
 
 def test_anthropic_provider_without_key_gives_vietnamese_instruction():

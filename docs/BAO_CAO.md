@@ -186,8 +186,8 @@ Nguồn: [eval/results/report.md](../eval/results/report.md), sinh bởi `python
 
 | Chỉ số | Điều kiện đo | Kết quả |
 |---|---|---|
-| Test tự động | `mock`, không cần khóa | 717 đạt, 2 xfail, 0 lỗi (2026-10-14) |
-| Độ phủ code | `pytest --cov`, ngưỡng 60% | 92,13% |
+| Test tự động | `mock`, không cần khóa | 730 đạt, 2 xfail, 0 lỗi (2026-10-14) |
+| Độ phủ code | `pytest --cov`, ngưỡng 60% | 92,19% |
 | Mutation: bắt lỗi giả | mô phỏng (bộ sinh test giả `mock`, pipeline gốc cố định), 1 lần | 11/12 (91,7%) |
 | Golden: kết quả đúng khớp SQL chuẩn | code | 11/11 ca |
 | Golden: agent đúng | LLM thật (gpt-5.6-luna; optimizer gpt-5.6-terra), 12 ca, 1 lần, đo 2026-10-08 | 12/12 ca |

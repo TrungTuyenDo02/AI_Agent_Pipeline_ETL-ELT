@@ -6082,3 +6082,14 @@ body:has(.login-page)::after {
 .fail-text {
   color: var(--fail);
 }
+
+/* Chạy lại từ bước lỗi */
+.retry-banner {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  border-radius: var(--radius-md);
+}
+
+.retry-banner .btn {
+  flex: none;
+}

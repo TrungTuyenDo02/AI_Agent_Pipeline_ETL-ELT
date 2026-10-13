@@ -197,6 +197,34 @@ def check_resumable(run_id: str, kind: str) -> dict:
     return pending
 
 
+def retry_problem(run_id: str, check_status: bool = True) -> str:
+    """Lý do KHÔNG chạy lại từ bước lỗi được (chuỗi rỗng = được).
+
+    Chạy lại = tiếp tục từ checkpoint cuối: các bước đã xong giữ nguyên (không gọi lại LLM, không chạy lại sandbox), chỉ
+    làm lại bước đang dở khi lỗi. Dùng cho lỗi tạm thời (LLM quá hạn/hết hạn mức, server khởi động lại giữa chừng).
+    Lần chạy đã đi tới nhánh "thất bại" của graph (hết lượt sửa, bị dừng) thì không có bước nào để tiếp tục.
+    """
+    record = get_store().get_run(run_id)
+    if record is None:
+        return f"Không tìm thấy lần chạy {run_id}."
+    if check_status and record.status != RunStatus.FAILED:
+        return "Chỉ chạy lại được lần chạy đang ở trạng thái lỗi."
+    snapshot = get_graph().get_state(_config(run_id))
+    if not snapshot.next or "fail" in snapshot.next:
+        return "Lần chạy đã dừng hẳn (hết lượt sửa hoặc bị dừng), không có bước nào để tiếp tục. Hãy tạo yêu cầu mới."
+    return ""
+
+
+def retry_run(run_id: str, on_event: EventCallback | None = None) -> RunOutcome:
+    """Chạy lại từ bước lỗi (xem `retry_problem`)."""
+    # API đã kiểm trạng thái FAILED trước khi xếp hàng; lúc job chạy trạng thái đã được đặt lại thành RUNNING
+    problem = retry_problem(run_id, check_status=False)
+    if problem:
+        raise RunStateError(problem)
+    get_store().update_run(run_id, RunStatus.RUNNING)
+    return _finish(run_id, _stream(run_id, None, on_event))
+
+
 def resume_run(request: ResumeRequest, on_event: EventCallback | None = None) -> RunOutcome:
     """Tiếp tục khi đúng bước đang chờ."""
     check_resumable(request.run_id, request.kind)

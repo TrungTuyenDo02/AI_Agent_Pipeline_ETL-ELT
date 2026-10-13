@@ -176,6 +176,22 @@ def test_compare_node_sends_rejection_back_to_optimizer(pipeline_state: dict, mo
     assert "lệch" in result["opt_candidate"]["feedback"] and result["opt_candidate"]["history"]
 
 
+def test_optimizer_provider_outage_keeps_original_instead_of_failing_run(datasets: dict[str, str], monkeypatch):
+    """Nhà cung cấp optimizer quá hạn/lỗi/đang ngắt mạch: bỏ qua tối ưu, giữ bản gốc, lần chạy không FAILED."""
+    from src.agents.nodes import optimizer
+    from src.services.llm import LLMCallError
+
+    def outage(task: str, variables: dict[str, str]):
+        raise LLMCallError("Nhà cung cấp anthropic/claude-haiku-5-5 đang tạm ngắt vì nhiều lần lỗi liên tiếp.")
+
+    monkeypatch.setattr(optimizer, "call_llm", outage)
+    job = optimizer.ProposalInput(sql=ORIGINAL, findings=[], bench_db=datasets["small"])
+    candidate, usage = optimizer.llm_rewrite(job)
+    assert usage is None and "tạm ngắt" in candidate["invalid"]
+    report = evaluate_candidate({**candidate, "original_sql": ORIGINAL, "attempt": 1}, datasets)
+    assert report.decision == "skipped"
+
+
 def test_missing_optimizer_key_keeps_original_instead_of_failing_run(datasets: dict[str, str], monkeypatch):
     """Optimizer dùng Anthropic mà chưa có ANTHROPIC_API_KEY: ứng viên bị loại kèm lý do, lần chạy không dừng."""
     from src.agents.nodes import optimizer

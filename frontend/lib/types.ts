@@ -183,6 +183,7 @@ export interface RunDetail {
   current?: CurrentNode | null;
   /** số lần chạy đứng trước trong hàng đợi (0 = đang chạy); null khi không xếp hàng */
   queue_position?: number | null;
+  retryable?: boolean;
   schema_report?: SchemaReport | Record<string, never>;
   schema_decision?: { by?: string; renames?: Record<string, string> };
   value_filters?: ValueFilter[];
@@ -382,6 +383,8 @@ export interface AgentStatus {
   llm_provider: string;
   models: string;
   simulated: boolean;
+  /** Trạng thái ngắt mạch từng nhà cung cấp × model (closed | open | half_open) */
+  breakers?: { key: string; state: string; recent_calls: number; recent_failures: number }[];
 }
 
 export interface ErrorEntry {

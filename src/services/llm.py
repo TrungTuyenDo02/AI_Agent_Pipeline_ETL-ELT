@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from src.config import Settings, get_settings
 from src.models.llm_outputs import output_schema
 from src.models.schemas import LLMUsage
+from src.services.circuit_breaker import get_breaker
 from src.services.cost import estimate_cost_usd
 
 logger = logging.getLogger(__name__)
@@ -144,7 +145,7 @@ class OpenAIProvider:
             api_key=settings.openai_api_key,
             temperature=settings.temperature_for(task) if accepts_temperature else None,
             max_tokens=settings.max_tokens_for(task),
-            timeout=120,
+            timeout=settings.timeout_for(task),
             max_retries=2,
         )
         self.client = client.bind(response_format=openai_response_format(settings, task))
@@ -192,7 +193,9 @@ class AnthropicProvider:
         self.model = model or choice.name
         self.max_tokens = settings.max_tokens_for(task)
         self.output_config = anthropic_output_config(settings, task, choice.effort)
-        self.client = anthropic.Anthropic(api_key=settings.anthropic_api_key, timeout=300, max_retries=2)
+        self.client = anthropic.Anthropic(
+            api_key=settings.anthropic_api_key, timeout=settings.timeout_for(task), max_retries=2
+        )
 
     def complete(self, request: LLMRequest, prompt: tuple[str, str]) -> LLMResponse:
         """Gọi Claude và ghi lại token/chi phí ước tính; bị cắt ngang hoặc từ chối = gọi thất bại (sang dự phòng)."""
@@ -248,7 +251,7 @@ class GoogleProvider:
             google_api_key=settings.google_api_key,
             temperature=settings.temperature_for(task),
             max_tokens=settings.max_tokens_for(task),
-            timeout=120,
+            timeout=settings.timeout_for(task),
             max_retries=2,
             response_mime_type="application/json",
             response_schema=schema,
@@ -270,25 +273,43 @@ class GoogleProvider:
 
 
 class FallbackProvider:
-    """Gọi nhà cung cấp chính; chỉ khi GỌI THẤT BẠI (mạng, hạn mức, model lỗi) mới chuyển sang dự phòng.
+    """Gọi nhà cung cấp chính qua circuit breaker; lỗi hoặc đang ngắt mạch thì sang dự phòng Gemini (nếu bật).
 
-    Câu trả lời sai định dạng KHÔNG chuyển dự phòng (các node đã tự xử lý). Dự phòng chỉ dựng khi cần.
+    Chỉ khi GỌI THẤT BẠI (mạng, hạn mức, model lỗi) mới tính là lỗi: câu trả lời sai định dạng KHÔNG chuyển dự phòng và
+    không làm bộ ngắt đếm lỗi (các node đã tự xử lý). Bộ ngắt riêng cho từng cặp `nhà cung cấp/model` nên một nhà
+    cung cấp hỏng không kéo nhà khác hỏng theo. Đang ngắt mạch → không chờ timeout, bên gọi nhận lỗi/dự phòng ngay.
+    Dự phòng chỉ dựng khi cần; `use_fallback=False` thì chỉ có ngắt mạch, không có dự phòng.
     """
 
-    def __init__(self, primary: LLMProvider, settings: Settings) -> None:
-        self.primary, self.settings = primary, settings
+    def __init__(self, primary: LLMProvider, settings: Settings, key: str = "", use_fallback: bool = True) -> None:
+        self.primary, self.settings, self.use_fallback = primary, settings, use_fallback
+        self.key = key or f"{type(primary).__name__}/{getattr(primary, 'model', '?')}"
 
     def complete(self, request: LLMRequest, prompt: tuple[str, str]) -> LLMResponse:
-        """Gọi chính, lỗi thì gọi Gemini; `usage.provider/model` ghi đúng bên đã trả lời."""
-        try:
-            return self.primary.complete(request, prompt)
-        except LLMCallError as exc:
-            logger.warning("llm primary failed, using fallback", extra={"task": request.task, "error": str(exc)})
+        """Gọi chính, lỗi hoặc ngắt mạch thì gọi Gemini; `usage.provider/model` ghi đúng bên đã trả lời."""
+        breaker = get_breaker(self.key, self.settings)
+        if breaker.allow():
             try:
-                backup = GoogleProvider(self.settings, task=request.task)
-            except LLMConfigError as config_exc:
-                raise LLMCallError(f"{exc} Không dùng được dự phòng Gemini: {config_exc}") from exc
-            return backup.complete(request, prompt)
+                response = self.primary.complete(request, prompt)
+            except LLMCallError as exc:
+                breaker.record_failure()
+                failure = exc
+            else:
+                breaker.record_success()
+                return response
+        else:
+            failure = LLMCallError(
+                f"Nhà cung cấp {self.key} đang tạm ngắt vì nhiều lần lỗi liên tiếp; thử lại sau khoảng "
+                f"{breaker.retry_in()} giây."
+            )
+        if not self.use_fallback:
+            raise failure
+        logger.warning("llm primary unavailable, using fallback", extra={"task": request.task, "error": str(failure)})
+        try:
+            backup = GoogleProvider(self.settings, task=request.task)
+        except LLMConfigError as config_exc:
+            raise LLMCallError(f"{failure} Không dùng được dự phòng Gemini: {config_exc}") from failure
+        return backup.complete(request, prompt)
 
 
 PROVIDERS: dict[str, type] = {"openai": OpenAIProvider, "anthropic": AnthropicProvider, "google": GoogleProvider}
@@ -302,8 +323,8 @@ def get_provider(settings: Settings | None = None, task: str = "") -> LLMProvide
     if settings.llm_provider == "openai":
         choice = settings.choice_for(task)
         primary = PROVIDERS[choice.provider](settings, choice.name, task)
-        wrap = settings.llm_fallback == "google" and choice.provider != "google"
-        return FallbackProvider(primary, settings) if wrap else primary
+        use_fallback = settings.llm_fallback == "google" and choice.provider != "google"
+        return FallbackProvider(primary, settings, key=f"{choice.provider}/{choice.name}", use_fallback=use_fallback)
     from src.services.llm_mock import MockProvider
 
     return MockProvider()

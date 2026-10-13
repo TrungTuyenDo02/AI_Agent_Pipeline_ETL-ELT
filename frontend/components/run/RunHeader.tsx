@@ -8,6 +8,7 @@ import { formatTime } from "@/lib/format";
 
 import { ErrorBox, Loading, StatusBadge } from "../ui";
 import { PipelineTrack } from "./PipelineTrack";
+import { RetryBanner } from "./RetryBanner";
 import { useRun } from "./RunContext";
 
 function Tabs({ runId }: { runId: string }) {
@@ -79,6 +80,7 @@ export function RunHeader() {
         </div>
       </div>
       <PipelineTrack />
+      <RetryBanner />
       {error && <ErrorBox message={`Mất kết nối, đang thử lại… (${error})`} />}
       <Tabs runId={runId} />
     </div>

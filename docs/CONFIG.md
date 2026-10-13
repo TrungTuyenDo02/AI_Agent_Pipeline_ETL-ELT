@@ -11,7 +11,9 @@ Nguồn sự thật của mặc định: [src/config.py](../src/config.py). Cộ
 | `OPENAI_API_KEY` | Khóa OpenAI (bước nào khai báo `provider: openai`) | trống | **có** |
 | `ANTHROPIC_API_KEY` | Khóa Anthropic (bước nào khai báo `provider: anthropic`, hiện là Optimizer) | trống | **có** |
 | `GOOGLE_API_KEY` | Khóa Gemini (khi `google` hoặc làm dự phòng) | trống | **có** |
-| `LLM_FALLBACK` | `google` = model chính gọi lỗi thì chuyển Gemini; `none` = tắt | `google` | không |
+| `LLM_FALLBACK` | `google` = model chính gọi lỗi hoặc đang ngắt mạch thì chuyển Gemini; `none` = tắt (vẫn có ngắt mạch, báo lỗi ngay) | `google` | không |
+| `BREAKER_MIN_CALLS` • `BREAKER_FAILURE_RATE` • `BREAKER_RESET_SEC` • `BREAKER_PROBES` | Circuit breaker mỗi cặp nhà cung cấp × model: đủ ≥ 4 lượt trong 10 lượt gần nhất và ≥ 50% lỗi thì ngắt 60 giây, rồi cho 1 lượt thăm dò; thành công thì đóng lại | `4` • `0.5` • `60` • `1` | không |
+| `STATE_BACKEND` • `RUN_WORKERS` | `sqlite` (mặc định) hoặc `postgres` (Neon) cho lần chạy, sổ lỗi, bộ nhớ agent, checkpoint; số lần chạy cùng lúc (chỉ có tác dụng với postgres) | `sqlite` • `2` | không |
 | `LLM_TEMPERATURE` | Chỉ Codegen dùng, tối đa 0,2; bước khác luôn 0 (Opus 5.5 không nhận temperature) | `0` | không |
 | `LLM_MAX_TOKENS` | Trần token đầu ra chung (mỗi bước có trần riêng nhỏ hơn) | `16000` | không |
 | `LLM_STRUCTURED_OUTPUT` | Gửi JSON Schema strict; `false` = quay về `json_object` | `true` | không |

@@ -53,6 +53,14 @@ python demo/run_demo.py             # build + chạy; mở http://localhost:3000
 Trang đăng nhập có khung giới thiệu dự án, hướng dẫn chạy, mô tả dữ liệu mẫu và 3 tài khoản demo (bấm để điền sẵn); có nút VI/EN và sáng/tối.
 Chi tiết: [demo/README.md](demo/README.md). Các cách chạy khác: [docs/RUNBOOK.md](docs/RUNBOOK.md), [docs/DATABASE.md](docs/DATABASE.md).
 
+### Khi nhà cung cấp LLM chậm hoặc lỗi
+
+- **Hạn chờ theo bước** (optimizer 60 giây, các bước khác 120–180 giây) và SDK tự thử lại 2 lần.
+- **Circuit breaker** ([src/services/circuit_breaker.py](src/services/circuit_breaker.py)) cho từng cặp nhà cung cấp × model: lỗi liên tiếp thì ngắt mạch, các lượt sau sang dự phòng Gemini (hoặc báo lỗi) ngay, không chờ timeout; sau 60 giây thử lại bằng 1 lượt thăm dò. Trạng thái hiện ở chân trang.
+- **Tối ưu là bước tùy chọn:** optimizer lỗi hoặc đang ngắt mạch thì giữ bản gốc đã đúng, lần chạy không bị đánh lỗi.
+- **Chạy lại từ bước lỗi:** lần chạy dừng vì lỗi tạm thời (LLM quá hạn, hết hạn mức, server khởi động lại) có nút "Chạy lại từ bước lỗi"; các bước đã xong giữ nguyên nhờ checkpoint, chỉ làm lại bước đang dở.
+- Màn lần chạy luôn hiện token, chi phí ước tính, model đã trả lời và thời gian; trang Lần chạy có khối "Hiệu quả agent" để cân nhắc dùng rộng rãi.
+
 ### Lưu trạng thái trên Neon (triển khai thật)
 
 Mặc định (`STATE_BACKEND=sqlite`) lần chạy, sổ lỗi, bộ nhớ agent và checkpoint nằm trong file SQLite ở `data/`. Đặt `STATE_BACKEND=postgres`
@@ -71,7 +79,7 @@ Chi tiết và điều kiện đo: [eval/results/report.md](eval/results/report.
 | ELT-Bench-Verified: khớp bảng đúng | LLM thật, 34 bảng, 1 lần, chấm lại 2026-10-07 | **11/34** (gồm 2 model lỗi của benchmark) |
 | Optimizer: model LLM nào tốt hơn | LLM thật, chỉ ứng viên do LLM viết, 13 query, 1 lần, 2026-10-14 | Claude Haiku 4.5 **11/13** (áp dụng 8/13), 0,083 USD; **Haiku 5.5 9/13** (áp dụng 7/13), 0,025 USD (đang dùng); gpt-5.6-terra 5/13, 0,24 USD; Claude Opus 5.5 3/13, 0,96 USD • [ab_optimizer.md](eval/results/ab_optimizer.md) |
 | Baseline: truy vấn viết tay không tối ưu = 100% | `mock` (luật cố định + sqlglot), sf=0,1, 1 lần, 2026-10-14 | cả bộ còn **14%** thời gian, **86%** dòng quét; chi phí tính toán ước tính (giả định) cũng còn 14% • [tpch_baseline.md](eval/results/tpch_baseline.md) |
-| Test tự động | `mock`, độ phủ ngưỡng 60% | 717 passed, 2 xfailed, độ phủ 92,13% (2026-10-14) |
+| Test tự động | `mock`, độ phủ ngưỡng 60% | 730 passed, 2 xfailed, độ phủ 92,19% (2026-10-14) |
 | Thời gian phản hồi API | trong tiến trình, SQLite, 100 lần | p50 2,2 ms, p95 4,3 ms (`/health`) • [api_latency.md](eval/results/api_latency.md) |
 
 ## Tài liệu

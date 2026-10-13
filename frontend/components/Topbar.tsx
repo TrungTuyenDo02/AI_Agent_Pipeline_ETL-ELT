@@ -30,6 +30,16 @@ export function ModeBadges() {
   const { status, statusError } = useApp();
   if (statusError) return <span className="badge danger">Mất kết nối API</span>;
   if (!status) return <span className="badge muted">Đang kiểm tra API…</span>;
+  const open = (status.breakers ?? []).filter((b) => b.state !== "closed");
+  if (open.length > 0)
+    return (
+      <span
+        className="badge warn"
+        title={`Tạm ngắt vì nhiều lần lỗi liên tiếp: ${open.map((b) => `${b.key} (${b.state})`).join(", ")}. Hệ thống sẽ tự thử lại.`}
+      >
+        LLM tạm ngắt · {open.map((b) => b.key).join(", ")}
+      </span>
+    );
   return status.simulated ? (
     <span className="badge warn" title="LLM_PROVIDER=mock: câu trả lời LLM là cố định, không phải chất lượng thật">
       Mô phỏng
