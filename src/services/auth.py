@@ -43,6 +43,7 @@ ROLES: tuple[str, ...] = get_args(Role)
 USERNAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]{1,31}$")
 MIN_PASSWORD_LENGTH = 12
 SSL_MODES_OK = ("sslmode=require", "sslmode=verify-ca", "sslmode=verify-full")
+CONNECT_TIMEOUT_SEC = 15
 
 _hasher = PasswordHasher()  # mặc định của argon2-cffi là argon2id, tham số theo RFC 9106
 # Băm sẵn một mật khẩu giả: tên đăng nhập không tồn tại vẫn tốn thời gian kiểm như thật (không lộ ai có tài khoản).
@@ -137,7 +138,10 @@ def check_database_url(url: str, app_env: str) -> None:
 def _engine(url: str) -> Engine:
     if url.startswith("sqlite"):
         return create_engine(url, connect_args={"check_same_thread": False})
-    return create_engine(url, pool_pre_ping=True, pool_size=5, max_overflow=5)
+    # connect_timeout: Neon tự ngủ sau 5 phút, lần kết nối đầu cần vài giây để máy dậy.
+    return create_engine(
+        url, pool_pre_ping=True, pool_size=5, max_overflow=5, connect_args={"connect_timeout": CONNECT_TIMEOUT_SEC}
+    )
 
 
 def get_engine() -> Engine:

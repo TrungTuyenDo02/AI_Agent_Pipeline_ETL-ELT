@@ -191,6 +191,7 @@ class ColumnProfile(BaseModel):
     invalid: int = 0  # chuỗi dạng ngày/tiền mà biểu thức đọc của bộ soi P không đọc được
     case_variants: int = 0  # số giá trị chỉ khác hoa/thường/khoảng trắng
     formats: list[str] = []  # cách viết ngày/tiền phát hiện được trong cột chuỗi
+    uncertain: list[str] = []  # điều bộ soi P không chứng minh được từ dữ liệu (vd thứ tự ngày/tháng)
     distinct: int = 0
     minimum: str | None = None
     maximum: str | None = None
@@ -299,6 +300,7 @@ def _column(con: duckdb.DuckDBPyConnection, ref: str, name_type: tuple[str, str]
         column.flags = scan_text(*values)
         column.invalid, column.case_variants = hints.get("parse_failures", 0), hints.get("case_variants", 0)
         column.formats = hints.get("date_formats", []) + hints.get("money_formats", [])
+        column.uncertain = hints.get("uncertain", [])
     _top(con, ref, col, column)
     if (column.near_unique or column.bins) and not _placeholder(column, total):
         column.top, column.other = [], 0  # dạng mã / đã có biểu đồ khoảng: chỉ giữ khi lộ giá trị giữ chỗ
@@ -335,6 +337,7 @@ def _column_issues(column: ColumnProfile, rows: int) -> list[ProfileIssue]:
     if column.case_variants:
         text = f"{column.case_variants} giá trị chỉ khác hoa/thường/khoảng trắng — nên chuẩn hóa upper(trim(...))."
         out.append(ProfileIssue(level="warn", column=name, text=text))
+    out += [ProfileIssue(level="warn", column=name, text=note) for note in column.uncertain]
     if len(column.formats) > 1:
         text = f"Lẫn {len(column.formats)} cách viết: {', '.join(column.formats)} — đã có biểu thức đọc từ bộ soi P."
         out.append(ProfileIssue(level="info", column=name, text=text))

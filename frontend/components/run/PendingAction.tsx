@@ -13,11 +13,23 @@ import { useRun } from "./RunContext";
 
 export function ClarifyForm({ unknowns, questions }: { unknowns: string[]; questions: ClarifyQuestion[] }) {
   const { act } = useRun();
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
-  const complete = questions.every((q) => answers[q.id]);
+  const complete = questions.every((q) => answers[q.id]?.length);
   const engineer = useHasRole("engineer");
+
+  // Câu chọn nhiều: bật/tắt một giá trị, giữ thứ tự như danh sách lựa chọn
+  function toggle(q: ClarifyQuestion, option: string, on: boolean) {
+    const current = Array.isArray(answers[q.id]) ? (answers[q.id] as string[]) : [];
+    const next = q.options.filter((o) => (o === option ? on : current.includes(o)));
+    setAnswers({ ...answers, [q.id]: next });
+  }
+
+  function isChecked(q: ClarifyQuestion, option: string) {
+    const value = answers[q.id];
+    return Array.isArray(value) ? value.includes(option) : value === option;
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -39,15 +51,23 @@ export function ClarifyForm({ unknowns, questions }: { unknowns: string[]; quest
           <legend>
             {index + 1}. {q.question}
           </legend>
+          {q.multiple && (
+            <p className="muted" style={{ margin: "0 0 8px" }}>
+              Giá trị thật của cột {q.column}, chọn một hoặc nhiều. AI không thấy danh sách này, chỉ nhận giá trị bạn
+              chọn.
+            </p>
+          )}
           <div className="option-pills">
             {q.options.map((option) => (
               <label key={option} className="option">
                 <input
-                  type="radio"
+                  type={q.multiple ? "checkbox" : "radio"}
                   name={q.id}
                   value={option}
-                  checked={answers[q.id] === option}
-                  onChange={() => setAnswers({ ...answers, [q.id]: option })}
+                  checked={isChecked(q, option)}
+                  onChange={(event) =>
+                    q.multiple ? toggle(q, option, event.target.checked) : setAnswers({ ...answers, [q.id]: option })
+                  }
                 />
                 <span>{option}</span>
               </label>

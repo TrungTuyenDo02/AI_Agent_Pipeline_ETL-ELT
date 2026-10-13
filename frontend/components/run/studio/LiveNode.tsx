@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { plainStepLabel } from "@/lib/format";
 import type { CurrentNode } from "@/lib/types";
 import { useNow } from "@/lib/useNow";
 
@@ -146,7 +147,7 @@ export function LiveNode({ current, compact = false }: { current: CurrentNode; c
       <div className="live-head">
         <span className="row">
           <span className="spinner" aria-hidden />
-          <strong>{current.label}</strong>
+          <strong title={`Mã bước: ${current.node}`}>{plainStepLabel(current.label)}</strong>
         </span>
         <span className="row">
           <span className="live-clock" aria-label={`Đã chạy ${formatSeconds(elapsed)}`}>

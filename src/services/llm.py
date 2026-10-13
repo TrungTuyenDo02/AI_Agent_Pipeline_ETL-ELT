@@ -1,6 +1,7 @@
 """Cổng gọi LLM duy nhất của hệ thống: `openai`, `google` hoặc `mock` (LLM_PROVIDER); dự phòng Gemini (LLM_FALLBACK).
 
-Mọi node gọi `call_llm(task, variables)`; prompt nằm ở `src/prompts/<task>.md`.
+Mọi node gọi `call_llm(task, variables)`; prompt nằm ở `src/prompts/<task>.md`. Nhà cung cấp + model của từng bước
+(OpenAI, Anthropic hoặc Google) đọc từ `config/models.yaml`.
 """
 
 import json
@@ -135,11 +136,13 @@ class OpenAIProvider:
             )
         from langchain_openai import ChatOpenAI
 
-        self.model = model or settings.model_name
+        self.model = model or settings.model_for(task)
+        choice = settings.choice_for(task)  # models.yaml: `temperature: false` = model chỉ nhận nhiệt độ mặc định
+        accepts_temperature = choice.temperature or self.model != choice.name
         client = ChatOpenAI(
             model=self.model,
             api_key=settings.openai_api_key,
-            temperature=settings.temperature_for(task),
+            temperature=settings.temperature_for(task) if accepts_temperature else None,
             max_tokens=settings.max_tokens_for(task),
             timeout=120,
             max_retries=2,
@@ -158,6 +161,73 @@ class OpenAIProvider:
         except openai.OpenAIError as exc:  # gồm cả LengthFinishReasonError (model suy luận dùng hết token)
             raise LLMCallError(f"Gọi OpenAI thất bại ({type(exc).__name__}). Kiểm tra khóa, mạng và hạn mức.") from exc
         return _response(request, message, info)
+
+
+def anthropic_output_config(settings: Settings, task: str, effort: str) -> dict:
+    """`output_config` của Anthropic: mức effort + JSON Schema đầu ra (cùng schema strict với OpenAI)."""
+    config: dict = {"effort": effort}
+    schema = output_schema(task) if settings.llm_structured_output else None
+    if schema is not None:
+        config["format"] = {"type": "json_schema", "schema": schema}
+    return config
+
+
+class AnthropicProvider:
+    """Gọi Claude qua SDK chính thức `anthropic`, ép đầu ra theo schema.
+
+    Opus 5.5 luôn suy luận và không nhận `temperature`: độ sâu suy luận chỉnh bằng `effort` trong models.yaml (mặc
+    định medium). Bật dự phòng phía máy chủ (`fallbacks="default"`): nếu model từ chối vì bộ lọc an toàn, Anthropic tự
+    chạy lại bằng model khác trong cùng lời gọi; `usage.model` ghi đúng model đã trả lời.
+    """
+
+    def __init__(self, settings: Settings, model: str = "", task: str = "") -> None:
+        if not settings.has_anthropic_key:
+            raise LLMConfigError(
+                f"Bước '{task}' dùng Anthropic (config/models.yaml) nhưng chưa có ANTHROPIC_API_KEY. "
+                "Mở file .env, điền ANTHROPIC_API_KEY=<khóa của bạn>, hoặc đổi provider của bước này trong models.yaml."
+            )
+        import anthropic
+
+        choice = settings.choice_for(task)
+        self.model = model or choice.name
+        self.max_tokens = settings.max_tokens_for(task)
+        self.output_config = anthropic_output_config(settings, task, choice.effort or "medium")
+        self.client = anthropic.Anthropic(api_key=settings.anthropic_api_key, timeout=300, max_retries=2)
+
+    def complete(self, request: LLMRequest, prompt: tuple[str, str]) -> LLMResponse:
+        """Gọi Claude và ghi lại token/chi phí ước tính; bị cắt ngang hoặc từ chối = gọi thất bại (sang dự phòng)."""
+        import anthropic
+
+        started = time.perf_counter()
+        try:
+            message = self.client.beta.messages.create(
+                model=self.model,
+                max_tokens=self.max_tokens,
+                system=prompt[0],
+                messages=[{"role": "user", "content": prompt[1]}],
+                output_config=self.output_config,
+                betas=["server-side-fallback-2026-07-01"],
+                fallbacks="default",
+            )
+        except anthropic.AnthropicError as exc:
+            raise LLMCallError(
+                f"Gọi Anthropic thất bại ({type(exc).__name__}). Kiểm tra khóa, mạng và hạn mức."
+            ) from exc
+        if message.stop_reason in ("max_tokens", "refusal"):
+            raise LLMCallError(f"Anthropic dừng giữa chừng (stop_reason={message.stop_reason}), không có JSON đầy đủ.")
+        usage = message.usage
+        cached = usage.cache_read_input_tokens or 0
+        info = UsageInfo(
+            provider="anthropic",
+            model=message.model or self.model,
+            # Anthropic tách token trúng/ghi cache khỏi input_tokens; cộng lại cho giống cách đếm của OpenAI
+            input_tokens=usage.input_tokens + cached + (usage.cache_creation_input_tokens or 0),
+            output_tokens=usage.output_tokens,
+            cached_tokens=cached,
+            started=started,
+        )
+        text = "".join(block.text for block in message.content if block.type == "text")
+        return LLMResponse(text=text, usage=_usage(request, info))
 
 
 class GoogleProvider:
@@ -221,14 +291,19 @@ class FallbackProvider:
             return backup.complete(request, prompt)
 
 
+PROVIDERS: dict[str, type] = {"openai": OpenAIProvider, "anthropic": AnthropicProvider, "google": GoogleProvider}
+
+
 def get_provider(settings: Settings | None = None, task: str = "") -> LLMProvider:
-    """Chọn nhà cung cấp theo LLM_PROVIDER và model theo từng bước; bọc dự phòng nếu LLM_FALLBACK=google."""
+    """Chọn nhà cung cấp + model của từng bước theo config/models.yaml; bọc dự phòng nếu LLM_FALLBACK=google."""
     settings = settings or get_settings()
     if settings.llm_provider == "google":
         return GoogleProvider(settings, settings.model_for(task, "google"), task)
     if settings.llm_provider == "openai":
-        primary = OpenAIProvider(settings, settings.model_for(task, "openai"), task)
-        return FallbackProvider(primary, settings) if settings.llm_fallback == "google" else primary
+        choice = settings.choice_for(task)
+        primary = PROVIDERS[choice.provider](settings, choice.name, task)
+        wrap = settings.llm_fallback == "google" and choice.provider != "google"
+        return FallbackProvider(primary, settings) if wrap else primary
     from src.services.llm_mock import MockProvider
 
     return MockProvider()

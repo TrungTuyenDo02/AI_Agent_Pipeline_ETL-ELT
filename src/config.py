@@ -4,20 +4,55 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+import yaml
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 APP_VERSION = "0.1.0"
 PLACEHOLDER_MARKERS = ("<", "your-", "sk-your", "-here")
 # Trần token đầu ra theo node: ≥ 5 lần mức cao nhất đo được ở golden thật 2026-10-02 (planner 1.104, codegen 1.638,
 # testgen 841, optimizer 295 — đã gồm token suy luận; trần 4.000 cũ từng bị dùng hết). Chỉnh lại sau khi có số đo mới.
-TASK_MAX_TOKENS = {"planner": 6000, "codegen": 12000, "testgen": 5000, "optimizer": 4000}
+# Optimizer 16.000: Opus 5.5 luôn suy luận và token suy luận tính vào trần (chưa có số đo thật).
+TASK_MAX_TOKENS = {"planner": 6000, "codegen": 12000, "testgen": 5000, "optimizer": 16000}
 CODEGEN_MAX_TEMPERATURE = 0.2
+MODELS_FILE = Path(__file__).resolve().parent.parent / "config" / "models.yaml"
+TASKS = ("planner", "codegen", "testgen", "optimizer")
 
 
 def is_real_secret(value: str | None) -> bool:
     """True nếu giá trị đã được điền thật (không rỗng, không phải giá trị mẫu trong .env.example)."""
     return bool(value) and not any(marker in value for marker in PLACEHOLDER_MARKERS)
+
+
+class ModelChoice(BaseModel):
+    """Một dòng trong `config/models.yaml`: nhà cung cấp + tên model (+ mức effort cho Anthropic)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    provider: Literal["openai", "anthropic", "google"]
+    name: str = Field(min_length=1)
+    effort: Literal["low", "medium", "high", "xhigh", "max"] | None = None
+    # false: model chỉ nhận nhiệt độ mặc định (vd gpt-6-luna từ chối temperature=0) → không gửi tham số này
+    temperature: bool = True
+
+
+class ModelTable(BaseModel):
+    """Toàn bộ `config/models.yaml`: model của từng bước + model dự phòng."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    models: dict[Literal["planner", "codegen", "testgen", "optimizer"], ModelChoice]
+    fallback: ModelChoice
+
+
+@lru_cache
+def load_model_table(path: Path = MODELS_FILE) -> ModelTable:
+    """Đọc và kiểm tra `config/models.yaml` (thiếu bước nào thì báo lỗi ngay, không đoán model)."""
+    table = ModelTable.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
+    missing = [task for task in TASKS if task not in table.models]
+    if missing:
+        raise ValueError(f"{path} thiếu model cho bước: {', '.join(missing)}")
+    return table
 
 
 class Settings(BaseSettings):
@@ -33,18 +68,15 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     cors_origins: str = "http://localhost:3000"
 
-    # LLM — mặc định `mock` để chạy không cần khóa
+    # LLM — mặc định `mock` để chạy không cần khóa. `openai` = gọi model thật theo config/models.yaml (bước nào khai
+    # báo anthropic thì gọi Anthropic); `google` = mọi bước dùng model dự phòng (Gemini).
     llm_provider: Literal["mock", "openai", "google"] = "mock"
     openai_api_key: str = ""
+    anthropic_api_key: str = ""
     google_api_key: str = ""
-    # Model OpenAI theo từng bước (hướng C). MODEL_NAME là model chính; để trống MODEL_<BƯỚC> thì dùng MODEL_NAME.
-    model_name: str = "gpt-5.6-luna"
-    model_planner: str = ""
-    model_codegen: str = ""
-    model_testgen: str = ""
-    model_optimizer: str = "gpt-5.6-terra"
-    # Google Gemini: dùng khi LLM_PROVIDER=google, hoặc làm dự phòng khi OpenAI lỗi (LLM_FALLBACK=google)
-    google_model_name: str = "gemini-3.1-flash-lite"
+    # Tên model KHÔNG nằm ở đây: chỉ khai báo trong config/models.yaml (CLAUDE.md mục 3)
+    models_file: Path = MODELS_FILE
+    # Dự phòng khi model chính gọi lỗi (model ở mục `fallback` của models.yaml)
     llm_fallback: Literal["none", "google"] = "google"
     llm_temperature: float = Field(default=0.0, ge=0.0, le=2.0)  # chỉ Codegen dùng (tối đa 0.2); node khác luôn 0
     llm_max_tokens: int = Field(default=16000, ge=256)  # trần chung; mỗi node có trần riêng ở TASK_MAX_TOKENS
@@ -110,17 +142,38 @@ class Settings(BaseSettings):
         """Đã có GOOGLE_API_KEY thật."""
         return is_real_secret(self.google_api_key)
 
+    @property
+    def has_anthropic_key(self) -> bool:
+        """Đã có ANTHROPIC_API_KEY thật."""
+        return is_real_secret(self.anthropic_api_key)
+
+    @property
+    def model_table(self) -> ModelTable:
+        """Bảng model đọc từ `models_file`."""
+        return load_model_table(self.models_file)
+
+    @property
+    def google_model_name(self) -> str:
+        """Model Gemini (mục `fallback` của models.yaml): dùng khi LLM_PROVIDER=google hoặc làm dự phòng."""
+        return self.model_table.fallback.name
+
+    def choice_for(self, task: str) -> ModelChoice:
+        """Nhà cung cấp + model của một bước; LLM_PROVIDER=google thì mọi bước dùng model dự phòng."""
+        if self.llm_provider == "google":
+            return self.model_table.fallback
+        models = self.model_table.models
+        return models.get(task, models["planner"])
+
     def model_for(self, task: str, provider: str | None = None) -> str:
-        """Model dùng cho một bước (planner/codegen/testgen/optimizer) với nhà cung cấp đã chọn."""
-        if (provider or self.llm_provider) == "google":
+        """Tên model dùng cho một bước (planner/codegen/testgen/optimizer)."""
+        if provider == "google":
             return self.google_model_name
-        override = {
-            "planner": self.model_planner,
-            "codegen": self.model_codegen,
-            "testgen": self.model_testgen,
-            "optimizer": self.model_optimizer,
-        }.get(task, "")
-        return override or self.model_name
+        return self.choice_for(task).name
+
+    @property
+    def providers_in_use(self) -> set[str]:
+        """Các nhà cung cấp mà bảng model đang cần (để kiểm tra khóa)."""
+        return {self.choice_for(task).provider for task in TASKS}
 
     def max_tokens_for(self, task: str) -> int:
         """Trần token đầu ra (gồm token suy luận ẩn) của một bước, không vượt LLM_MAX_TOKENS."""
@@ -137,10 +190,9 @@ class Settings(BaseSettings):
             return "mock"
         if self.llm_provider == "google":
             return self.google_model_name
-        tasks = ("planner", "codegen", "testgen", "optimizer")
-        models = {task: self.model_for(task) for task in tasks}
+        models = {task: self.model_for(task) for task in TASKS}
         if len(set(models.values())) == 1:
-            return self.model_name
+            return models["planner"]
         return ", ".join(f"{task}={model}" for task, model in models.items())
 
     @property

@@ -171,16 +171,15 @@ function TrackerRow({ stage, detail }: { stage: Stage; detail: RunDetail }) {
       </li>
     );
   }
-  const glyph = { passed: "✓", failed: "✗", human: "!", running: "", waiting: "" }[stage.state];
+  const glyph = { passed: "✓", failed: "!", human: "…", running: "", waiting: "" }[stage.state];
   return (
     <li className="track-row" data-state={stage.state} data-kind={stage.kind}>
       <span className="track-dot" aria-hidden>
         {stage.state === "running" ? <span className="spinner" /> : glyph}
       </span>
       <div className="track-text">
-        <strong>
-          {stage.code} · {stage.label}
-        </strong>
+        {/* mã kỹ thuật (E3, V2…) chỉ trong tooltip, không hiện trên nhãn */}
+        <strong title={`Mã bước: ${stage.code}`}>{stage.label}</strong>
         {stage.detail && stage.state !== "running" && <small className="muted">{stage.detail}</small>}
       </div>
       <span className="track-state">

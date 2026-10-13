@@ -1,16 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
 
 import { formatNumber, formatUsd } from "@/lib/format";
 import type { RunDetail } from "@/lib/types";
 
-import { ChartIcon, CopyIcon, CpuIcon, DatabaseIcon, FlowIcon, LayersIcon, TerminalIcon } from "../../icons";
+import { ChartIcon, CpuIcon, DatabaseIcon, FlowIcon, LayersIcon } from "../../icons";
 import { useRun } from "../RunContext";
-import { formatSeconds, useElapsed } from "./LiveNode";
+import { formatSeconds } from "./LiveNode";
 
-// Cột phải của màn Studio. Mọi số lấy từ API (đo thật); chưa đo → "—", LLM mock → "mô phỏng".
+// Ngăn "Chi tiết kỹ thuật" của màn Studio. Mọi số lấy từ API (đo thật); chưa đo → "—", LLM mock → "mô phỏng".
 
 function PanelHead({ icon, title, aside }: { icon: React.ReactNode; title: string; aside?: React.ReactNode }) {
   return (
@@ -134,90 +133,6 @@ export function FlowPanel({ detail }: { detail: RunDetail }) {
           </div>
         </div>
       )}
-    </section>
-  );
-}
-
-function clock(epochSeconds?: number): string {
-  if (!epochSeconds) return "--:--:--";
-  return new Date(epochSeconds * 1000).toLocaleTimeString("vi-VN", { hour12: false });
-}
-
-export function RuntimeConsole({ detail }: { detail: RunDetail }) {
-  const events = detail.events ?? [];
-  const current = detail.busy ? detail.current : null;
-  const elapsed = useElapsed(current);
-  const [copied, setCopied] = useState(false);
-  const screen = useRef<HTMLDivElement>(null);
-  const activity = current?.activity ?? [];
-  const lineIndex = activity.length ? Math.floor(elapsed / 3.5) % activity.length : 0;
-
-  useEffect(() => {
-    if (screen.current) screen.current.scrollTop = screen.current.scrollHeight;
-  }, [events.length, current?.node]);
-
-  async function copy() {
-    const text = events
-      .map((e) => `[${clock(e.finished_at)}] ${e.ok ? "OK  " : "LỖI "} ${e.label}: ${e.detail} (${e.seconds}s)`)
-      .join("\n");
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // trình duyệt chặn clipboard: bỏ qua
-    }
-  }
-
-  return (
-    <section className="card panel">
-      <PanelHead
-        icon={<TerminalIcon />}
-        title="Console"
-        aside={
-          <button type="button" className="btn small" onClick={copy} disabled={events.length === 0}>
-            <CopyIcon size={13} /> {copied ? "Đã chép" : "Chép"}
-          </button>
-        }
-      />
-      <div className="console" ref={screen} role="log" aria-label="Nhật ký các bước">
-        {events.length === 0 && !current && (
-          <div className="console-line muted-line">Chưa có nhật ký trong phiên máy chủ này.</div>
-        )}
-        {events.map((event, index) => (
-          <div key={`${event.node}-${index}`} className="console-line">
-            <span className="c-time">[{clock(event.finished_at)}]</span>
-            <span className={event.ok ? "c-ok" : "c-fail"}>{event.ok ? "OK  " : "LỖI "}</span>
-            <span className="c-step">{event.label}</span>
-            <span className="c-msg">
-              {event.detail}
-              <span className="c-time">
-                {" "}
-                · {event.seconds.toFixed(1)}s{event.tokens > 0 && ` · ${formatNumber(event.tokens)} token`}
-              </span>
-            </span>
-          </div>
-        ))}
-        {current && (
-          <div className="console-line live-line">
-            <span className="c-time">[{formatSeconds(elapsed).padStart(7)}]</span>
-            <span className="c-live">CHẠY</span>
-            <span className="c-step">{current.label}</span>
-            <span className="c-msg c-live-msg">
-              {activity[lineIndex] ?? "…"} <em>(mô tả)</em>
-            </span>
-          </div>
-        )}
-      </div>
-      <div className="console-foot small">
-        <span title="OK/LỖI do code đo; CHẠY là mô tả việc đang làm, không phải log đo">
-          OK/LỖI: code đo · CHẠY: mô tả
-        </span>
-        <span className="row">
-          <span className={detail.busy ? "dot ok pulse" : "dot"} aria-hidden />
-          {detail.busy ? "Trực tiếp" : "Nghỉ"}
-        </span>
-      </div>
     </section>
   );
 }

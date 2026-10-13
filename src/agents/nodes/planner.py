@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from src.agents.nodes.common import usage_of
 from src.agents.state import PipelineState
 from src.agents.tools.duckdb_tools import discover_sources
+from src.agents.tools.source_stats import column_values, with_stats
 from src.config import get_settings
 from src.models.schemas import RunStatus
 from src.models.spec import ModeSignals, PipelineSpec, decide_mode, signals_from_sources
@@ -54,10 +55,24 @@ def build_spec(data: dict, request_text: str, answers: dict[str, str]) -> Pipeli
     return spec.model_copy(update={"signals": signals, "mode": mode, "mode_reason": reason})
 
 
+def with_value_options(spec: PipelineSpec, catalog: list[dict]) -> PipelineSpec:
+    """Câu hỏi về giá trị một cột: code thay lựa chọn của LLM bằng giá trị thật để người tick (LLM không thấy).
+
+    Không tìm thấy cột, hoặc cột có quá nhiều/quá ít giá trị: giữ lựa chọn của LLM như câu hỏi thường.
+    """
+    questions = []
+    for question in spec.questions:
+        values, normalized = column_values(catalog, question.column) if question.column else ([], False)
+        update = {"options": values, "multiple": True, "normalized": normalized} if values else {"column": ""}
+        questions.append(question.model_copy(update=update))
+    return spec.model_copy(update={"questions": questions})
+
+
 def _catalog(state: PipelineState) -> list[dict]:
+    """Danh mục nguồn kèm `stats` do code đếm (thay dòng mẫu khi gửi LLM)."""
     if state.get("source_catalog"):
-        return state["source_catalog"]
-    return [info.model_dump() for info in discover_sources(get_settings().sources_dir)]
+        return with_stats(state["source_catalog"])
+    return with_stats([info.model_dump() for info in discover_sources(get_settings().sources_dir)])
 
 
 def planner_variables(state: PipelineState, catalog: list[dict], last_round: bool) -> dict[str, str]:
@@ -89,7 +104,7 @@ def planner_node(state: PipelineState) -> dict:
     base = {"source_catalog": catalog, "plan_rounds": rounds, "llm_usage": usage_of(response)}
     try:
         data = fill_sources(drop_answered(parse_json_output(response.text), state.get("answered", [])), catalog)
-        spec = build_spec(data, state["request_text"], answers)
+        spec = with_value_options(build_spec(data, state["request_text"], answers), catalog)
     except (LLMOutputError, ValidationError) as exc:
         logger.warning("planner output invalid", extra={"error": str(exc)[:300]})
         return {**base, "spec": {}, "spec_errors": [f"Planner trả về đặc tả sai định dạng: {str(exc)[:200]}"]}

@@ -82,12 +82,6 @@ Chi tiết và điều kiện đo: [eval/results/report.md](eval/results/report.
 - [x] Source code • [x] README • [x] Sơ đồ kiến trúc • [x] AI logs • [x] Weekly journal • [x] Worklog • [x] Evidence ([report.md](eval/results/report.md))
 - [ ] Live URL / Deploy • [ ] Video demo ([kịch bản](docs/video-demo.md)) • [ ] Pitch deck ([dàn ý](presentation/outline.md))
 
-## Team
-
-| Member | Role | Student ID |
-|--------|------|-----------|
-| TrungTuyenDo02 | Toàn bộ hệ thống | — |
-
 ## License
 
 [MIT](LICENSE)

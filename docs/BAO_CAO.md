@@ -218,9 +218,8 @@ Trước đây báo cáo ghi 7/34 vì bộ chấm còn lỗi; đã sửa và ch�
 1. Mời 3–5 DE làm tay 5–10 ca theo quy trình có sẵn để có số so sánh thời gian.
 2. Thử trên dữ liệu thật của một đội (có sự đồng ý), thu phản hồi người dùng.
 3. Chuyển lưu lần chạy và checkpoint sang PostgreSQL để deploy bền và chạy nhiều bản.
-4. Thêm bước kiểm tăng trưởng 1x/10x/100x (V4) để thấy query chậm lại thế nào khi dữ liệu lớn dần.
-5. Phân xử khi test và code bất đồng: hiện mọi lỗi V1/V2 đều quay về Codegen, nên test sai có thể kéo code sửa theo test sai; cần phân loại lỗi thuộc bên nào trước khi sửa.
-6. Đăng nhập một lần (SSO) thay tài khoản nội bộ.
+4. Phân xử khi test và code bất đồng: hiện mọi lỗi V1/V2 đều quay về Codegen, nên test sai có thể kéo code sửa theo test sai; cần phân loại lỗi thuộc bên nào trước khi sửa.
+5. Đăng nhập một lần (SSO) thay tài khoản nội bộ.
 
 ## 9. Tài liệu tham khảo
 

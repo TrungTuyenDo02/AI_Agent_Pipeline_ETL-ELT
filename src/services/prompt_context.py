@@ -27,17 +27,22 @@ def spec_for_build(spec: dict) -> dict:
     return out
 
 
+# Không gửi LLM: `examples` (giá trị thật, CLAUDE.md 2.3: LLM chỉ thấy cấu trúc), `nulls` (đã có null_pct),
+# `categories` (chỉ để so cấu trúc), `date_order`/`uncertain` (cho người duyệt).
+NOT_FOR_LLM = ("examples", "nulls", "categories", "date_order", "uncertain")
+
+
 def _column(info: dict) -> dict:
-    """Bỏ `nulls` (đã có null_pct), danh sách rỗng, `parse_failures` = 0 và `categories` (chỉ để so cấu trúc, mục 9:
-    LLM không được lấy danh sách giá trị từ dữ liệu làm giá trị hợp lệ)."""
-    out = {k: v for k, v in info.items() if k not in ("nulls", "categories") and v not in ([], "", None)}
+    """Bỏ các khóa NOT_FOR_LLM, danh sách rỗng và `parse_failures` = 0 (mục 9: LLM không được lấy giá trị từ dữ liệu
+    làm giá trị hợp lệ)."""
+    out = {k: v for k, v in info.items() if k not in NOT_FOR_LLM and v not in ([], "", None)}
     if out.get("parse_failures") == 0:
         out.pop("parse_failures")
     return out
 
 
 def compact_profile(profile: dict) -> dict:
-    """Hồ sơ dữ liệu gọn: mỗi bảng số dòng, khóa, số khóa trùng, cột (kiểu, % rỗng, mẫu, biểu thức đọc đúng)."""
+    """Hồ sơ dữ liệu gọn: mỗi bảng số dòng, khóa, số khóa trùng, cột (kiểu, % rỗng, định dạng, biểu thức đọc đúng)."""
     out = {}
     for table, info in profile.items():
         item = {"rows": info.get("rows"), "columns": {c: _column(v) for c, v in info.get("columns", {}).items()}}
@@ -48,9 +53,9 @@ def compact_profile(profile: dict) -> dict:
 
 
 def compact_catalog(catalog: list[dict]) -> list[dict]:
-    """Danh mục nguồn cho Planner: tên, loại, cột → kiểu, mẫu dạng mảng theo thứ tự cột (không lặp tên cột).
+    """Danh mục nguồn cho Planner: tên, loại, cột → kiểu, số liệu do code đếm (`stats`, không có giá trị dữ liệu).
 
-    Đường dẫn file không gửi: code tự điền `kind`/`path` từ danh mục sau khi Planner chọn nguồn.
+    Không gửi dòng mẫu (CLAUDE.md 2.3) và đường dẫn file (code tự điền `kind`/`path` sau khi Planner chọn nguồn).
     """
     out = []
     for item in catalog:
@@ -58,8 +63,8 @@ def compact_catalog(catalog: list[dict]) -> list[dict]:
         entry = {"name": item["name"], "kind": item.get("kind", ""), "columns": columns}
         if item.get("table"):
             entry["table"] = item["table"]
-        if item.get("sample"):
-            entry["sample_rows"] = [[row.get(c) for c in columns] for row in item["sample"]]
+        if item.get("stats"):
+            entry["stats"] = item["stats"]
         out.append(entry)
     return out
 

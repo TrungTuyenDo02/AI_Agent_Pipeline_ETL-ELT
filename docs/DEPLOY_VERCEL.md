@@ -32,21 +32,11 @@ graph LR
 ## 3. Các bước
 
 ### Bước 1. Tạo PostgreSQL trên Neon *(chưa chạy thật)*
-1. Neon Console → **New Project** (chọn vùng gần backend). Mở **SQL Editor**.
-2. Tạo hai tài khoản như [scripts/postgres-init.sql](../scripts/postgres-init.sql) (đổi `<...>` thành mật khẩu mạnh của bạn):
-   ```sql
-   CREATE ROLE p113_migrator LOGIN PASSWORD '<MAT_KHAU_MIGRATOR>' NOSUPERUSER NOCREATEROLE NOCREATEDB;
-   CREATE ROLE p113_app      LOGIN PASSWORD '<MAT_KHAU_APP>'      NOSUPERUSER NOCREATEROLE NOCREATEDB NOINHERIT;
-   GRANT ALL ON SCHEMA public TO p113_migrator;
-   GRANT USAGE ON SCHEMA public TO p113_app;
-   ```
-3. **Connect** → chọn **kết nối trực tiếp** (tắt "Connection pooling") cho migration. Chuỗi có dạng
-   `postgresql://<role>:<mật khẩu>@<host>/<db>?sslmode=require`. Với code này đổi tiền tố thành `postgresql+psycopg://`.
-   - `MIGRATION_DATABASE_URL` = chuỗi với role `p113_migrator`.
-   - `DATABASE_URL` = chuỗi với role `p113_app`.
-4. *Kết quả mong đợi:* hai chuỗi kết nối; chưa có bảng nào.
+Làm theo [NEON.md](NEON.md) mục 1–2 (project vùng Singapore, 2 role tạo bằng SQL, database `p113`). Bản demo dùng
+branch `main`: `DATABASE_URL` = role `p113_app` **có** pooling, `MIGRATION_DATABASE_URL` = role `p113_migrator` **không** pooling.
+Neon chỉ chứa tài khoản thử (quyết định 2026-10-13 trong [JOURNAL.md](../JOURNAL.md)).
 
-> `?sslmode=verify-full` là khuyến nghị cho production, nhưng cần `sslrootcert` hợp lệ; nếu gặp lỗi chứng chỉ, dùng `sslmode=require` (Neon luôn bắt buộc TLS). *(chưa kiểm chứng với Neon)*
+*Kết quả mong đợi:* hai chuỗi kết nối; chưa có bảng nào.
 
 ### Bước 2. Tạo backend trên Render *(chưa chạy thật)*
 1. Render → **New → Web Service** → nối GitHub, chọn repo. **Language: Docker**, Dockerfile Path `./Dockerfile` (thư mục gốc).

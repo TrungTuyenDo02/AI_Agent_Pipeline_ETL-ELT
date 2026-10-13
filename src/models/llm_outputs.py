@@ -29,6 +29,7 @@ class OutQuestion(_Strict):
     id: str
     question: str
     options: list[str] = Field(description="2-4 short choices")
+    column: str = Field(description="source.column for a which-values question, else empty")
 
 
 class OutSignals(_Strict):

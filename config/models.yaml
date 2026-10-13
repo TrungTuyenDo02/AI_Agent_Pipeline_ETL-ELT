@@ -1,0 +1,22 @@
+# Bảng model theo từng bước — NƠI DUY NHẤT chứa tên model (CLAUDE.md mục 3). Code không ghi cứng tên model.
+# LLM_PROVIDER=openai → gọi model thật theo bảng này; LLM_PROVIDER=google → mọi bước dùng `fallback`; mock → không gọi.
+# Đổi model = sửa file này rồi chạy lại golden/eval (CLAUDE.md mục 3: ghi 4 số trước khi giữ cấu hình mới).
+#
+# provider: openai (cần OPENAI_API_KEY) | anthropic (cần ANTHROPIC_API_KEY) | google (cần GOOGLE_API_KEY)
+# effort:   chỉ dùng cho anthropic (low|medium|high|xhigh|max). Opus 5.5 luôn suy luận, không nhận temperature.
+# temperature: false khi model chỉ nhận nhiệt độ mặc định (code không gửi tham số; kết quả kém tất định hơn).
+#
+# Nhật ký:
+# - 2026-10-02: planner/codegen/testgen = gpt-5.6-luna, optimizer = gpt-5.6-terra (hướng C, JOURNAL.md).
+# - 2026-10-13: optimizer → claude-opus-5-5 (chủ dự án chọn). Chưa có số đo A/B so với gpt-5.6-terra.
+# - 2026-10-13: planner/codegen/testgen → gpt-6-luna (chủ dự án chọn: $0,10/$0,50 so với $0,20/$1,20 mỗi triệu token).
+#   Model này từ chối temperature=0 nên đặt `temperature: false`.
+
+models:
+  planner:   { provider: openai,    name: gpt-6-luna, temperature: false }
+  codegen:   { provider: openai,    name: gpt-6-luna, temperature: false }
+  testgen:   { provider: openai,    name: gpt-6-luna, temperature: false }
+  optimizer: { provider: anthropic, name: claude-opus-5-5, effort: medium }
+
+# Dự phòng khi gọi model chính THẤT BẠI (mạng, hạn mức, từ chối); tắt bằng LLM_FALLBACK=none.
+fallback: { provider: google, name: gemini-3.1-flash-lite }

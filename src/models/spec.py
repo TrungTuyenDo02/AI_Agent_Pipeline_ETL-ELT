@@ -40,11 +40,18 @@ class OutputColumn(BaseModel):
 
 
 class ClarifyQuestion(BaseModel):
-    """Câu hỏi làm rõ dạng trắc nghiệm (J1)."""
+    """Câu hỏi làm rõ dạng trắc nghiệm (J1).
+
+    Câu hỏi về giá trị của một cột (`column`): code thay lựa chọn của LLM bằng giá trị thật của cột để người tick
+    nhiều ô (`multiple`); LLM chỉ thấy giá trị người đã chọn (CLAUDE.md 2.3).
+    """
 
     id: str
     question: str
     options: list[str] = Field(..., min_length=2)
+    column: str = Field(default="", description="nguồn.cột khi lựa chọn là giá trị thật của cột")
+    multiple: bool = False
+    normalized: bool = Field(default=False, description="giá trị đã gộp theo upper(trim(...))")
 
 
 class PlanStep(BaseModel):

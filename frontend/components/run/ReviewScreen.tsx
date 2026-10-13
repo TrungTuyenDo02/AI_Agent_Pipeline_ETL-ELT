@@ -9,7 +9,7 @@ import { CodeDiff, type LineHighlight } from "../CodeDiff";
 import { Card, Empty, ErrorBox, Loading } from "../ui";
 import { DecisionForm } from "./DecisionForm";
 import { EvidencePanel } from "./EvidencePanel";
-import { CostFigures, OptimizationFigures, ScaleFigures } from "./ReviewFigures";
+import { CostFigures, OptimizationFigures } from "./ReviewFigures";
 import { useRun } from "./RunContext";
 
 interface FileGroup {
@@ -240,7 +240,7 @@ type ReviewTab = "code" | "optimize" | "cost";
 
 const REVIEW_TABS: { id: ReviewTab; label: string }[] = [
   { id: "code", label: "Code sinh ra" },
-  { id: "optimize", label: "Tối ưu và tăng trưởng" },
+  { id: "optimize", label: "Tối ưu" },
   { id: "cost", label: "Chi phí và thời gian" },
 ];
 
@@ -280,12 +280,7 @@ export function ReviewScreen() {
           {files.data && <DiffCard files={files.data} filters={detail?.value_filters ?? []} />}
         </Card>
       )}
-      {tab === "optimize" && (
-        <div className="stack">
-          {detail && <OptimizationFigures report={detail.optimization} />}
-          <ScaleFigures />
-        </div>
-      )}
+      {tab === "optimize" && detail && <OptimizationFigures report={detail.optimization} />}
       {tab === "cost" && <CostFigures />}
     </>
   );

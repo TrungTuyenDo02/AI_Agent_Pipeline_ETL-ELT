@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { apiPost, messageOf } from "@/lib/api";
@@ -18,16 +18,22 @@ const EXAMPLES = [
   { label: "Giá trị đơn theo tháng", text: "Số đơn và giá trị trung bình mỗi đơn theo tháng" },
 ];
 
-export function CreateRunForm() {
+/** Form có bản nháp từ trang Dữ liệu nguồn ("Tạo yêu cầu xử lý" → /?draft=...#request). Bọc trong <Suspense>. */
+export function DraftedCreateRunForm() {
+  const draft = (useSearchParams().get("draft") ?? "").slice(0, 4000);
+  return <CreateRunForm key={draft} draft={draft} />;
+}
+
+export function CreateRunForm({ draft = "" }: { draft?: string }) {
   const router = useRouter();
   const box = useRef<HTMLTextAreaElement>(null);
-  const [text, setText] = useState("");
+  const [text, setText] = useState(draft);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const engineer = useHasRole("engineer");
   const tooShort = text.trim().length < 5;
 
-  // "Bắt đầu ngay" / "Yêu cầu mới" trỏ tới #request: đưa con trỏ vào ô nhập
+  // Liên kết tới #request (ví dụ từ thông báo): đưa con trỏ vào ô nhập
   useEffect(() => {
     const focus = () => {
       if (window.location.hash === "#request") box.current?.focus();
@@ -59,19 +65,25 @@ export function CreateRunForm() {
       <label htmlFor="request-text" className="sr-only">
         Yêu cầu pipeline
       </label>
-      <textarea
-        id="request-text"
-        ref={box}
-        rows={3}
-        maxLength={4000}
-        placeholder="Ví dụ: gộp đơn hàng 3 nguồn, tính doanh thu ngày"
-        title="Ctrl + Enter để gửi. Agent chỉ chạy trong sandbox DuckDB."
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) void submit(e);
-        }}
-      />
+      {/* Nút gửi nằm trong ô nhập (CLAUDE.md yêu cầu 4) */}
+      <div className="prompt-field">
+        <textarea
+          id="request-text"
+          ref={box}
+          rows={4}
+          maxLength={4000}
+          placeholder="Ví dụ: gộp đơn hàng 3 nguồn, tính doanh thu ngày"
+          title="Ctrl + Enter để gửi. Agent chỉ chạy trong sandbox DuckDB."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) void submit(e);
+          }}
+        />
+        <button type="submit" className="btn dark pill-btn prompt-send" disabled={tooShort || sending || !engineer}>
+          {sending ? "Đang gửi…" : "Bắt đầu ngay"} <ArrowRightIcon size={15} />
+        </button>
+      </div>
       <div className="request-actions">
         <div className="chips" aria-label="Gợi ý">
           {EXAMPLES.map((example) => (
@@ -87,9 +99,6 @@ export function CreateRunForm() {
             </button>
           ))}
         </div>
-        <button type="submit" className="btn dark pill-btn" disabled={tooShort || sending || !engineer}>
-          {sending ? "Đang gửi…" : "Gửi"} <ArrowRightIcon size={15} />
-        </button>
       </div>
       <RoleNote need="engineer" />
       {error && <ErrorBox message={error} />}

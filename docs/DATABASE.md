@@ -104,6 +104,8 @@ cd frontend && npm ci && npm run dev                     # web http://localhost:
 Chỉ để thử trên máy mình: `python -m src.cli users seed-dev` tạo ba tài khoản mẫu `an` / `binh` / `quantri`,
 mật khẩu ngẫu nhiên **in một lần** (không chạy được khi `APP_ENV=production`).
 
+Không muốn bật Docker: dùng PostgreSQL trên Neon (branch `dev`), xem [NEON.md](NEON.md).
+
 Cách khác chạy migration bằng Docker (tài khoản migration, không cần cài Python): `docker compose --profile tools run --rm migrate`.
 
 ## 4. Cách xem dữ liệu

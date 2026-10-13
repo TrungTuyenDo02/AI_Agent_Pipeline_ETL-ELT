@@ -1,4 +1,8 @@
-"""P Soi dữ liệu (code): kiểu cột, % rỗng, số dòng, trùng khóa, định dạng ngày/tiền (+ biểu thức DuckDB đọc đúng); mẫu đã che PII."""
+"""P Soi dữ liệu (code): kiểu cột, % rỗng, số dòng, trùng khóa, định dạng ngày/tiền (+ biểu thức DuckDB đọc đúng); mẫu đã che PII.
+
+Nhận diện phải có bằng chứng trong dữ liệu: điều code không chứng minh được (vd `03/04/2026` là dd/mm hay mm/dd)
+thì giữ cách đọc mặc định cũ và ghi vào `uncertain` để người duyệt thấy, không đoán im lặng.
+"""
 
 import re
 from pathlib import Path
@@ -23,10 +27,21 @@ DATE_PATTERNS = {
 STRPTIME_FORMATS = {
     "dd/mm/yyyy": ("%d/%m/%Y",),
     "dd/mm/yyyy hh:mm:ss": ("%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M"),
+    "mm/dd/yyyy": ("%m/%d/%Y",),
+    "mm/dd/yyyy hh:mm:ss": ("%m/%d/%Y %H:%M:%S", "%m/%d/%Y %H:%M"),
     "mm/dd/yyyy hh:mm AM/PM": ("%m/%d/%Y %I:%M %p",),
     "yyyymmdd": ("%Y%m%d",),
 }
-TIME_FORMATS = {"dd/mm/yyyy hh:mm:ss", "mm/dd/yyyy hh:mm AM/PM", "yyyy-mm-dd hh:mm:ss", "yyyy-mm-ddThh:mm:ss+07:00"}
+TIME_FORMATS = {
+    "dd/mm/yyyy hh:mm:ss",
+    "mm/dd/yyyy hh:mm:ss",
+    "mm/dd/yyyy hh:mm AM/PM",
+    "yyyy-mm-dd hh:mm:ss",
+    "yyyy-mm-ddThh:mm:ss+07:00",
+}
+# `xx/xx/yyyy` (24 giờ): mẫu chỉ khớp hình dạng, thứ tự ngày/tháng do bằng chứng quyết định (day_month_evidence)
+MONTH_FIRST = {"dd/mm/yyyy": "mm/dd/yyyy", "dd/mm/yyyy hh:mm:ss": "mm/dd/yyyy hh:mm:ss"}
+SLASH_DATE_RE = r"^\d{2}/\d{2}/\d{4}( \d{2}:\d{2}(:\d{2})?)?$"
 MONEY_PATTERNS = {
     "vnd_dot (1.075.000)": re.compile(r"^\d{1,3}(\.\d{3})+$"),
     "comma (1,075,000)": re.compile(r"^\d{1,3}(,\d{3})+(\.\d+)?$"),
@@ -45,6 +60,33 @@ CATEGORY_MAX = 12
 
 def _formats(values: list[str], patterns: dict[str, re.Pattern]) -> list[str]:
     return sorted({name for v in values for name, p in patterns.items() if p.match(v)})
+
+
+def day_month_evidence(con: duckdb.DuckDBPyConnection, ref: str, column: str) -> dict[str, int]:
+    """Đếm trên CẢ cột: số đầu > 12 chỉ có thể là ngày (dd/mm), số thứ hai > 12 thì là mm/dd; cả hai ≤ 12 thì chưa rõ."""
+    col = f'"{column}"'
+    first, second = f"try_cast(substr({col}, 1, 2) AS INT)", f"try_cast(substr({col}, 4, 2) AS INT)"
+    sql = (
+        f"SELECT count(*) FILTER ({first} > 12 AND {second} <= 12), count(*) FILTER ({second} > 12 AND {first} <= 12), "
+        f"count(*) FILTER ({first} <= 12 AND {second} <= 12) FROM {ref} WHERE regexp_matches({col}, '{SLASH_DATE_RE}')"
+    )
+    day_first, month_first, unclear = con.execute(sql).fetchone()
+    return {"day_first": day_first, "month_first": month_first, "unclear": unclear}
+
+
+def resolve_day_month(formats: list[str], evidence: dict[str, int]) -> tuple[list[str], list[str]]:
+    """Chọn thứ tự ngày/tháng theo bằng chứng → (định dạng, điều chưa chắc). Không có bằng chứng: giữ dd/mm như cũ."""
+    day, month, unclear = evidence["day_first"], evidence["month_first"], evidence["unclear"]
+    if month and not day:
+        return sorted(MONTH_FIRST.get(f, f) for f in formats), []
+    if month and day:
+        both = sorted({*formats, *(MONTH_FIRST[f] for f in formats if f in MONTH_FIRST)})
+        note = f"Lẫn dd/mm ({day} giá trị) và mm/dd ({month} giá trị) trong cùng cột"
+        tail = f"; {unclear} giá trị có ngày và tháng đều ≤ 12 đang đọc theo dd/mm." if unclear else "."
+        return both, [note + tail]
+    if unclear and not day:
+        return formats, [f"Không giá trị nào cho biết thứ tự ngày/tháng ({unclear} giá trị); đang đọc theo dd/mm."]
+    return formats, []
 
 
 def date_expression(column: str, formats: list[str]) -> str:
@@ -123,6 +165,11 @@ def text_hints(con: duckdb.DuckDBPyConnection, ref_column: tuple[str, str], text
     ref, column = ref_column
     dates = _formats(texts, DATE_PATTERNS)
     hints: dict = {"date_formats": dates if DATE_NAME_RE.search(column) else [d for d in dates if d != "yyyymmdd"]}
+    if any(f in MONTH_FIRST for f in hints["date_formats"]):
+        hints["date_order"] = day_month_evidence(con, ref, column)
+        hints["date_formats"], uncertain = resolve_day_month(hints["date_formats"], hints["date_order"])
+        if uncertain:
+            hints["uncertain"] = uncertain
     if MONEY_NAME_RE.search(column):
         hints["money_formats"] = _formats(texts, MONEY_PATTERNS)
     if expression := parse_expression(column, hints):

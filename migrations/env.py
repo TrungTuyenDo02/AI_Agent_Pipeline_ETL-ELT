@@ -9,7 +9,7 @@ from alembic import context
 from sqlalchemy import create_engine, pool
 
 from src.config import get_settings
-from src.services.auth import Base, check_database_url
+from src.services.auth import CONNECT_TIMEOUT_SEC, Base, check_database_url
 
 logger = logging.getLogger("alembic.env")
 config = context.config
@@ -35,7 +35,9 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """Chạy migration trên cơ sở dữ liệu."""
-    engine = create_engine(_url(), poolclass=pool.NullPool)
+    url = _url()
+    connect_args = {} if url.startswith("sqlite") else {"connect_timeout": CONNECT_TIMEOUT_SEC}
+    engine = create_engine(url, poolclass=pool.NullPool, connect_args=connect_args)
     with engine.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():

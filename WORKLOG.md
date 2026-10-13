@@ -87,6 +87,16 @@
 | TrungTuyenDo02 | Thêm câu chống injection vào 4 prompt, lọc mật khẩu/DATABASE_URL khỏi môi trường dbt, thêm ca TRUNCATE | ✅ Done | +24–26 token tĩnh mỗi prompt, vẫn trong ngân sách; `pytest` 671 passed, độ phủ 91,81% | — |
 | TrungTuyenDo02 | Đo hiệu quả câu dặn chống injection với LLM thật | ⏳ Chưa làm | Cần khóa API và bộ eval injection | — |
 
+
+## 2026-10-13
+
+| Member | Task | Status | Output | Time |
+|--------|------|--------|--------|------|
+| TrungTuyenDo02 | Neon nhánh `dev`: chạy `alembic upgrade head`, thêm `connect_timeout=15` | ✅ Done | Bản `0002_schema_snapshots`; `p113_app` chỉ có quyền tối thiểu; 42 test đăng nhập đạt trên Neon `p113_test` | — |
+| TrungTuyenDo02 | Chọn dd/mm hay mm/dd theo bằng chứng; chưa chắc thì báo ở Dữ liệu nguồn và màn duyệt | ✅ Done | 4 ca test (VN, Mỹ, lẫn, mơ hồ) | — |
+| TrungTuyenDo02 | CLAUDE.md 2.3: LLM chỉ thấy cấu trúc và con số; code điền giá trị cột cho người tick | ✅ Done | Planner v8 (tĩnh +79, động −213 token/3 nguồn); `pytest` 696 passed; độ phủ 91,92% | — |
+| TrungTuyenDo02 | Đổi sang gpt-6-luna (`temperature: false`), đo Planner v8 bằng LLM thật (`smoke-llm`) | ✅ Done | 3/3 qua V0/V1, 0 câu hỏi thừa, 0,00577 USD (trước 0,00997); g06 lỗi cú pháp 1/4 lần | — |
+
 ---
 
 <!-- Format: copy khối trên cho mỗi ngày làm việc. Status: ✅ Done · 🔄 Doing · ⚠️ Chưa sửa · ⏳ Chưa làm -->

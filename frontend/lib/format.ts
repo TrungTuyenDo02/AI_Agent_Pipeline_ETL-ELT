@@ -74,3 +74,8 @@ export function formatClock(iso: string): string {
     ? iso
     : date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
+
+/** Bỏ mã kỹ thuật đầu nhãn bước do máy chủ gửi ("E3 Sinh code", "J  Cứu hộ", "E0–E2 · Nạp…") → "Sinh code". */
+export function plainStepLabel(label: string): string {
+  return label.replace(/^(?:[EVJP](?:\d[a-z]?|s)?(?:[–-][EVJ]\d)?)\s*[·:]?\s+/, "");
+}

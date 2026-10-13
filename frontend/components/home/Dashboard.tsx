@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 
 import { STATUS_LABELS, formatAgo, formatClock } from "@/lib/format";
 import type { AdminUser, AuditEntry, ErrorEntry, RunRecord, SchemaReport } from "@/lib/types";
@@ -9,11 +9,10 @@ import { useNow } from "@/lib/useNow";
 import { usePoll } from "@/lib/usePoll";
 
 import { RUNS_LIMIT, useApp } from "../AppContext";
-import { CreateRunForm } from "../CreateRunForm";
+import { CreateRunForm, DraftedCreateRunForm } from "../CreateRunForm";
 import {
   ArrowRightIcon,
   BookIcon,
-  BotIcon,
   CheckIcon,
   ClockIcon,
   DatabaseIcon,
@@ -44,7 +43,7 @@ const count = (n: number | null | undefined) => (n === null || n === undefined ?
 
 // ---------- Khối dùng chung ----------
 
-function Hero({ eyebrow, title, sub, cta }: { eyebrow: string; title: ReactNode; sub: string; cta: ReactNode }) {
+function Hero({ eyebrow, title, sub, cta }: { eyebrow: string; title: ReactNode; sub: string; cta?: ReactNode }) {
   return (
     <section className="hero">
       <p className="eyebrow">{eyebrow}</p>
@@ -220,13 +219,14 @@ export function SchemaWatchCard() {
 
 function NewRequestCard() {
   return (
-    <section className="glass new-request" id="request">
-      <span className="orb" aria-hidden />
+    <section className="glass new-request" id="request" aria-labelledby="request-title">
       <p className="eyebrow-sm row">
         <SparkIcon size={16} /> Yêu cầu mới
       </p>
-      <h2>Mô tả pipeline bạn cần</h2>
-      <CreateRunForm />
+      <h2 id="request-title">Mô tả pipeline bạn cần</h2>
+      <Suspense fallback={<CreateRunForm />}>
+        <DraftedCreateRunForm />
+      </Suspense>
     </section>
   );
 }
@@ -247,43 +247,38 @@ export function EngineerHome() {
             pipeline dữ liệu
           </>
         }
-        sub="Nói bảng bạn cần — agent sinh dbt + Airflow, code kiểm chứng, Reviewer duyệt trước khi merge."
-        cta={
-          <a href="#request" className="btn cta">
-            <BotIcon size={18} /> Bắt đầu ngay <ArrowRightIcon size={16} />
-          </a>
-        }
+        sub="Bạn chỉ cần mô tả bằng lời bảng số liệu mình cần. Agent tự viết cách lấy dữ liệu, chạy thử, kiểm tra kết quả; người duyệt xem lại trước khi đưa vào dùng."
       />
-      <StatsPanel
-        title="Yêu cầu của tôi"
-        stats={[
-          {
-            icon: <LayersIcon size={18} />,
-            value: loaded ? `${mine.length}${mine.length === RUNS_LIMIT ? "+" : ""}` : "—",
-            label: "Đã tạo",
-          },
-          {
-            icon: <ClockIcon size={18} />,
-            value: loaded ? String(waitingFor(user, runs).length) : "—",
-            label: "Chờ tôi",
-          },
-          {
-            icon: <UserIcon size={18} />,
-            value: loaded ? String(mine.filter((r) => r.status === "waiting_review").length) : "—",
-            label: "Chờ Reviewer",
-          },
-          { icon: <CheckIcon size={18} />, value: loaded ? String(approved) : "—", label: "Đã duyệt" },
-        ]}
-      />
+      <NewRequestCard />
       <RunListCard
         title="Yêu cầu gần đây của tôi"
         icon={<ClockIcon size={20} />}
         runs={mine.slice(0, 5)}
         loaded={loaded}
-        empty="Bạn chưa tạo yêu cầu nào — mô tả bảng bạn cần ở khung bên phải."
+        empty="Bạn chưa tạo yêu cầu nào — mô tả bảng bạn cần ở khung phía trên."
       />
       <div className="dash-side">
-        <NewRequestCard />
+        <StatsPanel
+          title="Yêu cầu của tôi"
+          stats={[
+            {
+              icon: <LayersIcon size={18} />,
+              value: loaded ? `${mine.length}${mine.length === RUNS_LIMIT ? "+" : ""}` : "—",
+              label: "Đã tạo",
+            },
+            {
+              icon: <ClockIcon size={18} />,
+              value: loaded ? String(waitingFor(user, runs).length) : "—",
+              label: "Chờ tôi",
+            },
+            {
+              icon: <UserIcon size={18} />,
+              value: loaded ? String(mine.filter((r) => r.status === "waiting_review").length) : "—",
+              label: "Chờ Reviewer",
+            },
+            { icon: <CheckIcon size={18} />, value: loaded ? String(approved) : "—", label: "Đã duyệt" },
+          ]}
+        />
         <SchemaWatchCard />
       </div>
     </div>

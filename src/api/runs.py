@@ -138,10 +138,9 @@ def answer(run_id: str, body: AnswerBody, user: Engineer) -> Accepted:
     """Trả lời câu hỏi làm rõ (J1); lựa chọn phải đúng một trong các đáp án đã đưa ra."""
     run_or_404(run_id)
     questions = [ClarifyQuestion.model_validate(q) for q in _pending(run_id, "clarify").get("questions", [])]
-    answers = valid_answers(questions, {"answers": body.answers})
-    if len(answers) != len(questions):
-        raise HTTPException(status_code=422, detail="Cần chọn đúng một đáp án có sẵn cho mỗi câu hỏi.")
-    return _resume(run_id, "clarify", {"answers": answers}, user)
+    if len(valid_answers(questions, {"answers": body.answers})) != len(questions):
+        raise HTTPException(status_code=422, detail="Cần chọn đáp án có sẵn cho mỗi câu hỏi.")
+    return _resume(run_id, "clarify", {"answers": body.answers}, user)  # J1 tự kiểm và định dạng lại
 
 
 @router.post("/{run_id}/plan", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)

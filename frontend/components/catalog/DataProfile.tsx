@@ -4,15 +4,18 @@
 // (hợp lệ / lỗi / rỗng) và biểu đồ phân bố, kèm kết luận nhanh, danh sách vấn đề và lưới dòng xem trước.
 // Mọi con số do backend đo bằng code (0 token); dòng xem trước đã che email / số điện thoại.
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { formatNumber, LAYER_LABELS } from "@/lib/format";
+import { draftRequest, issueKey, useIssueDecisions } from "@/lib/issuePlan";
 import type { CatalogView, ColumnKind, ColumnProfile, ProfileIssue, TableInfo, TableProfile } from "@/lib/types";
 import { usePoll } from "@/lib/usePoll";
 
 import { Checkbox, Empty, ErrorBox, Loading } from "../ui";
 
-const KIND_GLYPH: Record<ColumnKind, string> = { number: "123", date: "Ngày", text: "Abc", bool: "T/F", nested: "{ }" };
+// Nhãn kiểu cột bằng chữ thường dùng (CLAUDE.md yêu cầu 5): "Chữ", "Số" thay cho "Abc", "123"
+const KIND_GLYPH: Record<ColumnKind, string> = { number: "Số", date: "Ngày", text: "Chữ", bool: "Đ/S", nested: "{ }" };
 const KIND_LABEL: Record<ColumnKind, string> = {
   number: "Số",
   date: "Ngày giờ",
@@ -43,6 +46,9 @@ const LEVEL_TONE = { fail: "danger", warn: "warn", info: "info" } as const;
 
 const pct = (part: number, whole: number) => (whole ? (100 * part) / whole : 0);
 const fmtPct = (value: number) => `${value.toLocaleString("vi-VN", { maximumFractionDigits: 1 })}%`;
+/** Số dạng chuỗi từ máy chủ ("44807000") → có dấu chấm ngăn cách ("44.807.000"); chuỗi khác giữ nguyên. */
+const fmtValue = (value: string | null) =>
+  value !== null && /^-?\d+(\.\d+)?$/.test(value.trim()) ? Number(value).toLocaleString("vi-VN") : (value ?? "");
 
 interface Quality {
   valid: number;
@@ -115,18 +121,24 @@ function TopValues({ column }: { column: ColumnProfile }) {
 
 function Histogram({ column }: { column: ColumnProfile }) {
   const max = Math.max(...column.bins.map((b) => b.count), 1);
+  const smallest = Math.min(...column.bins.map((b) => b.count).filter((c) => c > 0), max);
+  // Lệch lớn (một khoảng giá chiếm gần hết) → chiều cao theo thang log để các khoảng nhỏ không bị bẹp
+  const log = max / smallest >= 20;
+  const height = (count: number) =>
+    count === 0 ? 0 : Math.max(log ? (100 * Math.log1p(count)) / Math.log1p(max) : pct(count, max), 4);
   return (
     <div>
-      <div className="dist-hist" role="img" aria-label={`Phân bố ${column.name}`}>
+      <div className="dist-hist" role="img" aria-label={`Phân bố ${column.name}${log ? " (thang log)" : ""}`}>
         {column.bins.map((b) => (
-          <span key={b.label} title={`từ ${b.label}: ${formatNumber(b.count)} dòng`}>
-            <span style={{ height: `${Math.max(pct(b.count, max), b.count ? 4 : 0)}%` }} />
+          <span key={b.label} title={`từ ${fmtValue(b.label)}: ${formatNumber(b.count)} dòng`}>
+            <span style={{ height: `${height(b.count)}%` }} />
           </span>
         ))}
       </div>
       <div className="dist-axis mono">
-        <span>{column.minimum}</span>
-        <span>{column.maximum}</span>
+        <span>{fmtValue(column.minimum)}</span>
+        {log && <span className="dist-scale">thang log</span>}
+        <span>{fmtValue(column.maximum)}</span>
       </div>
     </div>
   );
@@ -272,26 +284,123 @@ function Kpis({ profile }: { profile: TableProfile }) {
   );
 }
 
-function Issues({ issues, onPick }: { issues: ProfileIssue[]; onPick: (column: string) => void }) {
+function IssueActions({ table, column, text }: { table: string; column: string; text: string }) {
+  const { items, decide, undo } = useIssueDecisions();
+  const [asking, setAsking] = useState(false);
+  const [reason, setReason] = useState("");
+  const key = issueKey(table, column, text);
+  const done = items.find((d) => d.key === key);
+  if (done) {
+    return (
+      <div className="issue-actions">
+        <span className={`badge ${done.kind === "plan" ? "info" : "muted"}`}>
+          {done.kind === "plan" ? "Đã thêm vào kế hoạch xử lý" : `Đã bỏ qua: ${done.reason}`}
+        </span>
+        <button type="button" className="btn small" onClick={() => undo(key)}>
+          Hoàn tác
+        </button>
+      </div>
+    );
+  }
+  if (asking) {
+    const ok = reason.trim().length >= 5;
+    return (
+      <form
+        className="issue-actions"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (ok) decide({ key, table, column, text, kind: "skip", reason: reason.trim() });
+        }}
+      >
+        <input
+          className="issue-reason"
+          autoFocus
+          value={reason}
+          maxLength={200}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Lý do bỏ qua (ví dụ: hàng tặng, giá 0 là đúng)"
+          aria-label="Lý do bỏ qua"
+        />
+        <button type="submit" className="btn small primary" disabled={!ok}>
+          Lưu lý do
+        </button>
+        <button type="button" className="btn small" onClick={() => setAsking(false)}>
+          Hủy
+        </button>
+      </form>
+    );
+  }
+  return (
+    <div className="issue-actions">
+      <button type="button" className="btn small" onClick={() => decide({ key, table, column, text, kind: "plan" })}>
+        Thêm vào kế hoạch xử lý
+      </button>
+      <button type="button" className="btn small" onClick={() => setAsking(true)}>
+        Bỏ qua, ghi lý do
+      </button>
+    </div>
+  );
+}
+
+function PlanPanel({ table }: { table: string }) {
+  const { items } = useIssueDecisions();
+  const plan = items.filter((d) => d.table === table && d.kind === "plan");
+  if (plan.length === 0) return null;
+  return (
+    <div className="plan-panel">
+      <strong>
+        Kế hoạch xử lý bảng {table} ({plan.length})
+      </strong>
+      <ul>
+        {plan.map((d) => (
+          <li key={d.key}>
+            {d.column && <span className="mono">{d.column}: </span>}
+            {d.text}
+          </li>
+        ))}
+      </ul>
+      <div className="row">
+        <Link href={`/?draft=${encodeURIComponent(draftRequest(table, plan))}#request`} className="btn small primary">
+          Tạo yêu cầu xử lý
+        </Link>
+        <span className="small muted">Kế hoạch lưu trên trình duyệt này.</span>
+      </div>
+    </div>
+  );
+}
+
+function Issues({
+  issues,
+  table,
+  onPick,
+}: {
+  issues: ProfileIssue[];
+  table: string;
+  onPick: (column: string) => void;
+}) {
   if (issues.length === 0) return null;
   const order = { fail: 0, warn: 1, info: 2 };
   const sorted = [...issues].sort((a, b) => order[a.level] - order[b.level]);
   return (
-    <ul className="issue-list">
-      {sorted.map((issue, i) => (
-        <li key={`${issue.column}-${i}`}>
-          <span className={`badge ${LEVEL_TONE[issue.level]}`}>{LEVEL_LABEL[issue.level]}</span>
-          {issue.column ? (
-            <button type="button" className="chip mono" onClick={() => onPick(issue.column)}>
-              {issue.column}
-            </button>
-          ) : (
-            <span className="chip muted">cả bảng</span>
-          )}
-          <span>{issue.text}</span>
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="issue-list">
+        {sorted.map((issue, i) => (
+          <li key={`${issue.column}-${i}`}>
+            <span className={`badge ${LEVEL_TONE[issue.level]}`}>{LEVEL_LABEL[issue.level]}</span>
+            {issue.column ? (
+              <button type="button" className="chip mono" onClick={() => onPick(issue.column)}>
+                {issue.column}
+              </button>
+            ) : (
+              <span className="chip muted">cả bảng</span>
+            )}
+            <span>{issue.text}</span>
+            {issue.level !== "info" && <IssueActions table={table} column={issue.column} text={issue.text} />}
+          </li>
+        ))}
+      </ul>
+      <PlanPanel table={table} />
+    </>
   );
 }
 
@@ -356,13 +465,13 @@ function ProfileBody({ profile }: { profile: TableProfile }) {
     <>
       <Verdict profile={profile} />
       <Kpis profile={profile} />
-      <Issues issues={profile.issues} onPick={pick} />
+      <Issues issues={profile.issues} table={profile.name} onPick={pick} />
       <div className="profile-section-head">
         <h3>Hồ sơ từng cột</h3>
         <div className="row small">
           <span className="legend-q">
-            <i className="q-valid" /> hợp lệ <i className="q-invalid" /> không đọc được <i className="q-blank" /> chuỗi
-            rỗng <i className="q-nulls" /> NULL
+            <i className="q-valid">✓</i> hợp lệ <i className="q-invalid">✗</i> không đọc được{" "}
+            <i className="q-blank">␣</i> chuỗi rỗng <i className="q-nulls">∅</i> NULL
           </span>
           {byColumn.size > 0 && (
             <Checkbox checked={onlyIssues} onChange={setOnlyIssues}>
@@ -428,7 +537,9 @@ function TableList({
               data-layer={t.layer}
               onClick={() => onSelect(t.id)}
             >
-              <span className="mono">{t.name}</span>
+              <span className="mono" title={t.name}>
+                {t.name}
+              </span>
               <span className="small muted">
                 {t.rows !== null ? `${formatNumber(t.rows)} dòng · ` : ""}
                 {t.columns.length} cột
@@ -450,15 +561,26 @@ export function DataProfile({ catalog, base, initial }: { catalog: CatalogView; 
   const runScoped = base !== "/catalog/sources";
   const [selected, setSelected] = useState(initial || catalog.tables[0]?.id || "");
   const [dataset, setDataset] = useState("sandbox");
+  const [listOpen, setListOpen] = useState(true);
   const table = catalog.tables.find((t) => t.id === selected);
   const { data, error, refresh } = usePoll<TableProfile>(table ? profilePath(base, table, dataset) : null, null);
   const current = data && data.id === table?.id && (!runScoped || data.dataset === dataset) ? data : null;
   return (
-    <div className="profile-layout">
-      <TableList tables={catalog.tables} selected={selected} onSelect={setSelected} aiLayers={runScoped} />
+    <div className={listOpen ? "profile-layout" : "profile-layout list-closed"}>
+      {listOpen && (
+        <TableList tables={catalog.tables} selected={selected} onSelect={setSelected} aiLayers={runScoped} />
+      )}
       <section className="card profile-card">
         {table && (
           <header className="profile-head">
+            <button
+              type="button"
+              className="btn small list-toggle"
+              aria-expanded={listOpen}
+              onClick={() => setListOpen(!listOpen)}
+            >
+              {listOpen ? "« Thu gọn danh sách bảng" : `» Danh sách bảng (${catalog.tables.length})`}
+            </button>
             <div>
               <h2 className="mono">{table.name}</h2>
               <div className="row small muted">

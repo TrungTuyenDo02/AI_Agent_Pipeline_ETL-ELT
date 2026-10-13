@@ -174,3 +174,19 @@ def test_compare_node_sends_rejection_back_to_optimizer(pipeline_state: dict, mo
     result = compare_node(pipeline_state)
     assert "optimization" not in result
     assert "lệch" in result["opt_candidate"]["feedback"] and result["opt_candidate"]["history"]
+
+
+def test_missing_optimizer_key_keeps_original_instead_of_failing_run(datasets: dict[str, str], monkeypatch):
+    """Optimizer dùng Anthropic mà chưa có ANTHROPIC_API_KEY: ứng viên bị loại kèm lý do, lần chạy không dừng."""
+    from src.agents.nodes import optimizer
+    from src.services.llm import LLMConfigError
+
+    def missing_key(task: str, variables: dict[str, str]):
+        raise LLMConfigError("Bước 'optimizer' dùng Anthropic nhưng chưa có ANTHROPIC_API_KEY.")
+
+    monkeypatch.setattr(optimizer, "call_llm", missing_key)
+    job = optimizer.ProposalInput(sql=ORIGINAL, findings=[], bench_db=datasets["small"])
+    candidate, usage = optimizer.llm_rewrite(job)
+    assert usage is None and "ANTHROPIC_API_KEY" in candidate["invalid"]
+    report = evaluate_candidate({**candidate, "original_sql": ORIGINAL, "attempt": 1}, datasets)
+    assert report.decision == "skipped"

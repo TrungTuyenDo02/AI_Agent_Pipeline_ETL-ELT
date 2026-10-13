@@ -154,3 +154,56 @@ def test_large_dataset_keeps_joins_one_to_one(tmp_path: Path):
         sales = con.execute("SELECT count(*) FROM raw.sales").fetchone()[0]
         joined = con.execute("SELECT count(*) FROM raw.sales s JOIN raw.products p USING (sku)").fetchone()[0]
     assert sales > 100 and joined == sales
+
+
+def _dates_table(tmp_path: Path, values: list[str]) -> Path:
+    db = tmp_path / "dates.duckdb"
+    with duckdb.connect(str(db)) as con:
+        con.execute("CREATE SCHEMA raw; CREATE TABLE raw.t (order_date VARCHAR)")
+        con.executemany("INSERT INTO raw.t VALUES (?)", [(v,) for v in values])
+    return db
+
+
+def _read_dates(tmp_path: Path, values: list[str]) -> tuple[dict, list[date]]:
+    from src.agents.nodes.profiler import profile_table
+
+    db = _dates_table(tmp_path, values)
+    column = profile_table(db, "t", {"order_date": "VARCHAR"})["columns"]["order_date"]
+    with duckdb.connect(str(db), read_only=True) as con:
+        parsed = [r[0] for r in con.execute(f"SELECT {column['duckdb_parse']} FROM raw.t").fetchall()]
+    return column, parsed
+
+
+def test_profiler_detects_month_first_dates_from_evidence(tmp_path: Path):
+    """Nguồn đối tác viết mm/dd: '03/25' chứng minh thứ tự nên '03/04' phải là 4 tháng 3, không phải 3 tháng 4."""
+    column, parsed = _read_dates(tmp_path, ["03/25/2026", "03/04/2026"])
+    assert column["date_formats"] == ["mm/dd/yyyy"] and "uncertain" not in column
+    assert parsed == [date(2026, 3, 25), date(2026, 3, 4)] and column["parse_failures"] == 0
+
+
+def test_profiler_keeps_day_first_and_flags_when_no_evidence(tmp_path: Path):
+    """Không giá trị nào > 12: giữ cách đọc dd/mm như cũ nhưng ghi rõ là chưa chắc (không đoán im lặng)."""
+    column, parsed = _read_dates(tmp_path, ["03/04/2026", "05/06/2026"])
+    assert column["date_formats"] == ["dd/mm/yyyy"] and parsed == [date(2026, 4, 3), date(2026, 6, 5)]
+    assert column["date_order"] == {"day_first": 0, "month_first": 0, "unclear": 2}
+    assert "thứ tự ngày/tháng" in column["uncertain"][0]
+
+
+def test_profiler_reads_mixed_day_month_column_and_flags_it(tmp_path: Path):
+    column, parsed = _read_dates(tmp_path, ["25/03/2026", "03/25/2026", "13/01/2026"])
+    assert column["date_formats"] == ["dd/mm/yyyy", "mm/dd/yyyy"] and column["parse_failures"] == 0
+    assert parsed == [date(2026, 3, 25), date(2026, 3, 25), date(2026, 1, 13)]
+    assert column["uncertain"][0].startswith("Lẫn dd/mm (2 giá trị) và mm/dd (1 giá trị)")
+
+
+def test_uncertain_formats_reach_reviewer_but_not_llm():
+    from src.agents.nodes.package import build_evidence
+    from src.services.prompt_context import compact_profile
+
+    note = "Không giá trị nào cho biết thứ tự ngày/tháng (2 giá trị); đang đọc theo dd/mm."
+    profile = {
+        "t": {"rows": 2, "columns": {"d": {"type": "VARCHAR", "uncertain": [note], "date_order": {"unclear": 2}}}}
+    }
+    measured = build_evidence({"profile": profile}).measured
+    assert any(m.check == "Định dạng chưa chắc: t.d" and m.result == note for m in measured)
+    assert compact_profile(profile)["t"]["columns"]["d"] == {"type": "VARCHAR"}

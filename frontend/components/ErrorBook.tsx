@@ -32,7 +32,7 @@ function EntryCard({ entry, onDone }: { entry: ErrorEntry; onDone: () => Promise
       title={<span className="mono">{entry.code}</span>}
       actions={<span className="badge muted">gặp {entry.occurrences} lần</span>}
     >
-      <div className="stack" style={{ gap: 10 }}>
+      <div className="stack error-entry" style={{ gap: 10 }}>
         <p>{entry.description}</p>
         {entry.cause && <p className="muted">Nguyên nhân: {entry.cause}</p>}
         {entry.warnings?.length > 0 && (

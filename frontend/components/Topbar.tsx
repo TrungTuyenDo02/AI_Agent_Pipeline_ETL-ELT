@@ -3,15 +3,17 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import Link from "next/link";
+
+import { API_URL } from "@/lib/api";
 import type { Role } from "@/lib/types";
 
 import { useApp, type ThemeChoice } from "./AppContext";
-import { LogoutIcon, MonitorIcon, MoonIcon, SunIcon } from "./icons";
-import { useDismiss } from "./NotificationBell";
+import { ArrowUpRightIcon, CheckIcon, DocIcon, LogoutIcon } from "./icons";
+import { useDismiss, waitingFor } from "./NotificationBell";
 
 const THEME_LABELS: Record<ThemeChoice, string> = { system: "Theo máy", light: "Sáng", dark: "Tối" };
 const THEME_ORDER: ThemeChoice[] = ["system", "light", "dark"];
-const THEME_ICONS = { system: MonitorIcon, light: SunIcon, dark: MoonIcon };
 export const ROLE_LABELS: Record<Role, string> = { engineer: "Engineer", reviewer: "Reviewer", admin: "Admin" };
 
 export function ModeBadges() {
@@ -71,6 +73,9 @@ export function AvatarMenu() {
             ))}
           </div>
           <ModeBadges />
+          <a href={`${API_URL}/docs`} target="_blank" rel="noreferrer" className="menu-link">
+            <DocIcon size={16} /> Tài liệu API <ArrowUpRightIcon size={14} />
+          </a>
           <button type="button" className="btn logout-btn" onClick={signOut} disabled={leaving}>
             <LogoutIcon size={16} />
             {leaving ? "Đang đăng xuất…" : "Đăng xuất"}
@@ -78,24 +83,6 @@ export function AvatarMenu() {
         </div>
       )}
     </div>
-  );
-}
-
-/** Một nút đổi giao diện: Theo máy → Sáng → Tối (thanh dọc). */
-export function ThemeButton() {
-  const { theme, setTheme } = useApp();
-  const next = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length];
-  const Glyph = THEME_ICONS[theme];
-  return (
-    <button
-      type="button"
-      className="rail-btn"
-      onClick={() => setTheme(next)}
-      aria-label={`Giao diện: ${THEME_LABELS[theme]}. Bấm để chuyển sang ${THEME_LABELS[next]}`}
-      data-tip={`Giao diện: ${THEME_LABELS[theme]}`}
-    >
-      <Glyph size={18} />
-    </button>
   );
 }
 
@@ -112,14 +99,88 @@ export function RoleNote({ need }: { need: Role }) {
   );
 }
 
-/** Nhãn vai trò trên thanh trên cùng: màu theo vai trò để luôn biết mình đang đăng nhập với quyền gì. */
+const SWITCHABLE: Role[] = ["engineer", "reviewer"];
+
+/**
+ * Huy hiệu vai trò = menu thả xuống đổi vai (CLAUDE.md yêu cầu 4). Vai trò gắn với TÀI KHOẢN và do máy chủ kiểm quyền,
+ * nên đổi vai = đăng nhập tài khoản có vai đó (giao diện không tự cấp quyền). Reviewer thấy ngay số yêu cầu chờ duyệt.
+ */
 export function RoleChip() {
-  const { user } = useApp();
+  const { user, runs, logout } = useApp();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [target, setTarget] = useState<Role | null>(null);
+  const box = useDismiss(open, () => {
+    setOpen(false);
+    setTarget(null);
+  });
   if (!user) return null;
+  const queue = user.role === "reviewer" ? waitingFor(user, runs).length : 0;
+  const roles = SWITCHABLE.includes(user.role) ? SWITCHABLE : [user.role, ...SWITCHABLE];
+
+  async function switchTo() {
+    await logout();
+    router.replace("/login?next=/");
+  }
+
   return (
-    <span className={`role-chip role-${user.role}`} title={`Bạn đang đăng nhập với vai trò ${ROLE_LABELS[user.role]}`}>
-      <span className="role-dot" aria-hidden />
-      {ROLE_LABELS[user.role]}
-    </span>
+    <div className="popover" ref={box}>
+      <button
+        type="button"
+        className={`role-chip role-${user.role}`}
+        aria-haspopup="true"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        title={`Bạn đang làm việc với vai trò ${ROLE_LABELS[user.role]}. Bấm để đổi vai`}
+      >
+        <span className="role-dot" aria-hidden />
+        {ROLE_LABELS[user.role]}
+        {queue > 0 && <span className="role-count">{queue} chờ duyệt</span>}
+        <span className="role-caret" aria-hidden>
+          ▾
+        </span>
+      </button>
+      {open && (
+        <div className="flyout menu role-menu" role="dialog" aria-label="Đổi vai trò">
+          <p className="small muted">Vai trò</p>
+          <ul className="role-options">
+            {roles.map((role) => (
+              <li key={role}>
+                <button
+                  type="button"
+                  className="role-option"
+                  aria-pressed={role === user.role}
+                  onClick={() => setTarget(role === user.role ? null : role)}
+                >
+                  <span className={`role-dot role-${role}`} aria-hidden />
+                  {ROLE_LABELS[role]}
+                  {role === user.role && (
+                    <span className="role-current">
+                      <CheckIcon size={14} /> đang dùng
+                    </span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+          {user.role === "reviewer" && (
+            <Link href="/#queue" className="menu-link" onClick={() => setOpen(false)}>
+              {queue > 0 ? `${queue} yêu cầu chờ duyệt` : "Không có yêu cầu chờ duyệt"}
+            </Link>
+          )}
+          {target && (
+            <div className="alert info role-switch">
+              <span>
+                Vai trò gắn với tài khoản. Để làm việc với vai trò {ROLE_LABELS[target]}, đăng nhập bằng tài khoản{" "}
+                {ROLE_LABELS[target]}.
+              </span>
+              <button type="button" className="btn small" onClick={switchTo}>
+                Đăng nhập tài khoản {ROLE_LABELS[target]}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

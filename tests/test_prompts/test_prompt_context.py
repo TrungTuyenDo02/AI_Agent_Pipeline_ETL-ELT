@@ -65,7 +65,7 @@ def test_compact_profile_drops_redundant_fields():
     assert out == {
         "rows": 3,
         "columns": {
-            "amount": {"type": "VARCHAR", "null_pct": 33.3, "examples": ["1.000"], "duckdb_parse": "try_cast(x)"}
+            "amount": {"type": "VARCHAR", "null_pct": 33.3, "duckdb_parse": "try_cast(x)"}  # không gửi giá trị mẫu
         },
     }
 
@@ -77,7 +77,9 @@ def test_compact_profile_keeps_parse_failures_and_keys():
     assert (out["key_column"], out["duplicate_keys"]) == ("id", 1)
 
 
-def test_compact_catalog_sends_sample_as_rows_without_path():
+def test_compact_catalog_sends_stats_not_sample_or_path():
+    """CLAUDE.md 2.3: Planner chỉ thấy cấu trúc + con số do code đếm; dòng mẫu và đường dẫn không gửi."""
+    stats = {"rows": 2, "key_column": "id", "repeated_keys": 0}
     catalog = [
         {
             "name": "orders",
@@ -86,17 +88,11 @@ def test_compact_catalog_sends_sample_as_rows_without_path():
             "table": "",
             "columns": {"id": "VARCHAR", "amount": "BIGINT"},
             "sample": [{"id": "A", "amount": 5}, {"amount": 7, "id": "B"}],
+            "stats": stats,
         }
     ]
     out = compact_catalog(catalog)
-    assert out == [
-        {
-            "name": "orders",
-            "kind": "csv",
-            "columns": {"id": "VARCHAR", "amount": "BIGINT"},
-            "sample_rows": [["A", 5], ["B", 7]],
-        }
-    ]
+    assert out == [{"name": "orders", "kind": "csv", "columns": {"id": "VARCHAR", "amount": "BIGINT"}, "stats": stats}]
 
 
 def test_fill_sources_takes_kind_and_path_from_catalog():
@@ -156,7 +152,9 @@ def test_temperature_and_max_tokens_per_task():
     assert settings.temperature_for("planner") == 0.0
     assert settings.temperature_for("codegen") == 0.2  # Codegen thấp, không quá 0.2
     assert settings.max_tokens_for("codegen") == 5000  # không vượt trần chung
-    assert settings.max_tokens_for("optimizer") == 4000
+    assert settings.max_tokens_for("testgen") == 5000
+    assert settings.max_tokens_for("optimizer") == 5000  # trần riêng 16.000 (Opus luôn suy luận) bị trần chung chặn
+    assert Settings().max_tokens_for("optimizer") == 16000
 
 
 class _Message:

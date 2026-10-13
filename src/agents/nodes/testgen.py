@@ -11,6 +11,7 @@ import yaml
 
 from src.agents.nodes.common import spec_of, usage_of
 from src.agents.state import PipelineState
+from src.agents.tools.pii import mask_literals
 from src.models.spec import OutputColumn, PipelineSpec
 from src.services.llm import LLMOutputError, call_llm, parse_json_output, to_json
 from src.services.prompt_context import compact_profile, spec_for_build
@@ -126,6 +127,7 @@ def testgen_node(state: PipelineState) -> dict:
     if previous and not errors:
         return {"test_files": {**files, **previous}, "test_notes": state.get("test_notes", notes)}
     variables = {**blind_inputs(state), "previous_tests": to_json(previous) if errors else "(chưa có)"}
-    response = call_llm("testgen", {**variables, "test_errors": "\n".join(errors) or "(không có)"})
+    test_errors = mask_literals("\n".join(errors)) or "(không có)"
+    response = call_llm("testgen", {**variables, "test_errors": test_errors})
     llm_files, llm_notes = _parse_expected(response.text, spec)
     return {"test_files": {**files, **llm_files}, "test_notes": notes + llm_notes, "llm_usage": usage_of(response)}

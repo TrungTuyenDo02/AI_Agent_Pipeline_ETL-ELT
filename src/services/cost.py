@@ -5,11 +5,14 @@ Giá chỉ là ước tính để so sánh; kiểm tra lại trang giá của nh
 
 # Giá chuẩn (ngữ cảnh ≤200k), đối chiếu trang giá chính thức OpenAI và Google ngày 2026-10-02.
 PRICES_PER_MILLION: dict[str, tuple[float, float]] = {
+    "gpt-6-luna": (0.10, 0.50),  # giá sau đợt giảm 50% (openrouter.ai, venturebeat.com, tra 2026-10-13)
     "gpt-5.6-luna": (0.20, 1.20),
     "gpt-5.6-terra": (2.00, 12.00),
     "gpt-5.6-sol": (4.00, 20.00),
+    "claude-opus-5-5": (4.00, 20.00),  # trang giá Anthropic (bản lưu 2026-09-25), token suy luận tính như đầu ra
     "gemini-3.1-flash-lite": (0.25, 1.50),
     "gemini-2.5-flash": (0.30, 2.50),
+    "gemini-3.8-flash": (0.75, 3.75),  # giá giới thiệu, Google báo tăng gấp đôi từ 01/2027 (tra 2026-10-13)
     "gpt-4o-mini": (0.15, 0.60),
     "gpt-4o": (2.50, 10.00),
     "gpt-4.1-mini": (0.40, 1.60),
