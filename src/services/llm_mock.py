@@ -13,6 +13,7 @@ from sqlglot import exp
 
 from src.agents.tools.input_checks import normalize
 from src.models.schemas import LLMUsage
+from src.models.spec import TABULAR_KINDS
 from src.services.llm import LLMRequest, LLMResponse
 
 Q_STATUS = "q_status"
@@ -112,7 +113,13 @@ group by order_date
 order by order_date
 """)
 
-DAG = Template('''"""DAG Airflow chạy pipeline dbt `$target` hằng ngày (agent sinh, Engineer duyệt trước khi merge)."""
+SCHEDULES = {
+    "daily": ('"@daily"', "hằng ngày"),
+    "hourly": ('"@hourly"', "hằng giờ"),
+    "event": ("None", "khi được kích hoạt từ bên ngoài"),
+}
+
+DAG = Template('''"""DAG Airflow chạy pipeline dbt `$target` $cadence (agent sinh, Engineer duyệt trước khi merge)."""
 
 from datetime import datetime
 
@@ -124,7 +131,7 @@ DBT_CMD = "cd {{ var.value.p113_dbt_project_dir }} && dbt"
 with DAG(
     dag_id="p113_$target",
     start_date=datetime(2026, 1, 1),
-    schedule="@daily",
+    schedule=$schedule,
     catchup=False,
     tags=["p113", "dbt"],
 ) as dag:
@@ -182,7 +189,7 @@ def _choices(spec: dict) -> tuple[bool, bool]:
 
 
 def _spec_body(catalog: list[dict]) -> dict:
-    tabular = [s for s in catalog if s.get("kind") in ("csv", "json", "parquet", "sqlite")]
+    tabular = [s for s in catalog if s.get("kind") in TABULAR_KINDS]
     known = [s for s in tabular if s["name"] in STAGING]  # kho có nhiều hệ thống: kịch bản mẫu chỉ cần 3 nguồn đơn
     tabular = known or tabular
     return {
@@ -275,13 +282,14 @@ def mock_codegen(variables: dict[str, str]) -> dict:
     mart = (MART_DEDUP if dedup else MART_KEEP_ALL).substitute(unions=unions, statuses=statuses)
     files = {f"models/staging/stg_{n}.sql": STAGING[n] for n in names}
     files[f"models/marts/{target}.sql"] = mart
-    files[f"dags/{target}_dag.py"] = DAG.substitute(target=target)
+    schedule = SCHEDULES[(spec.get("options") or {}).get("schedule", "daily")]  # lịch do DE chọn ở J1b
+    files[f"dags/{target}_dag.py"] = DAG.substitute(target=target, schedule=schedule[0], cadence=schedule[1])
     notes = [
         "Mỗi nguồn một model staging chuẩn hóa ngày, tiền VND và trạng thái về cùng một bộ giá trị.",
         "Model đích gộp 3 nguồn, "
         + ("bỏ trùng theo (nguồn, mã đơn)" if dedup else "giữ mọi dòng")
         + ", tính theo ngày.",
-        "DAG Airflow chạy dbt run rồi dbt test hằng ngày.",
+        f"DAG Airflow chạy dbt run rồi dbt test {schedule[1]}.",
     ]
     return {"files": [{"path": k, "content": v} for k, v in files.items()], "notes": notes}
 

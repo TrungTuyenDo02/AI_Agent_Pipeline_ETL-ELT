@@ -42,6 +42,10 @@ Luật cố định (mẫu tấn công prompt, động từ nghiệp vụ, bản
 | `LLM_SAMPLE_MAX_ROWS` | Trần số dòng đã che ở mức `masked_sample` | `5` | không |
 | `REQUIRE_SEPARATE_REVIEWER` | `true`: người tạo yêu cầu không tự duyệt được ([ADR 0006](adr/0006-tach-nguoi-tao-va-nguoi-duyet.md)); `false` khi chạy demo cá nhân | `true` | không |
 | `P113_SECRET_<TÊN IN HOA>` | Giá trị thật của bí mật có tên tham chiếu `<tên>` ở sổ nguồn (chuỗi kết nối, đường dẫn thư mục dữ liệu). Chỉ lớp kết nối đọc; lọc khỏi môi trường của dbt, không vào prompt/log/state | trống | **có** |
+| `CONNECTOR_TIMEOUT_SEC` | Thời hạn kết nối và mỗi truy vấn của bộ nạp nguồn (PostgreSQL: `statement_timeout`) | `15` | không |
+| `SANDBOX_LOAD_MAX_ROWS` | Số dòng tối đa mỗi bảng nạp vào sandbox; bảng lớn hơn chỉ nạp một tập con có hạt giống cố định (cùng giới hạn → cùng tập con) | `100000` | không |
+| `SANDBOX_HASH_SENSITIVE` | Băm cột nhạy cảm (tên gợi ý thông tin cá nhân hoặc admin đánh dấu) khi nạp sandbox: `auto` chỉ nguồn độ nhạy cảm `high`, `always` mọi nguồn, `never` không băm. Băm SHA-256 có muối, nhất quán giữa các bảng nên JOIN còn đúng | `auto` | không |
+| `SANDBOX_HASH_SALT` | Muối băm cột nhạy cảm; đặt giá trị bí mật khi triển khai (trống: muối mặc định, chỉ đủ cho demo) | trống | **có** |
 | `SECRETS_DIR` | Thư mục chứa bí mật dạng file (mỗi file một tên tham chiếu, kiểu Docker/Kubernetes secrets), thay cho biến môi trường | trống | không |
 
 ## Đăng nhập và cơ sở dữ liệu

@@ -30,6 +30,9 @@ class PipelineState(TypedDict, total=False):
     plan_review: dict  # quyết định J1b gần nhất: {"decision": "approve"|"revise", "note": "..."}
     plan_feedback: list[str]  # ghi chú DE yêu cầu sửa kế hoạch (Planner đọc khi lập lại)
     plan_reviews: int  # số lần DE yêu cầu sửa kế hoạch
+    plan_options: dict[
+        str, str
+    ]  # lựa chọn pipeline DE đã đặt ở J1b (nạp, lịch, cột thời gian): giữ khi lập lại kế hoạch
 
     # E0, P, E2
     workspace: str  # đường dẫn workspace dbt

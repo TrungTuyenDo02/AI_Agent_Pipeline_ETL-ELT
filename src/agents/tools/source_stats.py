@@ -5,6 +5,7 @@
 """
 
 import sqlite3
+from collections.abc import Callable
 from contextlib import closing
 from pathlib import Path
 
@@ -33,13 +34,14 @@ def quote_ident(column: str) -> str:
     return '"' + column.replace('"', '""') + '"'
 
 
-def source_stats(item: dict) -> dict:
-    """Con số về một nguồn dạng bảng (không có giá trị nào của dữ liệu)."""
+def source_stats(item: dict, query: Callable[[str], list[tuple]] | None = None) -> dict:
+    """Con số về một nguồn dạng bảng (không có giá trị nào của dữ liệu). `query`: hàm chạy SQL trên bảng `src` (connector DB)."""
     columns = list(item.get("columns", {}))
-    if item.get("kind") not in TABULAR or not columns:
+    run = query or (lambda sql: query_item(item, sql))
+    if (item.get("kind") not in TABULAR and query is None) or not columns:
         return {}
     counts = ", ".join(f"count(DISTINCT {quote_ident(c)})" for c in columns)
-    rows, *distinct = query_item(item, f"SELECT count(*), {counts} FROM src")[0]
+    rows, *distinct = run(f"SELECT count(*), {counts} FROM src")[0]
     by_column = dict(zip(columns, distinct, strict=True))
     stats: dict = {"rows": rows}
     few = {c: n for c, n in by_column.items() if 1 < n <= CATEGORY_MAX and not KEY_NAME_RE.match(c)}
@@ -48,15 +50,13 @@ def source_stats(item: dict) -> dict:
     keys = [c for c in columns if KEY_NAME_RE.match(c)]
     if keys:
         key = max(keys, key=lambda c: by_column[c])
-        repeated = query_item(
-            item,
+        repeated = run(
             f"SELECT count(*) FROM (SELECT {quote_ident(key)} FROM src WHERE {quote_ident(key)} IS NOT NULL "
             f"GROUP BY 1 HAVING count(*) > 1) t",
         )[0][0]
         stats.update(key_column=key, repeated_keys=repeated)
         if repeated:
-            differing = query_item(
-                item,
+            differing = run(
                 f"SELECT count(*) FROM (SELECT {quote_ident(key)} FROM (SELECT DISTINCT * FROM src) d "
                 f"WHERE {quote_ident(key)} IS NOT NULL GROUP BY 1 HAVING count(*) > 1) t",
             )[0][0]

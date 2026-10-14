@@ -5,7 +5,7 @@ measured_on: 2026-10-05
 encoding: o200k_base
 static_tokens:
   planner: 1360 # đo 1.316 ở planner v9 (2026-10-15, +câu về stats.formats); 1.261 ở planner v8 (2026-10-13, +trường `column`, bỏ dòng mẫu: phần động −213 token/3 nguồn); 1.182 ở v7
-  codegen: 680 # đo 671 ở v4 (2026-10-12, +câu chống injection); 647 ở v3; 607 ở v2
+  codegen: 830 # đo 786 ở v6 (2026-10-15, +quy tắc options: lịch DAG, nạp phần mới); 671 ở v4 (2026-10-12, +câu chống injection); 647 ở v3; 607 ở v2
   testgen: 480 # đo 452 ở v3 (2026-10-12); 428 ở v2
   input_gate: 320 # đo 291 ở v1 (2026-10-15): bộ phân loại tầng 2 của cửa kiểm tra đầu vào
   optimizer: 330 # đo 320 ở v3 (2026-10-12); 295 ở v2

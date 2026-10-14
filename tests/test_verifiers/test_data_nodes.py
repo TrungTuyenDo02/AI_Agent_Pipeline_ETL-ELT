@@ -34,7 +34,7 @@ def test_profile_detects_keys_duplicates_and_formats(pipeline_state: dict):
     assert shopee["duplicate_keys"] == 6
     assert "vnd_dot (1.075.000)" in shopee["columns"]["total_amount"]["money_formats"]
     assert set(shopee["columns"]["order_date"]["date_formats"]) == {"dd/mm/yyyy", "yyyy-mm-dd"}
-    assert all("***@" in v for v in shopee["columns"]["customer_email"]["examples"])
+    assert "examples" not in shopee["columns"]["customer_email"]  # không ghi giá trị (dù đã che) vào state/checkpoint
     assert pipeline_state["profile"]["website_orders"]["columns"]["order_id"]["type"] == "BIGINT"
 
 

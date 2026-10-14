@@ -209,8 +209,11 @@ def review_plan(run_id: str, body: PlanBody, user: Engineer, request: Request) -
     _pending(run_id, "plan")
     if body.decision == "revise" and not body.note.strip():
         raise HTTPException(status_code=422, detail="Yêu cầu sửa kế hoạch thì cần ghi chú cần sửa gì.")
-    auth.audit(f"plan.{body.decision}", user.name, target=run_id, ip=client_ip(request))
-    return _resume(run_id, "plan", {"decision": body.decision, "note": body.note.strip()}, user)
+    auth.audit(
+        f"plan.{body.decision}", user.name, target=run_id, ip=client_ip(request), detail={"options": body.options or {}}
+    )
+    value = {"decision": body.decision, "note": body.note.strip(), "options": body.options or {}}
+    return _resume(run_id, "plan", value, user)
 
 
 @router.post("/{run_id}/schema", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)

@@ -106,6 +106,14 @@ def show_plan(pending: dict) -> None:
         f"Bảng đích: [bold]{spec.get('target')}[/] • mỗi dòng là: {', '.join(spec.get('grain') or [])} • "
         f"{spec.get('mode')} ({spec.get('mode_reason')})"
     )
+    options = spec.get("options") or {}
+    if options:
+        console.print(
+            f"Nạp: [bold]{options.get('load_mode')}[/] ({options.get('load_reason')}) • "
+            f"Lịch: [bold]{options.get('schedule')}[/] ({options.get('schedule_reason')})"
+        )
+        for item in options.get("connections", []):
+            console.print(f"  Nguồn {item['source']}: {item['via']}")
     console.print(f"[dim]{pending.get('next_steps', '')}[/]")
 
 

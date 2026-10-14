@@ -249,6 +249,7 @@ def test_secret_env_vars_are_hidden_from_dbt_subprocess(monkeypatch: pytest.Monk
 DIRECT_ACCESS_ALLOWED = {
     "src/config.py",
     "src/services/source_registry.py",
+    "src/services/connectors/file.py",
     "src/agents/tools/duckdb_tools.py",
     "src/services/source_catalog.py",
     "src/services/schema_watch.py",

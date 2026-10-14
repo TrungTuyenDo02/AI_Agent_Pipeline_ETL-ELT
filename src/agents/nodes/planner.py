@@ -7,10 +7,13 @@ from pydantic import ValidationError
 
 from src.agents.nodes.common import memory_notes, usage_of
 from src.agents.state import PipelineState
-from src.agents.tools.source_stats import column_values
+from src.agents.tools.source_stats import column_values, source_stats
 from src.config import get_settings
 from src.models.schemas import RunStatus
-from src.models.spec import ModeSignals, PipelineSpec, decide_mode, signals_from_sources
+from src.models.sources import DataSource
+from src.models.spec import ModeSignals, PipelineSpec, decide_mode, decide_options, signals_from_sources
+from src.services import secrets, source_registry
+from src.services.connectors import ConnectorError, get_connector
 from src.services.llm import LLMOutputError, call_llm, parse_json_output, to_json
 from src.services.llm_context import LLMContext, context_for_state
 
@@ -52,6 +55,32 @@ def build_spec(data: dict, request_text: str, answers: dict[str, str]) -> Pipeli
     signals = signals_from_sources(spec.sources, ModeSignals.model_validate(data.get("signals") or {}))
     mode, reason = decide_mode(signals)
     return spec.model_copy(update={"signals": signals, "mode": mode, "mode_reason": reason})
+
+
+def _row_counts(items: list[dict]) -> dict[str, int | None]:
+    """Số dòng từng nguồn được chọn, do CODE đo qua bộ nạp (không gửi LLM); không đo được thì None."""
+    sources: dict[int, DataSource] = {}
+    counts: dict[str, int | None] = {}
+    for item in items:
+        counts[item["name"]] = None
+        try:
+            if item.get("source_id") is None:
+                counts[item["name"]] = source_stats(item).get("rows")
+                continue
+            if not sources:
+                sources.update({s.id: s for s in source_registry.list_sources()})
+            if source := sources.get(item["source_id"]):
+                counts[item["name"]] = get_connector(source).row_count(item["name"])
+        except (ConnectorError, secrets.SecretError, OSError) as exc:  # nguồn tạm lỗi: nạp toàn bộ cho chắc
+            logger.warning("row count unavailable", extra={"table": item["name"], "reason": str(exc)[:150]})
+    return counts
+
+
+def with_pipeline_options(spec: PipelineSpec, catalog: list[dict], overrides: dict[str, str]) -> PipelineSpec:
+    """Điền `options` (nạp toàn bộ/phần mới, lịch chạy, kết nối) bằng luật cố định; lựa chọn DE đã đặt ở J1b được giữ lại."""
+    chosen = [i for i in catalog if i["name"] in {s.name for s in spec.sources}]
+    options = decide_options(spec.request_text, chosen, _row_counts(chosen), overrides)
+    return spec.model_copy(update={"options": options})
 
 
 def with_value_options(spec: PipelineSpec, catalog: list[dict]) -> PipelineSpec:
@@ -101,6 +130,7 @@ def planner_node(state: PipelineState) -> dict:
     try:
         data = fill_sources(drop_answered(parse_json_output(response.text), state.get("answered", [])), catalog)
         spec = with_value_options(build_spec(data, state["request_text"], answers), catalog)
+        spec = with_pipeline_options(spec, catalog, state.get("plan_options", {}))
     except (LLMOutputError, ValidationError) as exc:
         logger.warning("planner output invalid", extra={"error": str(exc)[:300]})
         return {**base, "spec": {}, "spec_errors": [f"Planner trả về đặc tả sai định dạng: {str(exc)[:200]}"]}

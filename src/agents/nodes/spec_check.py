@@ -89,13 +89,34 @@ def _mode_matches(spec: PipelineSpec) -> list[str]:
     return [] if spec.mode == expected else [f"Mode {spec.mode} không khớp tín hiệu (phải là {expected})."]
 
 
+def _options_valid(spec: PipelineSpec, catalog: list[dict]) -> list[str]:
+    """Lựa chọn pipeline phải nhất quán: nạp phần mới cần cột thời gian có thật ở một nguồn được chọn."""
+    options = spec.options
+    errors = []
+    if options.load_mode == "incremental":
+        columns = {
+            c for item in catalog if item["name"] in {s.name for s in spec.sources} for c in item.get("columns", {})
+        }
+        if not options.incremental_column:
+            errors.append("Nạp phần mới cần cột thời gian (incremental_column) nhưng chưa chọn cột nào.")
+        elif options.incremental_column not in columns:
+            errors.append(f"Cột thời gian '{options.incremental_column}' không có ở nguồn nào được chọn.")
+    known = {s.name for s in spec.sources}
+    errors += [
+        f"Kết nối của nguồn '{c.source}' không khớp nguồn trong đặc tả."
+        for c in options.connections
+        if c.source not in known
+    ]
+    return errors
+
+
 def check_spec(spec_data: dict, catalog: list[dict]) -> list[str]:
     """Danh sách lỗi của đặc tả (rỗng = đạt)."""
     if not spec_data:
         return ["Chưa có đặc tả hợp lệ từ Planner."]
     spec = PipelineSpec.model_validate(spec_data)
     checks = _unknowns(spec) + _required_fields(spec) + _references_exist(spec) + _dimensions_in_grain(spec)
-    return checks + _sources_exist(spec, catalog) + _mode_matches(spec)
+    return checks + _sources_exist(spec, catalog) + _mode_matches(spec) + _options_valid(spec, catalog)
 
 
 def spec_check_node(state: PipelineState) -> dict:

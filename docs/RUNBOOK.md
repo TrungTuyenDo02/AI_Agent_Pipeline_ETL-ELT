@@ -85,6 +85,15 @@ Trần chi phí: `MAX_CLARIFY_ROUNDS`, `RUN_TOKEN_BUDGET`, `USER_DAILY_RUN_LIMIT
 - **Đo:** `python eval/run_llm_access.py` (số token ngữ cảnh từng mức + kiểm rò rỉ, 0 token LLM) ghi `eval/results/llm_access.md`.
 - **Người duyệt khác người tạo:** mặc định bật (`REQUIRE_SEPARATE_REVIEWER`); tắt khi demo cá nhân.
 
+#### Thử nguồn PostgreSQL (PostgresConnector, chỉ đọc)
+
+1. Bật PostgreSQL thử: đặt `P113_SOURCES_ADMIN_PASSWORD` trong `.env`, rồi `docker compose --profile dev-sources up -d sources-db` (cổng 127.0.0.1:5434, KHÔNG bật mặc định).
+2. Nạp bộ dữ liệu P113 Retail và tạo tài khoản chỉ có quyền SELECT:
+   `python scripts/seed_pg_sources.py --dsn postgresql://postgres:<mật khẩu quản trị>@127.0.0.1:5434/p113_retail --reader p113_reader --reader-password <mật khẩu đọc>`.
+3. Đặt chuỗi kết nối cho sổ nguồn ở MÁY CHỦ (không nhập vào web): `P113_SECRET_CONN_RETAIL_PG=postgresql://p113_reader:<mật khẩu đọc>@127.0.0.1:5434/p113_retail`, rồi Admin đăng ký nguồn kind=postgres với `secret_ref=conn_retail_pg`, `allowed_tables` (vd `shopee_orders, tiki_orders`) và độ nhạy cảm.
+4. Bộ nạp đọc bằng phiên `BEGIN READ ONLY`, kiểm mọi câu lệnh bằng sqlglot trước khi chạy (chỉ một câu SELECT, chỉ bảng được phép), có `statement_timeout` và giới hạn số dòng; dữ liệu chỉ vào sandbox DuckDB của lần chạy (tập con có hạt giống cố định, cột nhạy cảm của nguồn `high` đã băm).
+5. Kiểm thử với PostgreSQL thật (CI mặc định bỏ qua): `RUN_PG_TESTS=1 PG_SOURCE_DSN=postgresql://postgres:<mật khẩu>@127.0.0.1:5434/p113_retail python -m pytest tests/test_connectors.py` (không có `PG_SOURCE_DSN` thì dùng `TEST_DATABASE_URL`; tài khoản không được tạo schema thì tạm dùng bảng `customers`/`orders` trong `public` rồi xóa).
+
 ### 2.3 Duyệt (bước con người J2)
 
 ```powershell

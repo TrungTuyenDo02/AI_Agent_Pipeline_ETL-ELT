@@ -124,34 +124,53 @@ def discover_sources(sources_dir: Path) -> list[SourceInfo]:
     return infos
 
 
-def _ingest_sqlite(con: duckdb.DuckDBPyConnection, info: SourceInfo) -> None:
-    """Đổ bảng SQLite ra JSON tạm (giữ đúng kiểu cột) rồi DuckDB đọc một lần — nhanh hơn chèn từng dòng rất nhiều."""
+def _ingest_sqlite(con: duckdb.DuckDBPyConnection, info: SourceInfo, max_rows: int | None = None) -> None:
+    """Đổ bảng SQLite ra JSON tạm (giữ đúng kiểu cột) rồi DuckDB đọc một lần — nhanh hơn chèn từng dòng rất nhiều.
+    `max_rows`: chỉ lấy chừng đó dòng đầu (thứ tự lưu trữ, cố định giữa các lần chạy)."""
     names = list(info.columns)
     types = ", ".join(f"'{n.replace(chr(39), chr(39) * 2)}': '{t}'" for n, t in info.columns.items())
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "rows.jsonl"
-        rows = _sqlite_rows(Path(info.path), info.table)
+        rows = _sqlite_rows(Path(info.path), info.table, max_rows)
         lines = (json.dumps(dict(zip(names, row, strict=True)), default=str) for row in rows)
         path.write_text("\n".join(lines), encoding="utf-8")
         reader = f"read_json({quote_path(path)}, format = 'newline_delimited', columns = {{{types}}})"
         con.execute(f'CREATE OR REPLACE TABLE {RAW_SCHEMA}."{info.name}" AS SELECT * FROM {reader}')
 
 
-def ingest_sources(db_path: Path, sources: list[SourceInfo]) -> dict[str, int]:
-    """E0: nạp từng nguồn dạng bảng vào schema `raw` của sandbox; trả về số dòng mỗi bảng."""
+SAMPLE_SEED = 42  # hạt giống cố định khi nạp một tập con: cùng nguồn, cùng giới hạn → cùng tập con
+
+
+def _ingest_file(con: duckdb.DuckDBPyConnection, info: SourceInfo, max_rows: int | None) -> None:
+    expr = read_expr(SourceRef(name=info.name, kind=info.kind, path=info.path))
+    query = f"SELECT * FROM {expr}"
+    if max_rows and con.execute(f"SELECT count(*) FROM {expr}").fetchone()[0] > max_rows:
+        query += f" USING SAMPLE reservoir({int(max_rows)} ROWS) REPEATABLE ({SAMPLE_SEED})"
+    con.execute(f'CREATE OR REPLACE TABLE {RAW_SCHEMA}."{info.name}" AS {query}')
+
+
+def load_sources(
+    con: duckdb.DuckDBPyConnection, sources: list[SourceInfo], max_rows: int | None = None
+) -> dict[str, int]:
+    """Nạp từng nguồn dạng bảng vào schema `raw` của một kết nối DuckDB; trả về số dòng mỗi bảng.
+    `max_rows`: bảng lớn hơn chỉ nạp chừng đó dòng (tập con có hạt giống cố định)."""
     counts: dict[str, int] = {}
-    with duckdb.connect(str(db_path)) as con:
-        con.execute(f"CREATE SCHEMA IF NOT EXISTS {RAW_SCHEMA}")
-        for info in sources:
-            if info.kind == "sqlite":
-                _ingest_sqlite(con, info)
-            elif info.kind in ("csv", "json", "parquet"):
-                expr = read_expr(SourceRef(name=info.name, kind=info.kind, path=info.path))
-                con.execute(f'CREATE OR REPLACE TABLE {RAW_SCHEMA}."{info.name}" AS SELECT * FROM {expr}')
-            else:
-                continue
-            counts[info.name] = con.execute(f'SELECT count(*) FROM {RAW_SCHEMA}."{info.name}"').fetchone()[0]
+    con.execute(f"CREATE SCHEMA IF NOT EXISTS {RAW_SCHEMA}")
+    for info in sources:
+        if info.kind == "sqlite":
+            _ingest_sqlite(con, info, max_rows)
+        elif info.kind in ("csv", "json", "parquet"):
+            _ingest_file(con, info, max_rows)
+        else:
+            continue
+        counts[info.name] = con.execute(f'SELECT count(*) FROM {RAW_SCHEMA}."{info.name}"').fetchone()[0]
     return counts
+
+
+def ingest_sources(db_path: Path, sources: list[SourceInfo], max_rows: int | None = None) -> dict[str, int]:
+    """E0: nạp từng nguồn dạng bảng vào schema `raw` của sandbox; trả về số dòng mỗi bảng."""
+    with duckdb.connect(str(db_path)) as con:
+        return load_sources(con, sources, max_rows)
 
 
 def read_catalog(db_path: Path) -> dict[str, dict[str, dict[str, str]]]:

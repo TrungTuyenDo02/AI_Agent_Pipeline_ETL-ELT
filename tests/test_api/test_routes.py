@@ -26,12 +26,14 @@ async def test_get_unknown_run_returns_friendly_404(client):
 
 
 async def test_list_and_get_run(client):
-    record = get_store().create_run("tính doanh thu ngày", "alice")
+    record = get_store().create_run(
+        "tính doanh thu ngày", client.username
+    )  # lần chạy của chính mình (Engineer khác không thấy)
     listed = await client.get("/api/v1/runs", params={"limit": 5})
     assert listed.status_code == 200
     assert record.id in [r["id"] for r in listed.json()]
     detail = await client.get(f"/api/v1/runs/{record.id}")
-    assert detail.json()["record"]["requester"] == "alice"
+    assert detail.json()["record"]["requester"] == client.username
 
 
 async def test_list_runs_rejects_invalid_limit(client):

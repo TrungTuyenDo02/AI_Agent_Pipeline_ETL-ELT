@@ -26,6 +26,9 @@ Mermaid + mô tả thành phần: [docs/architecture_diagram.md](docs/architectu
 - **Sổ nguồn** (`src/services/source_registry.py`, bảng `departments`/`data_sources`/`source_grants`): `get_visible_sources(user)` là cửa duy nhất vào danh sách nguồn; người dùng chỉ thấy nguồn của phòng ban mình ([ADR 0007](docs/adr/0007-so-nguon-luu-cung-csdl-tai-khoan.md)).
 - **`build_llm_context`** (`src/services/llm_context.py`): cửa duy nhất tạo ngữ cảnh dữ liệu cho prompt theo mức `llm_access` của nguồn ([ADR 0008](docs/adr/0008-muc-truy-cap-du-lieu-cua-llm.md)); lỗi vào prompt qua `scrub_error` (`src/agents/tools/scrub.py`).
 
+- **Khung Extract** (`src/services/connectors/`): giao diện `SourceConnector` với hai nhóm hàm — cho LLM (`list_tables`, `get_schema`, `get_schema_fingerprint`, `get_profile`, `sample` chỉ ở mức `masked_sample`) và cho code (`load_to_sandbox`, `health_check`); ba bộ nạp `FileConnector`, `DuckDBConnector`, `PostgresConnector` (chỉ đọc, sqlglot kiểm từng câu).
+- **Lựa chọn pipeline** (`PipelineOptions` trong spec): nạp toàn bộ/phần mới, lịch chạy, cách kết nối nguồn; code đề xuất kèm lý do, DE chọn ở J1b; Coder và V0 dùng.
+
 ### 2. Runner (`src/agents/runner.py`)
 - Mỗi lần chạy có `run_id` = `thread_id` của checkpointer SQLite.
 - `start_run`, `resume_run`, `submit_review`: dùng chung cho CLI và API; kiểm tra quyền trước khi tiếp tục.

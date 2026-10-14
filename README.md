@@ -28,6 +28,12 @@ Nguyên tắc **J-E-V**: người **phán đoán** (J), agent **thực thi** (E)
 - **Hợp đồng bàn giao cố định:** dữ liệu giữa các node đi qua khuôn Pydantic ([src/models/contracts.py](src/models/contracts.py)), sai trường hay kiểu thì báo ngay ở node gây ra.
 - **Duyệt có bằng chứng:** Reviewer thấy diff và bảng "Code đo | LLM nói"; agent không tự đẩy code.
 
+## Dữ liệu đi đâu
+
+1. **Code đọc dữ liệu thật chỉ để nạp sandbox.** Bộ nạp nguồn (`src/services/connectors/`: tệp, DuckDB, PostgreSQL chỉ đọc) lấy một tập con có hạt giống cố định vào DuckDB cục bộ của lần chạy; cột nhạy cảm của nguồn độ nhạy cảm cao được băm có muối (JOIN vẫn đúng). Kết quả mẫu chỉ hiện cho người có quyền xem nguồn đó.
+2. **LLM chỉ thấy đúng mức của nguồn**, qua một hàm duy nhất `build_llm_context`: cấu trúc (`schema_only`), thêm thống kê và dạng giá trị (`profile`, mặc định), hoặc thêm vài dòng đã che (`masked_sample`, chỉ nguồn độ nhạy cảm thấp). LLM không bao giờ thấy mật khẩu, khóa API, chuỗi kết nối; lỗi từ dbt/DuckDB/Postgres được che giá trị trước khi vào prompt.
+3. **Khi công ty chạy pipeline thật**, bước Extract do pipeline đã duyệt thực hiện bằng tài khoản của chính họ, ngoài hệ thống này; hệ thống chỉ chạy thử trong sandbox.
+
 ## Kiến trúc
 
 ![Sơ đồ kiến trúc P-113](docs/adr/architecture.png)

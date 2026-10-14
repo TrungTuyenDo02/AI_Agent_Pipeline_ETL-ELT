@@ -7,6 +7,7 @@ giá trị phổ biến. Danh sách giá trị phổ biến chỉ có cho cột 
 """
 
 from collections import Counter
+from collections.abc import Callable
 from functools import lru_cache
 from pathlib import Path
 
@@ -23,6 +24,7 @@ RANGE_PARSE_RATE = 0.95
 NUMERIC_TYPES = ("TINYINT", "SMALLINT", "INTEGER", "BIGINT", "HUGEINT", "UBIGINT", "DOUBLE", "FLOAT", "REAL", "DECIMAL")
 DATE_TYPES = ("DATE", "TIMESTAMP")
 OTHER_SHAPES = "…khác"
+NO_TRY_CAST = ("sqlite", "postgres")  # SQLite/PostgreSQL không có try_cast: cột chuỗi không có khoảng giá trị
 
 
 def _round(value: float) -> float:
@@ -43,13 +45,16 @@ def _shapes(counts: list[tuple[str, int]], non_null: int) -> dict[str, float]:
     return shown
 
 
-def _value_counts(item: dict, column: str) -> list[tuple[str, int]]:
+Query = Callable[[str], list[tuple]]  # chạy SQL trên bảng `src` của một nguồn, trả danh sách dòng
+
+
+def _value_counts(run: Query, column: str) -> list[tuple[str, int]]:
     col = quote_ident(column)
     sql = (
         f"SELECT CAST({col} AS VARCHAR) AS v, count(*) AS c FROM src WHERE {col} IS NOT NULL "
         f"GROUP BY 1 ORDER BY c DESC, v LIMIT {VALUE_COUNTS}"
     )
-    return [(str(v), int(c)) for v, c in query_item(item, sql)]
+    return [(str(v), int(c)) for v, c in run(sql)]
 
 
 def _fmt(value: object) -> str:
@@ -57,18 +62,17 @@ def _fmt(value: object) -> str:
     return str(int(value)) if isinstance(value, float) and value.is_integer() else str(value)
 
 
-def _value_range(item: dict, column: str, dtype: str) -> dict:
+def _value_range(run: Query, kind: str, column: str, dtype: str) -> dict:
     """min/max cho cột số hoặc ngày (chỉ gọi với cột không nhạy cảm). Cột chuỗi (CSV) chỉ có khoảng khi ≥ 95% đọc được."""
     col = quote_ident(column)
-    kind = dtype.upper()
-    if kind.startswith(NUMERIC_TYPES) or kind.startswith(DATE_TYPES):
-        low, high = query_item(item, f"SELECT min({col}), max({col}) FROM src")[0]
+    declared = dtype.upper()
+    if declared.startswith(NUMERIC_TYPES) or declared.startswith(DATE_TYPES):
+        low, high = run(f"SELECT min({col}), max({col}) FROM src")[0]
         return {"min": _fmt(low), "max": _fmt(high)} if low is not None else {}
-    if item.get("kind") == "sqlite":
+    if kind in NO_TRY_CAST:
         return {}
     for cast in ("double", "date"):
-        total, parsed, low, high = query_item(
-            item,
+        total, parsed, low, high = run(
             f"SELECT count({col}), count(try_cast({col} AS {cast})), min(try_cast({col} AS {cast})), "
             f"max(try_cast({col} AS {cast})) FROM src",
         )[0]
@@ -77,10 +81,12 @@ def _value_range(item: dict, column: str, dtype: str) -> dict:
     return {}
 
 
-def _column_profile(item: dict, column: str, dtype: str, stats: tuple[int, int, int], settings: tuple) -> dict:
+def _column_profile(
+    run: Query, kind: str, column: str, dtype: str, stats: tuple[int, int, int], settings: tuple
+) -> dict:
     total, filled, distinct = stats
     sensitivity, restricted = settings
-    counts = _value_counts(item, column)
+    counts = _value_counts(run, column)
     info: dict = {
         "type": dtype,
         "null_pct": _round(100 * (total - filled) / total) if total else 0.0,
@@ -94,7 +100,7 @@ def _column_profile(item: dict, column: str, dtype: str, stats: tuple[int, int, 
     if sensitive:
         info["sensitive"] = True  # chỉ số đếm + dạng giá trị
         return info
-    info.update(_value_range(item, column, dtype))
+    info.update(_value_range(run, kind, column, dtype))
     plain = not (
         KEY_NAME_RE.match(column) or MONEY_NAME_RE.search(column) or DATE_NAME_RE.search(column)
     )  # mã, tiền, ngày: không liệt kê giá trị
@@ -104,20 +110,28 @@ def _column_profile(item: dict, column: str, dtype: str, stats: tuple[int, int, 
     return info
 
 
-def table_profile(item: dict, sensitivity: str = "medium", restricted: tuple[str, ...] | list[str] = ()) -> dict:
-    """Hồ sơ thống kê an toàn của một bảng nguồn (dict `item` của danh mục). Rỗng nếu không phải bảng (ảnh/PDF)."""
+def table_profile(
+    item: dict,
+    sensitivity: str = "medium",
+    restricted: tuple[str, ...] | list[str] = (),
+    query: Query | None = None,
+) -> dict:
+    """Hồ sơ thống kê an toàn của một bảng nguồn (dict `item` của danh mục). Rỗng nếu không phải bảng (ảnh/PDF).
+    `query`: hàm chạy SQL trên bảng `src` (connector DB); không có thì đọc file nguồn."""
     columns = dict(item.get("columns", {}))
-    if item.get("kind") not in TABULAR or not columns:
+    run: Query = query or (lambda sql: query_item(item, sql))
+    if (item.get("kind") not in TABULAR and query is None) or not columns:
         return {}
-    base = source_stats(item)  # rows, few_values (số lượng), key_column, repeated_keys, repeated_keys_differing
+    kind = item.get("kind", "")
+    base = source_stats(item, run)  # rows, few_values (số lượng), key_column, repeated_keys, repeated_keys_differing
     names = list(columns)
     counts = ", ".join(f"count({quote_ident(c)}), count(DISTINCT {quote_ident(c)})" for c in names)
-    total, *rest = query_item(item, f"SELECT count(*), {counts} FROM src")[0]
+    total, *rest = run(f"SELECT count(*), {counts} FROM src")[0]
     profile = {**base, "rows": total, "columns": {}}
     for index, name in enumerate(names):
         filled, distinct = rest[2 * index], rest[2 * index + 1]
         profile["columns"][name] = _column_profile(
-            item, name, columns[name], (total, filled, distinct), (sensitivity, tuple(restricted))
+            run, kind, name, columns[name], (total, filled, distinct), (sensitivity, tuple(restricted))
         )
     key = base.get("key_column")
     if key and profile["columns"].get(key, {}).get("distinct"):
@@ -151,13 +165,16 @@ def cached_table_profile(item: dict, sensitivity: str, restricted: list[str]) ->
     )
 
 
-def masked_sample(item: dict, rows: int, restricted: tuple[str, ...] | list[str] = ()) -> list[dict]:
+def masked_sample(
+    item: dict, rows: int, restricted: tuple[str, ...] | list[str] = (), query: Query | None = None
+) -> list[dict]:
     """Tối đa `rows` dòng đã che: cột nhạy cảm chỉ còn dạng giá trị, cột khác đi qua `pii.mask_value`. Cố định thứ tự (không ngẫu nhiên)."""
-    if item.get("kind") not in TABULAR or not item.get("columns"):
+    run: Query = query or (lambda sql: query_item(item, sql))
+    if (item.get("kind") not in TABULAR and query is None) or not item.get("columns"):
         return []
     names = list(item["columns"])
     selected = ", ".join(quote_ident(c) for c in names)
-    result = query_item(item, f"SELECT {selected} FROM src LIMIT {int(rows)}")
+    result = run(f"SELECT {selected} FROM src LIMIT {int(rows)}")
     out = []
     for row in result:
         out.append(

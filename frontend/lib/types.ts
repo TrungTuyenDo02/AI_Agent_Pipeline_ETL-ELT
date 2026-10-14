@@ -87,6 +87,8 @@ export interface PlanPending {
   spec: Spec;
   sources: string[];
   next_steps: string;
+  time_columns?: string[];
+  option_choices?: { load_mode: OptionChoice[]; schedule: OptionChoice[] };
 }
 
 export type Pending =
@@ -116,6 +118,22 @@ export interface Spec {
   assumptions?: string[];
   plan_summary?: string;
   plan?: PlanStep[];
+  options?: PipelineOptions;
+}
+
+/** Lựa chọn pipeline do code đề xuất kèm lý do; DE chọn hoặc chấp nhận mặc định ở J1b. */
+export interface PipelineOptions {
+  load_mode: "full" | "incremental";
+  load_reason: string;
+  incremental_column: string;
+  schedule: "hourly" | "daily" | "event";
+  schedule_reason: string;
+  connections: { source: string; kind: string; via: string }[];
+}
+
+export interface OptionChoice {
+  value: string;
+  label: string;
 }
 
 export interface MeasuredItem {

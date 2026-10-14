@@ -20,6 +20,26 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # Nguồn PostgreSQL thử cho PostgresConnector (profile `dev-sources`, KHÔNG bật mặc định):
+  #   docker compose --profile dev-sources up -d sources-db
+  #   python scripts/seed_pg_sources.py --dsn postgresql://postgres:<mật khẩu>@127.0.0.1:5434/p113_retail --reader p113_reader --reader-password <...>
+  # Mật khẩu quản trị lấy từ P113_SOURCES_ADMIN_PASSWORD trong .env (để trống thì container không khởi động).
+  sources-db:
+    profiles: ["dev-sources"]
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: ${P113_SOURCES_ADMIN_PASSWORD:-}
+      POSTGRES_DB: p113_retail
+    ports:
+      - "127.0.0.1:${P113_SOURCES_PORT:-5434}:5432"
+    volumes:
+      - sources-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d p113_retail"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Chạy migration bằng tài khoản migration (không nằm trong container backend):
   #   docker compose --profile tools run --rm migrate
   migrate:
@@ -80,5 +100,6 @@ services:
 
 volumes:
   pg-data:
+  sources-pg-data:
   backend-data:
   backend-workspaces:

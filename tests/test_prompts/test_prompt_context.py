@@ -100,7 +100,11 @@ def test_fill_sources_takes_kind_and_path_from_catalog():
     data = fill_sources({"sources": ["orders", {"name": "bia"}]}, catalog)
     assert data["sources"] == [
         {"name": "orders", "kind": "csv", "path": "data/orders.csv"},
-        {"name": "bia", "kind": "", "path": ""},  # tên lạ: kind rỗng → V0 chặn "không có trong thư mục"
+        {
+            "name": "bia",
+            "kind": "",
+            "path": "",
+        },  # tên lạ: kind rỗng → V0 chặn "không tồn tại hoặc bạn chưa được cấp quyền"
     ]
 
 

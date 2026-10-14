@@ -31,6 +31,9 @@ class PlanBody(BaseModel):
 
     decision: Literal["approve", "revise"]
     note: str = Field(default="", max_length=2000)
+    options: dict[str, str] | None = Field(
+        default=None, max_length=8
+    )  # lựa chọn pipeline: load_mode, schedule, incremental_column
 
 
 class ReviewBody(BaseModel):

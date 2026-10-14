@@ -158,6 +158,15 @@ class Settings(BaseSettings):
     require_separate_reviewer: bool = True  # true: người tạo yêu cầu không tự duyệt được (ADR 0006, thay ADR 0004)
     secrets_dir: Path | None = None  # thư mục chứa bí mật dạng file (mỗi file một tên tham chiếu), tùy chọn
 
+    # Bộ nạp nguồn (giai đoạn 4): thời hạn kết nối/truy vấn, số dòng tối đa mỗi bảng nạp vào sandbox, băm cột nhạy cảm của sandbox
+    connector_timeout_sec: int = Field(default=15, ge=1, le=300)
+    sandbox_load_max_rows: int = Field(default=100_000, ge=100)  # bảng lớn hơn chỉ nạp một tập con (hạt giống cố định)
+    # auto: băm cột nhạy cảm (tên gợi ý PII hoặc admin đánh dấu) khi nạp nguồn độ nhạy cảm `high`; always: mọi nguồn; never: không băm
+    sandbox_hash_sensitive: Literal["auto", "always", "never"] = "auto"
+    sandbox_hash_salt: str = (
+        ""  # muối băm cột nhạy cảm; đặt giá trị bí mật khi triển khai (trống: muối mặc định, đủ cho demo)
+    )
+
     # Dữ liệu thử (E2)
     seed: int = 42
     mock_small_rows: int = Field(default=200, ge=10)

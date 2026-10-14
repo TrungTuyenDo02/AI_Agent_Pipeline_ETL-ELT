@@ -15,17 +15,21 @@ Ràng buộc theo độ nhạy cảm (kiểm lần hai ở đây dù API đăng 
 """
 
 import logging
+import time
 
 from pydantic import BaseModel, Field
 
 from src.agents.nodes.profiler import DATE_NAME_RE, MONEY_NAME_RE
 from src.config import get_settings
-from src.models.sources import LLMAccess, UserContext, cap_access
-from src.services import source_registry
+from src.models.sources import DataSource, LLMAccess, UserContext, cap_access
+from src.services import secrets, source_registry
+from src.services.connectors import ConnectorError, SourceConnector, get_connector
 from src.services.profiling import cached_table_profile, masked_sample
 from src.services.prompt_context import compact_catalog, compact_profile, referenced_schema
 
 logger = logging.getLogger(__name__)
+PROFILE_TTL_SEC = 300  # hồ sơ của bảng CSDL ngoài nhớ chừng này giây (file thì nhớ tới khi file đổi)
+_PROFILES: dict[tuple, tuple[float, dict]] = {}
 MAX_FORMAT_COLUMNS = 8
 MAX_NULL_COLUMNS = 6
 SHOWN_SHAPES = 4
@@ -115,6 +119,38 @@ def _planner_stats(profile: dict) -> dict:
     return stats
 
 
+def _profile(item: dict, connector: SourceConnector | None, restricted: tuple[str, ...]) -> dict:
+    """Hồ sơ thống kê của một bảng: qua bộ nạp của nguồn (tệp: nhớ tới khi file đổi; CSDL ngoài: nhớ vài phút). Bộ nạp lỗi
+    (mất kết nối, thiếu bí mật) → bảng đó tạm chỉ có cấu trúc, các bảng khác vẫn đủ."""
+    if connector is None:
+        return cached_table_profile(item, item.get("sensitivity", "medium"), list(restricted))
+    key = (item.get("source_id"), item["name"], tuple(sorted(item.get("columns", {}))))
+    if (
+        item.get("source_kind") != "file"
+        and (hit := _PROFILES.get(key))
+        and time.monotonic() - hit[0] < PROFILE_TTL_SEC
+    ):
+        return hit[1]
+    try:
+        profile = connector.get_profile(item["name"]).model_dump()
+    except (ConnectorError, secrets.SecretError) as exc:
+        logger.warning("profile unavailable", extra={"table": item["name"], "reason": str(exc)[:200]})
+        return {}
+    _PROFILES[key] = (time.monotonic(), profile)
+    return profile
+
+
+def _sample(item: dict, connector: SourceConnector | None, restricted: tuple[str, ...], rows: int) -> list[dict]:
+    """Dòng mẫu đã che: qua bộ nạp của nguồn (`sample()` tự từ chối nếu mức không phải masked_sample)."""
+    if connector is None:
+        return masked_sample(item, rows, restricted)
+    try:
+        return connector.sample(item["name"], rows)
+    except (ConnectorError, secrets.SecretError) as exc:
+        logger.warning("sample unavailable", extra={"table": item["name"], "reason": str(exc)[:200]})
+        return []
+
+
 def _level_of(item: dict, downgraded: list[str]) -> LLMAccess:
     declared = item.get("llm_access") or "schema_only"
     sensitivity = item.get("sensitivity") or "high"
@@ -150,18 +186,26 @@ def build_llm_context(
         wanted = set(tables)
         items = [i for i in items if i["name"] in wanted]
     settings = get_settings()
+    sources: dict[int, DataSource] = {}
+
+    def connector_for(item: dict) -> SourceConnector | None:
+        """Bộ nạp của nguồn chứa bảng này (qua sổ nguồn, một lần hỏi cho cả lượt); danh mục không có `source_id` thì None."""
+        if item.get("source_id") is None:
+            return None
+        if not sources:
+            sources.update({s.id: s for s in source_registry.list_sources()})
+        source = sources.get(item["source_id"])
+        return get_connector(source) if source else None
+
     downgraded: list[str] = []
     out: list[ContextTable] = []
     code_items: list[dict] = []
     for item in items:
         level = _level_of(item, downgraded)
         restricted = tuple(item.get("restricted_columns") or ())
-        profile = (
-            cached_table_profile(item, item.get("sensitivity", "medium"), list(restricted))
-            if level != "schema_only"
-            else {}
-        )
-        sample = masked_sample(item, settings.llm_sample_max_rows, restricted) if level == "masked_sample" else []
+        connector = connector_for(item) if level != "schema_only" else None
+        profile = _profile(item, connector, restricted) if level != "schema_only" else {}
+        sample = _sample(item, connector, restricted, settings.llm_sample_max_rows) if level == "masked_sample" else []
         out.append(
             ContextTable(
                 name=item["name"],

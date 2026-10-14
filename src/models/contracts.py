@@ -42,6 +42,9 @@ class PlanDecision(_Contract):
 
     decision: Literal["approve", "revise"]
     note: str = ""
+    options: dict[str, str] = Field(
+        default_factory=dict
+    )  # lựa chọn pipeline DE đã chọn (load_mode, schedule, incremental_column)
 
 
 class OptCandidate(_Contract):

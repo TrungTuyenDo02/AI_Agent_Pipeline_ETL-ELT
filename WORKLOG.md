@@ -113,6 +113,7 @@
 | TrungTuyenDo02 | CLAUDE.md bản 2, giai đoạn 1: cửa kiểm tra đầu vào tầng 0–1 và trần chi phí | ✅ Done | Chặn nhầm 0/10 câu hợp lệ; lọt vô nghĩa/tấn công 0/20; 44 test mới; không gọi LLM | — |
 | TrungTuyenDo02 | Giai đoạn 2: cửa kiểm tra tầng 2 (model nhỏ), hỏi bổ sung bằng mẫu cố định, màn nhập web | ✅ Done | ~400 token vào, ≈ 1,2% chi phí một lần chạy (ước tính); mock 0/50 sai; 61 test cổng; chưa đo LLM thật | — |
 | TrungTuyenDo02 | Giai đoạn 3: sổ nguồn, phân quyền phòng ban, build_llm_context, scrub_error, tách người duyệt | ✅ Done | Migration 0005; 3 mức truy cập; kiểm rò rỉ 0 giá trị thật; đo độ đúng LLM thật chưa làm | — |
+| TrungTuyenDo02 | Giai đoạn 4: khung Extract, 3 bộ nạp (tệp, DuckDB, PostgreSQL chỉ đọc), lựa chọn pipeline ở J1b | ✅ Done | 128 test mới; PostgreSQL thật qua Neon (RUN_PG_TESTS=1) đạt; luồng qua DuckDB/PG khớp luồng tệp; golden 11/11, mutation 11/12 giữ nguyên | — |
 
 ---
 

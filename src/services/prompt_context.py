@@ -20,6 +20,10 @@ def spec_for_build(spec: dict) -> dict:
     out = {k: spec[k] for k in BUILD_SPEC_KEYS if spec.get(k) not in (None, "", [], {})}
     out["sources"] = [s["name"] for s in spec.get("sources", [])]
     out["output_columns"] = [_drop_empty(c) for c in spec.get("output_columns", [])]
+    options = spec.get("options") or {}
+    out["options"] = _drop_empty(
+        {k: options.get(k) for k in ("load_mode", "incremental_column", "schedule")}
+    )  # chỉ lựa chọn: lý do (có số dòng) và kết nối không gửi LLM
     if spec.get("decisions"):
         out["decisions"] = spec["decisions"]
     if spec.get("plan"):

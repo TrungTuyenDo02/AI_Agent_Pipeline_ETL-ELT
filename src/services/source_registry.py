@@ -13,7 +13,6 @@ bảo đảm không ai đọc thư mục nguồn bằng đường vòng.
 
 import logging
 from datetime import UTC, datetime
-from functools import lru_cache
 from pathlib import Path
 
 from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, delete, or_, select
@@ -21,7 +20,6 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from src.agents.tools.duckdb_tools import discover_sources
 from src.config import get_settings
 from src.models.sources import (
     ACCESS_TEXT,
@@ -36,9 +34,9 @@ from src.models.sources import (
     access_problem,
     cap_access,
 )
-from src.services import auth, secrets
+from src.services import auth, connectors, secrets
 from src.services.auth import ID, Base, get_engine
-from src.services.company import read_manifest
+from src.services.connectors.file import location_of as file_location
 
 logger = logging.getLogger(__name__)
 Department_ = auth.Department  # lớp ORM, tách khỏi mô hình Pydantic `Department`
@@ -359,44 +357,8 @@ def get_visible_sources(user: UserContext) -> list[DataSource]:
         return [_model(r) for r in db.scalars(query)]
 
 
-def source_location(source: DataSource) -> Path:
-    """Thư mục dữ liệu của nguồn `file`: thư mục nguồn của cấu hình, hoặc đường dẫn lấy từ `secret_ref` nếu có."""
-    return Path(secrets.resolve(source.secret_ref)) if source.secret_ref else get_settings().sources_dir
-
-
-def _signature(directory: Path) -> tuple:
-    files = sorted(directory.glob("*")) if directory.exists() else []
-    return tuple((p.name, p.stat().st_mtime_ns, p.stat().st_size) for p in files if p.is_file())
-
-
-@lru_cache(maxsize=8)
-def _discover_cached(directory: str, signature: tuple) -> tuple[dict, ...]:
-    """Cấu trúc các file trong thư mục (không có dòng mẫu), nhớ tới khi file nguồn đổi."""
-    labels = read_manifest(Path(directory))
-    items = []
-    for info in discover_sources(Path(directory)):
-        item = info.model_dump()
-        item["sample"] = []  # dòng mẫu không đi vào danh mục dùng chung (state, checkpoint, prompt)
-        item["label"] = labels.get(info.name, {}).get("label", "")
-        items.append(item)
-    return tuple(items)
-
-
 def _source_catalog(source: DataSource) -> list[dict]:
-    """Bảng của một nguồn (đã lọc theo `allowed_tables`). Hiện hỗ trợ kind `file`; DuckDB/PostgreSQL qua connector (giai đoạn 4)."""
-    if source.kind != "file":
-        try:
-            from src.services.connectors import catalog_of  # noqa: PLC0415 — giai đoạn 4 thêm connector
-
-            return catalog_of(source)
-        except ImportError:
-            return []
-    try:
-        directory = source_location(source)
-    except secrets.SecretError as exc:  # thiếu bí mật của nguồn: nguồn này tạm không dùng được, các nguồn khác vẫn chạy
-        logger.warning("source unavailable", extra={"source": source.name, "reason": str(exc)[:200]})
-        return []
-    items = _discover_cached(str(directory.resolve()), _signature(directory))
+    """Bảng của một nguồn (đã lọc theo `allowed_tables`) qua bộ nạp của loại nguồn đó, kèm thông tin truy cập của nguồn."""
     return [
         {
             **item,
@@ -407,8 +369,7 @@ def _source_catalog(source: DataSource) -> list[dict]:
             "llm_access": source.effective_llm_access,
             "restricted_columns": list(source.restricted_columns),
         }
-        for item in items
-        if source.allows_table(item["name"])
+        for item in connectors.catalog_of(source)
     ]
 
 
@@ -418,7 +379,7 @@ def visible_directories(user: UserContext) -> list[tuple[Path, set[str]]]:
     for source in get_visible_sources(user):
         if source.enabled and source.kind == "file":
             try:
-                directory = source_location(source)
+                directory = file_location(source)
             except (
                 secrets.SecretError
             ) as exc:  # nguồn cấu hình thiếu bí mật: bỏ qua nguồn này, không làm hỏng cả danh sách
