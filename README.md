@@ -23,6 +23,7 @@ Nguyên tắc **J-E-V**: người **phán đoán** (J), agent **thực thi** (E)
 - **Sinh đầy đủ:** model dbt, DAG Airflow, test đối soát do một agent khác viết **không nhìn code**.
 - **Kiểm chứng bằng code:** sqlglot chặn lệnh nguy hiểm và tên bảng/cột bịa; `dbt build` trong DuckDB có giới hạn thời gian và bộ nhớ.
 - **Tối ưu có đo:** luật cố định → sqlglot → LLM; chỉ áp dụng khi kết quả **giống hệt** và nhanh hơn ngưỡng.
+- **Hợp đồng bàn giao cố định:** dữ liệu giữa các node đi qua khuôn Pydantic ([src/models/contracts.py](src/models/contracts.py)), sai trường hay kiểu thì báo ngay ở node gây ra.
 - **Duyệt có bằng chứng:** Reviewer thấy diff và bảng "Code đo | LLM nói"; agent không tự đẩy code.
 
 ## Kiến trúc
@@ -42,7 +43,29 @@ python scripts/tasks.py demo                            # chạy trọn luồng 
 python scripts/tasks.py ci                              # ruff + pytest (độ phủ ≥ 60%)
 ```
 
-Chạy giao diện web (cần PostgreSQL cho đăng nhập) và các cách khác: [docs/RUNBOOK.md](docs/RUNBOOK.md), [docs/DATABASE.md](docs/DATABASE.md).
+### Chạy giao diện web (demo một lệnh, không cần PostgreSQL, không cần khóa API)
+
+```bash
+cd frontend && npm ci && cd ..      # một lần
+python demo/run_demo.py             # build + chạy; mở http://localhost:3000
+```
+
+Trang đăng nhập có khung giới thiệu dự án, hướng dẫn chạy, mô tả dữ liệu mẫu và 3 tài khoản demo (bấm để điền sẵn); có nút VI/EN và sáng/tối.
+Chi tiết: [demo/README.md](demo/README.md). Các cách chạy khác: [docs/RUNBOOK.md](docs/RUNBOOK.md), [docs/DATABASE.md](docs/DATABASE.md).
+
+### Khi nhà cung cấp LLM chậm hoặc lỗi
+
+- **Hạn chờ theo bước** (optimizer 60 giây, các bước khác 120–180 giây) và SDK tự thử lại 2 lần.
+- **Circuit breaker** ([src/services/circuit_breaker.py](src/services/circuit_breaker.py)) cho từng cặp nhà cung cấp × model: lỗi liên tiếp thì ngắt mạch, các lượt sau sang dự phòng Gemini (hoặc báo lỗi) ngay, không chờ timeout; sau 60 giây thử lại bằng 1 lượt thăm dò. Trạng thái hiện ở chân trang.
+- **Tối ưu là bước tùy chọn:** optimizer lỗi hoặc đang ngắt mạch thì giữ bản gốc đã đúng, lần chạy không bị đánh lỗi.
+- **Chạy lại từ bước lỗi:** lần chạy dừng vì lỗi tạm thời (LLM quá hạn, hết hạn mức, server khởi động lại) có nút "Chạy lại từ bước lỗi"; các bước đã xong giữ nguyên nhờ checkpoint, chỉ làm lại bước đang dở.
+- Màn lần chạy luôn hiện token, chi phí ước tính, model đã trả lời và thời gian; trang Lần chạy có khối "Hiệu quả agent" để cân nhắc dùng rộng rãi.
+
+### Lưu trạng thái trên Neon (triển khai thật)
+
+Mặc định (`STATE_BACKEND=sqlite`) lần chạy, sổ lỗi, bộ nhớ agent và checkpoint nằm trong file SQLite ở `data/`. Đặt `STATE_BACKEND=postgres`
+để lưu tất cả trên PostgreSQL/Neon (Render xóa ổ đĩa khi khởi động lại), chạy `alembic upgrade head`, và tăng `RUN_WORKERS` (mặc định 2) để
+chạy nhiều lần cùng lúc. Xem [docs/DATABASE.md](docs/DATABASE.md), [.env.production.example](.env.production.example).
 
 ## Kết quả
 
@@ -54,7 +77,9 @@ Chi tiết và điều kiện đo: [eval/results/report.md](eval/results/report.
 | Mutation: bắt lỗi giả | code, 0 token | **11/12** (91,7%), báo nhầm 0/1 |
 | TPC-H sf=0,1: query chậm được tối ưu | `mock`, 2026-10-02 | **11/13**, nhanh hơn 51%–94,7%, 10/11 không tốn token |
 | ELT-Bench-Verified: khớp bảng đúng | LLM thật, 34 bảng, 1 lần, chấm lại 2026-10-07 | **11/34** (gồm 2 model lỗi của benchmark) |
-| Test tự động | `mock`, độ phủ ngưỡng 60% | 626 passed, độ phủ 91,76% |
+| Optimizer: model LLM nào tốt hơn | LLM thật, chỉ ứng viên do LLM viết, 13 query, 1 lần, 2026-10-14 | Claude Haiku 4.5 **11/13** (áp dụng 8/13), 0,083 USD; **Haiku 5.5 9/13** (áp dụng 7/13), 0,025 USD (đang dùng); gpt-5.6-terra 5/13, 0,24 USD; Claude Opus 5.5 3/13, 0,96 USD • [ab_optimizer.md](eval/results/ab_optimizer.md) |
+| Baseline: truy vấn viết tay không tối ưu = 100% | `mock` (luật cố định + sqlglot), sf=0,1, 1 lần, 2026-10-14 | cả bộ còn **14%** thời gian, **86%** dòng quét; chi phí tính toán ước tính (giả định) cũng còn 14% • [tpch_baseline.md](eval/results/tpch_baseline.md) |
+| Test tự động | `mock`, độ phủ ngưỡng 60% | 730 passed, 2 xfailed, độ phủ 92,19% (2026-10-14) |
 | Thời gian phản hồi API | trong tiến trình, SQLite, 100 lần | p50 2,2 ms, p95 4,3 ms (`/health`) • [api_latency.md](eval/results/api_latency.md) |
 
 ## Tài liệu
@@ -62,7 +87,7 @@ Chi tiết và điều kiện đo: [eval/results/report.md](eval/results/report.
 | Tài liệu | Nội dung |
 |---|---|
 | [BAO_CAO](docs/BAO_CAO.md) | Báo cáo cho người không chuyên: bài toán, J-E-V, thuật toán, số đo |
-| [DATABASE](docs/DATABASE.md) | PostgreSQL, SQLite, DuckDB; dựng từ đầu, xem dữ liệu, sao lưu |
+| [DATABASE](docs/DATABASE.md) | PostgreSQL/Neon, SQLite, DuckDB; dựng từ đầu, xem dữ liệu, sao lưu |
 | [DEPLOY_VERCEL](docs/DEPLOY_VERCEL.md) • [DEPLOY_GCP](docs/DEPLOY_GCP.md) | Hai cách deploy (chưa chạy thật) |
 | [RUNBOOK](docs/RUNBOOK.md) | Chạy, kiểm thử, bật LLM thật, lỗi thường gặp |
 | [ARCHITECTURE](ARCHITECTURE.md) • [ADR](docs/adr/) | Kiến trúc và các quyết định |
@@ -73,7 +98,8 @@ Chi tiết và điều kiện đo: [eval/results/report.md](eval/results/report.
 
 - Chạy trên **kho dữ liệu giả lập** "P113 Retail" ([docs/data-catalog.md](docs/data-catalog.md)), chưa thử với dữ liệu công ty thật.
 - **Chưa có DE làm tay** để so thời gian ([quy trình](eval/baseline/PROTOCOL.md)); mỗi phép đo chạy 1 lần; nhãn kiểm thử do tác giả gán.
-- Lần chạy, quyết định duyệt, sổ lỗi và checkpoint còn ở **SQLite** nên backend chỉ chạy một bản, cần ổ đĩa bền ([DATABASE.md](docs/DATABASE.md)).
+- Đã hỗ trợ lưu trên **Neon** (kiểm thử trên nhánh dev: 2 lần chạy song song), nhưng chưa deploy và chưa đo tải thật trên Render; bộ nhớ dài hạn của agent mới có bảng và dịch vụ, chưa nối vào prompt.
+- **ELT-Bench chỉ 11/34 bảng** và có ca được duyệt nhưng sai; golden 12/12 chưa tách tập kiểm riêng; mutation test dùng bộ sinh test giả (`mock`); tối ưu TPC-H "viết tay → tối ưu" đo bằng luật cố định, phần LLM chỉ có phép đo A/B nhỏ ở trên (13 query, 1 lần mỗi model).
 - Chưa deploy thật; chưa có phản hồi người dùng thử; sandbox chỉ DuckDB, gợi ý partition cho kho khác không được thực thi.
 - Trình xem code Monaco tải từ CDN jsDelivr nên cần mạng.
 

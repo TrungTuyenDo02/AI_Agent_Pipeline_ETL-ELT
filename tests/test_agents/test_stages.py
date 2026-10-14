@@ -84,3 +84,13 @@ def test_usage_breakdown_groups_by_task_and_reports_cache():
 def test_usage_breakdown_mock_has_no_cache_rate():
     report = usage_breakdown([{"task": "planner", "input_tokens": 10, "simulated": True}])
     assert report["simulated"] and report["cache_hit_rate"] is None
+
+
+def test_usage_breakdown_lists_models_that_actually_answered():
+    usages = [
+        {"task": "optimizer", "provider": "anthropic", "model": "claude-haiku-5-5", "input_tokens": 10},
+        {"task": "optimizer", "provider": "google", "model": "gemini-3.1-flash-lite", "input_tokens": 10},  # dự phòng
+        {"task": "optimizer", "provider": "google", "model": "gemini-3.1-flash-lite", "input_tokens": 10},
+    ]
+    row = usage_breakdown(usages)["rows"][0]
+    assert row["models"] == ["anthropic/claude-haiku-5-5", "google/gemini-3.1-flash-lite"]

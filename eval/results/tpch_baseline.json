@@ -1,0 +1,229 @@
+{
+  "date": "2026-10-14",
+  "sf": 0.1,
+  "runs": 7,
+  "rows": [
+    {
+      "query": "q01_distinct_star",
+      "decision": "applied",
+      "before": {
+        "median_ms": 183.906,
+        "rows_scanned": 600572,
+        "bytes_read": 0,
+        "cost_month_usd": 0.000766
+      },
+      "after": {
+        "median_ms": 11.118,
+        "rows_scanned": 600572,
+        "bytes_read": 0,
+        "cost_month_usd": 4.6e-05
+      }
+    },
+    {
+      "query": "q01_order_in_subquery",
+      "decision": "applied",
+      "before": {
+        "median_ms": 169.936,
+        "rows_scanned": 600572,
+        "bytes_read": 0,
+        "cost_month_usd": 0.000708
+      },
+      "after": {
+        "median_ms": 14.175,
+        "rows_scanned": 600572,
+        "bytes_read": 0,
+        "cost_month_usd": 5.9e-05
+      }
+    },
+    {
+      "query": "q01_union_select_star",
+      "decision": "applied",
+      "before": {
+        "median_ms": 175.864,
+        "rows_scanned": 1201144,
+        "bytes_read": 0,
+        "cost_month_usd": 0.000733
+      },
+      "after": {
+        "median_ms": 22.214,
+        "rows_scanned": 1201144,
+        "bytes_read": 0,
+        "cost_month_usd": 9.3e-05
+      }
+    },
+    {
+      "query": "q01_window_dedupe",
+      "decision": "applied",
+      "before": {
+        "median_ms": 128.326,
+        "rows_scanned": 600572,
+        "bytes_read": 0,
+        "cost_month_usd": 0.000535
+      },
+      "after": {
+        "median_ms": 13.837,
+        "rows_scanned": 600572,
+        "bytes_read": 0,
+        "cost_month_usd": 5.8e-05
+      }
+    },
+    {
+      "query": "q03_cast_join",
+      "decision": "skipped",
+      "before": {
+        "median_ms": 19.604,
+        "rows_scanned": 765572,
+        "bytes_read": 0,
+        "cost_month_usd": 8.2e-05
+      },
+      "after": {
+        "median_ms": 19.604,
+        "rows_scanned": 765572,
+        "bytes_read": 0,
+        "cost_month_usd": 8.2e-05
+      }
+    },
+    {
+      "query": "q03_filter_after_join",
+      "decision": "applied",
+      "before": {
+        "median_ms": 24.263,
+        "rows_scanned": 765572,
+        "bytes_read": 0,
+        "cost_month_usd": 0.000101
+      },
+      "after": {
+        "median_ms": 17.117,
+        "rows_scanned": 765572,
+        "bytes_read": 0,
+        "cost_month_usd": 7.1e-05
+      }
+    },
+    {
+      "query": "q03_order_in_subquery",
+      "decision": "applied",
+      "before": {
+        "median_ms": 93.288,
+        "rows_scanned": 765572,
+        "bytes_read": 0,
+        "cost_month_usd": 0.000389
+      },
+      "after": {
+        "median_ms": 17.805,
+        "rows_scanned": 765572,
+        "bytes_read": 0,
+        "cost_month_usd": 7.4e-05
+      }
+    },
+    {
+      "query": "q05_range_join",
+      "decision": "applied",
+      "before": {
+        "median_ms": 297.522,
+        "rows_scanned": 766602,
+        "bytes_read": 0,
+        "cost_month_usd": 0.00124
+      },
+      "after": {
+        "median_ms": 21.591,
+        "rows_scanned": 766602,
+        "bytes_read": 0,
+        "cost_month_usd": 9e-05
+      }
+    },
+    {
+      "query": "q09_distinct_star",
+      "decision": "applied",
+      "before": {
+        "median_ms": 203.329,
+        "rows_scanned": 851597,
+        "bytes_read": 0,
+        "cost_month_usd": 0.000847
+      },
+      "after": {
+        "median_ms": 31.59,
+        "rows_scanned": 851597,
+        "bytes_read": 0,
+        "cost_month_usd": 0.000132
+      }
+    },
+    {
+      "query": "q09_window_dedupe",
+      "decision": "applied",
+      "before": {
+        "median_ms": 126.905,
+        "rows_scanned": 1452169,
+        "bytes_read": 0,
+        "cost_month_usd": 0.000529
+      },
+      "after": {
+        "median_ms": 30.657,
+        "rows_scanned": 851597,
+        "bytes_read": 0,
+        "cost_month_usd": 0.000128
+      }
+    },
+    {
+      "query": "q15_repeated_subquery",
+      "decision": "skipped",
+      "before": {
+        "median_ms": 6.049,
+        "rows_scanned": 601572,
+        "bytes_read": 0,
+        "cost_month_usd": 2.5e-05
+      },
+      "after": {
+        "median_ms": 6.049,
+        "rows_scanned": 601572,
+        "bytes_read": 0,
+        "cost_month_usd": 2.5e-05
+      }
+    },
+    {
+      "query": "q18_union_subquery",
+      "decision": "applied",
+      "before": {
+        "median_ms": 334.099,
+        "rows_scanned": 1598076,
+        "bytes_read": 0,
+        "cost_month_usd": 0.001392
+      },
+      "after": {
+        "median_ms": 35.57,
+        "rows_scanned": 997504,
+        "bytes_read": 0,
+        "cost_month_usd": 0.000148
+      }
+    },
+    {
+      "query": "q21_union_lineitem",
+      "decision": "applied",
+      "before": {
+        "median_ms": 320.113,
+        "rows_scanned": 2553313,
+        "bytes_read": 0,
+        "cost_month_usd": 0.001334
+      },
+      "after": {
+        "median_ms": 40.089,
+        "rows_scanned": 1952741,
+        "bytes_read": 0,
+        "cost_month_usd": 0.000167
+      }
+    }
+  ],
+  "totals": {
+    "before": {
+      "median_ms": 2083.2039999999997,
+      "rows_scanned": 13122905,
+      "bytes_read": 0,
+      "cost_month_usd": 0.008681
+    },
+    "after": {
+      "median_ms": 281.41600000000005,
+      "rows_scanned": 11321189,
+      "bytes_read": 0,
+      "cost_month_usd": 0.0011729999999999998
+    }
+  }
+}

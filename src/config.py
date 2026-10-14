@@ -12,8 +12,11 @@ APP_VERSION = "0.1.0"
 PLACEHOLDER_MARKERS = ("<", "your-", "sk-your", "-here")
 # Trần token đầu ra theo node: ≥ 5 lần mức cao nhất đo được ở golden thật 2026-10-02 (planner 1.104, codegen 1.638,
 # testgen 841, optimizer 295 — đã gồm token suy luận; trần 4.000 cũ từng bị dùng hết). Chỉnh lại sau khi có số đo mới.
-# Optimizer 16.000: Opus 5.5 luôn suy luận và token suy luận tính vào trần (chưa có số đo thật).
+# Optimizer 16.000: trần rộng từ thời dùng Opus (suy luận tính vào trần); Haiku không suy luận nên thực tế dùng ít hơn nhiều.
 TASK_MAX_TOKENS = {"planner": 6000, "codegen": 12000, "testgen": 5000, "optimizer": 16000}
+# Hạn chờ mỗi lượt gọi LLM (giây). Optimizer chỉ là bước tùy chọn nên hạn ngắn: treo thì bỏ qua sớm thay vì chờ nhiều phút.
+TASK_TIMEOUT_SEC = {"planner": 120, "codegen": 180, "testgen": 120, "optimizer": 60}
+DEFAULT_TIMEOUT_SEC = 120
 CODEGEN_MAX_TEMPERATURE = 0.2
 MODELS_FILE = Path(__file__).resolve().parent.parent / "config" / "models.yaml"
 TASKS = ("planner", "codegen", "testgen", "optimizer")
@@ -82,6 +85,11 @@ class Settings(BaseSettings):
     llm_max_tokens: int = Field(default=16000, ge=256)  # trần chung; mỗi node có trần riêng ở TASK_MAX_TOKENS
     # Gửi JSON Schema của đầu ra (structured output); false = quay về chế độ json_object cũ
     llm_structured_output: bool = True
+    # Circuit breaker cho mỗi cặp nhà cung cấp × model (src/services/circuit_breaker.py)
+    breaker_min_calls: int = Field(default=4, ge=1)  # số lượt tối thiểu trong cửa sổ trước khi xét tỉ lệ lỗi
+    breaker_failure_rate: float = Field(default=0.5, gt=0, le=1)  # tỉ lệ lỗi tối thiểu để ngắt mạch
+    breaker_reset_sec: int = Field(default=60, ge=1)  # ngắt bao lâu rồi mới thử lại (OPEN → HALF_OPEN)
+    breaker_probes: int = Field(default=1, ge=1, le=3)  # số lượt thăm dò thành công để đóng lại
 
     # Đăng nhập + cơ sở dữ liệu ứng dụng (PostgreSQL). Chuỗi kết nối và khóa CHỈ đọc từ biến môi trường / .env.
     # DATABASE_URL = tài khoản ứng dụng (không phải superuser); MIGRATION_DATABASE_URL chỉ dùng khi chạy Alembic.
@@ -99,6 +107,11 @@ class Settings(BaseSettings):
     # Lưu trữ
     data_dir: Path = Path("./data")
     sources_dir: Path = Path("./data/sources")
+    # Nơi lưu lần chạy, quyết định duyệt, sổ lỗi, bộ nhớ agent và checkpoint: sqlite (file trong data/) hoặc postgres (Neon,
+    # dùng DATABASE_URL). Render xóa ổ đĩa khi khởi động lại nên triển khai thật dùng postgres.
+    state_backend: Literal["sqlite", "postgres"] = "sqlite"
+    # Số lần chạy đồng thời. SQLite chỉ an toàn với 1 luồng (một kết nối checkpoint); chỉ có tác dụng khi state_backend=postgres.
+    run_workers: int = Field(default=2, ge=1, le=4)
     store_path: Path = Path("./data/app.db")
     checkpoint_path: Path = Path("./data/checkpoints.db")
     template_dir: Path = Path("./pipelines/template")
@@ -182,6 +195,10 @@ class Settings(BaseSettings):
     def max_tokens_for(self, task: str) -> int:
         """Trần token đầu ra (gồm token suy luận ẩn) của một bước, không vượt LLM_MAX_TOKENS."""
         return min(TASK_MAX_TOKENS.get(task, self.llm_max_tokens), self.llm_max_tokens)
+
+    def timeout_for(self, task: str) -> int:
+        """Hạn chờ (giây) cho một lượt gọi LLM của bước `task`."""
+        return TASK_TIMEOUT_SEC.get(task, DEFAULT_TIMEOUT_SEC)
 
     def temperature_for(self, task: str) -> float:
         """Planner/Testgen/Optimizer = 0 (tất định); Codegen = LLM_TEMPERATURE nhưng không quá 0.2."""

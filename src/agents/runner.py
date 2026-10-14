@@ -1,6 +1,6 @@
 """Chạy graph theo từng lần chạy (run_id = thread_id): bắt đầu, tạm dừng ở J1/J2/cứu hộ, chạy tiếp.
 
-Dùng chung cho CLI và API. Trạng thái graph lưu bằng checkpointer SQLite; tóm tắt lưu trong store.
+Dùng chung cho CLI và API. Trạng thái graph lưu bằng checkpointer (SQLite hoặc PostgreSQL theo STATE_BACKEND); tóm tắt lưu trong store.
 """
 
 import logging
@@ -9,12 +9,16 @@ import time
 from collections.abc import Callable
 from functools import lru_cache
 
+from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command
+from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
 from pydantic import BaseModel
 
 from src.agents.graph import build_graph
+from src.agents.nodes.common import remember_fixes
 from src.agents.progress import NodeStart, StepEvent, describe, node_started
 from src.config import get_settings
 from src.models.evidence import ReviewDecision
@@ -59,16 +63,40 @@ class ResumeRequest(BaseModel):
 
 
 @lru_cache
-def _graph(checkpoint_path: str) -> CompiledStateGraph:
+def _postgres_pool() -> ConnectionPool:
+    """Pool kết nối tới Neon cho checkpointer (nhiều luồng chạy cùng lúc).
+
+    autocommit + dict_row là yêu cầu của langgraph-checkpoint-postgres. `prepare_threshold=None` tắt prepared statement
+    vì host `-pooler` của Neon (PgBouncer) không giữ được chúng giữa các lần mượn kết nối. `check` thử kết nối trước khi
+    đưa ra dùng, vì Neon tự ngủ sau 5 phút và làm đứt kết nối cũ.
+    """
+    settings = get_settings()
+    url = settings.database_url.replace("postgresql+psycopg", "postgresql", 1)
+    return ConnectionPool(
+        url,
+        min_size=1,
+        max_size=settings.run_workers + 2,
+        kwargs={"autocommit": True, "prepare_threshold": None, "row_factory": dict_row, "connect_timeout": 15},
+        check=ConnectionPool.check_connection,
+        open=True,
+    )
+
+
+@lru_cache
+def _graph(backend: str, checkpoint_path: str) -> CompiledStateGraph:
+    if backend == "postgres":
+        return build_graph(PostgresSaver(_postgres_pool()))
     conn = sqlite3.connect(checkpoint_path, check_same_thread=False)
     return build_graph(SqliteSaver(conn))
 
 
 def get_graph() -> CompiledStateGraph:
-    """Graph đã gắn checkpointer SQLite (mỗi tiến trình một kết nối)."""
-    path = get_settings().checkpoint_path
-    path.parent.mkdir(parents=True, exist_ok=True)
-    return _graph(str(path.resolve()))
+    """Graph đã gắn checkpointer (SQLite: mỗi tiến trình một kết nối; PostgreSQL: pool kết nối)."""
+    settings = get_settings()
+    path = settings.checkpoint_path
+    if settings.state_backend == "sqlite":
+        path.parent.mkdir(parents=True, exist_ok=True)
+    return _graph(settings.state_backend, str(path.resolve()))
 
 
 def _config(run_id: str) -> dict:
@@ -140,6 +168,8 @@ def _finish(run_id: str, error: str) -> RunOutcome:
     else:
         status = RunStatus(values.get("status") or RunStatus.RUNNING)
     get_store().update_run(run_id, status, summarize(values, error))
+    if status is RunStatus.WAITING_REVIEW:
+        remember_fixes(run_id, values)
     return RunOutcome(run_id=run_id, status=status, pending=pending, error=error or values.get("error", ""))
 
 
@@ -168,6 +198,34 @@ def check_resumable(run_id: str, kind: str) -> dict:
     if not pending or pending.get("kind") != kind:
         raise RunStateError(f"Lần chạy {run_id} không ở bước chờ '{kind}'.")
     return pending
+
+
+def retry_problem(run_id: str, check_status: bool = True) -> str:
+    """Lý do KHÔNG chạy lại từ bước lỗi được (chuỗi rỗng = được).
+
+    Chạy lại = tiếp tục từ checkpoint cuối: các bước đã xong giữ nguyên (không gọi lại LLM, không chạy lại sandbox), chỉ
+    làm lại bước đang dở khi lỗi. Dùng cho lỗi tạm thời (LLM quá hạn/hết hạn mức, server khởi động lại giữa chừng).
+    Lần chạy đã đi tới nhánh "thất bại" của graph (hết lượt sửa, bị dừng) thì không có bước nào để tiếp tục.
+    """
+    record = get_store().get_run(run_id)
+    if record is None:
+        return f"Không tìm thấy lần chạy {run_id}."
+    if check_status and record.status != RunStatus.FAILED:
+        return "Chỉ chạy lại được lần chạy đang ở trạng thái lỗi."
+    snapshot = get_graph().get_state(_config(run_id))
+    if not snapshot.next or "fail" in snapshot.next:
+        return "Lần chạy đã dừng hẳn (hết lượt sửa hoặc bị dừng), không có bước nào để tiếp tục. Hãy tạo yêu cầu mới."
+    return ""
+
+
+def retry_run(run_id: str, on_event: EventCallback | None = None) -> RunOutcome:
+    """Chạy lại từ bước lỗi (xem `retry_problem`)."""
+    # API đã kiểm trạng thái FAILED trước khi xếp hàng; lúc job chạy trạng thái đã được đặt lại thành RUNNING
+    problem = retry_problem(run_id, check_status=False)
+    if problem:
+        raise RunStateError(problem)
+    get_store().update_run(run_id, RunStatus.RUNNING)
+    return _finish(run_id, _stream(run_id, None, on_event))
 
 
 def resume_run(request: ResumeRequest, on_event: EventCallback | None = None) -> RunOutcome:

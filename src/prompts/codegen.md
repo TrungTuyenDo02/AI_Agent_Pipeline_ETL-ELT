@@ -46,6 +46,10 @@ $last_error
 $error_hints
 </data>
 
+<data name="account_memory">
+$memory_notes
+</data>
+
 <data name="reviewer_notes">
 $review_notes
 </data>

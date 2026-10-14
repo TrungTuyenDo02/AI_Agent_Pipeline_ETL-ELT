@@ -9,6 +9,8 @@ PRICES_PER_MILLION: dict[str, tuple[float, float]] = {
     "gpt-5.6-luna": (0.20, 1.20),
     "gpt-5.6-terra": (2.00, 12.00),
     "gpt-5.6-sol": (4.00, 20.00),
+    "claude-haiku-5-5": (0.10, 0.50),  # trang giá Anthropic, prompt ≤ 100K token (trên 100K: 0,50/2,50); tra 2026-10-14
+    "claude-haiku-4-5-20251001": (1.00, 5.00),  # trang giá Anthropic, Haiku 4.5; tra lại trước khi báo cáo
     "claude-opus-5-5": (4.00, 20.00),  # trang giá Anthropic (bản lưu 2026-09-25), token suy luận tính như đầu ra
     "gemini-3.1-flash-lite": (0.25, 1.50),
     "gemini-2.5-flash": (0.30, 2.50),
@@ -43,7 +45,7 @@ def cache_hit_rate(usages: list[dict]) -> float | None:
 
 
 def usage_breakdown(usages: list[dict]) -> dict:
-    """Token, chi phí, thời gian gọi LLM theo node + tỉ lệ trúng cache (panel "Chi phí và thời gian" trên web).
+    """Token, chi phí, thời gian gọi LLM theo node (kèm model đã trả lời) + tỉ lệ trúng cache (panel "Chi phí và thời gian").
 
     `simulated` = có lần gọi mock: số token/chi phí khi đó là mô phỏng, web phải ghi rõ.
     """
@@ -52,9 +54,12 @@ def usage_breakdown(usages: list[dict]) -> dict:
         row = rows.setdefault(
             u.get("task", "?"),
             {"task": u.get("task", "?"), "calls": 0, "input_tokens": 0, "output_tokens": 0, "cached_tokens": 0,
-             "cost_usd": 0.0, "seconds": 0.0},
+             "cost_usd": 0.0, "seconds": 0.0, "models": []},
         )  # fmt: skip
         row["calls"] += 1
+        label = f"{u.get('provider', '?')}/{u.get('model', '?')}"  # model đã trả lời thật (kể cả khi dự phòng thay thế)
+        if label not in row["models"]:
+            row["models"].append(label)
         for key in ("input_tokens", "output_tokens", "cached_tokens"):
             row[key] += u.get(key, 0)
         row["cost_usd"] = round(row["cost_usd"] + u.get("cost_usd", 0.0), 6)

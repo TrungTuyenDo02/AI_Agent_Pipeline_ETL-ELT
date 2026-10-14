@@ -183,6 +183,7 @@ export interface RunDetail {
   current?: CurrentNode | null;
   /** số lần chạy đứng trước trong hàng đợi (0 = đang chạy); null khi không xếp hàng */
   queue_position?: number | null;
+  retryable?: boolean;
   schema_report?: SchemaReport | Record<string, never>;
   schema_decision?: { by?: string; renames?: Record<string, string> };
   value_filters?: ValueFilter[];
@@ -267,6 +268,8 @@ export interface UsageRow {
   cached_tokens: number;
   cost_usd: number;
   seconds: number;
+  /** "nhà cung cấp/model" đã trả lời thật (khác model cấu hình nếu dự phòng thay thế) */
+  models?: string[];
 }
 
 /** Token/chi phí/thời gian LLM theo node (src/services/cost.usage_breakdown). */
@@ -380,6 +383,20 @@ export interface AgentStatus {
   llm_provider: string;
   models: string;
   simulated: boolean;
+  /** Trạng thái ngắt mạch từng nhà cung cấp × model (closed | open | half_open) */
+  breakers?: { key: string; state: string; recent_calls: number; recent_failures: number }[];
+}
+
+/** Mục bộ nhớ do agent đề xuất (chờ Reviewer duyệt mới được dùng lại cho đúng tài khoản đó). */
+export interface MemoryItem {
+  id: number;
+  account: string;
+  kind: string;
+  content: string;
+  status: string;
+  source_run_id: string;
+  warnings: string[];
+  created_at: string;
 }
 
 export interface ErrorEntry {

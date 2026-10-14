@@ -3,24 +3,28 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAnimate, useReducedMotion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { useApp } from "@/components/AppContext";
-import { EyeIcon, EyeOffIcon, LockIcon, SparkIcon, StatusIcon, UserIcon } from "@/components/icons";
+import { EyeIcon, EyeOffIcon, Icon, LockIcon, SparkIcon, StatusIcon, UserIcon } from "@/components/icons";
+import { LoginShowcase } from "@/components/login/LoginShowcase";
 import { Checkbox } from "@/components/ui";
 import { messageOf } from "@/lib/api";
+import { ADMIN_CONTACT, LANG_KEY, LOGIN_TEXT, type Lang, type LoginText } from "@/lib/loginText";
 
 // Đăng nhập bằng tài khoản doanh nghiệp cấp. KHÔNG có đăng ký tự do (CLAUDE.md mục 1–2, 9.4).
 // "Ghi nhớ" chỉ lưu TÊN đăng nhập trên máy này (không giữ phiên); mật khẩu không bao giờ lưu ở trình duyệt.
 const REMEMBER_KEY = "p113.lastUser";
 
-const schema = z.object({
-  username: z.string().trim().min(1, "Nhập tên đăng nhập.").max(64),
-  password: z.string().min(1, "Nhập mật khẩu.").max(256),
-});
-type LoginValues = z.infer<typeof schema>;
+function makeSchema(t: LoginText) {
+  return z.object({
+    username: z.string().trim().min(1, t.userError).max(64),
+    password: z.string().min(1, t.passwordError).max(256),
+  });
+}
+type LoginValues = z.infer<ReturnType<typeof makeSchema>>;
 
 /** Chỉ quay lại đường dẫn nội bộ (chặn chuyển hướng ra trang ngoài qua ?next=). */
 function safeNext(next: string | null): string {
@@ -44,15 +48,17 @@ function remember(username: string | null): void {
   }
 }
 
-function LoginForm() {
+function LoginForm({ t, pick }: { t: LoginText; pick: { user: string; password: string; n: number } | null }) {
   const { auth, login } = useApp();
   const router = useRouter();
   const next = safeNext(useSearchParams().get("next"));
   const [keep, setKeep] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [contactOpen, setContactOpen] = useState(false);
   const [scope, animate] = useAnimate<HTMLFormElement>();
   const reduceMotion = useReducedMotion();
+  const schema = useMemo(() => makeSchema(t), [t]);
   const {
     register,
     handleSubmit,
@@ -71,6 +77,13 @@ function LoginForm() {
     }, 0);
     return () => clearTimeout(first);
   }, [getValues, setValue]);
+
+  // Bấm một tài khoản demo ở khung bên trái → điền sẵn tên và mật khẩu
+  useEffect(() => {
+    if (!pick) return;
+    setValue("username", pick.user);
+    setValue("password", pick.password);
+  }, [pick, setValue]);
 
   // Đã đăng nhập (mở lại tab, bấm Back) → về trang đang cần
   useEffect(() => {
@@ -105,16 +118,14 @@ function LoginForm() {
       aria-labelledby="login-title"
       noValidate
     >
-      <div className="login-brand">
-        <SparkIcon size={18} />
-        <span>P-113 Agent Studio</span>
-      </div>
-      <h1 id="login-title">Đăng nhập</h1>
-      <p className="login-sub">Dùng tài khoản doanh nghiệp được cấp.</p>
+      <h1 id="login-title">
+        {t.welcome} <span className="login-accent">{t.welcomeAccent}</span>
+      </h1>
+      <p className="login-sub">{t.sub}</p>
 
       <div className="login-field">
         <label htmlFor="login-user" className="sr-only">
-          Tên đăng nhập
+          {t.user}
         </label>
         <span className="login-field-lead" aria-hidden>
           <UserIcon size={20} />
@@ -124,7 +135,7 @@ function LoginForm() {
           autoComplete="username"
           autoCapitalize="none"
           spellCheck={false}
-          placeholder="Tên đăng nhập"
+          placeholder={t.user}
           maxLength={64}
           aria-invalid={Boolean(errors.username || error) || undefined}
           aria-describedby={errors.username ? "login-user-error" : undefined}
@@ -139,7 +150,7 @@ function LoginForm() {
 
       <div className="login-field">
         <label htmlFor="login-password" className="sr-only">
-          Mật khẩu
+          {t.password}
         </label>
         <span className="login-field-lead" aria-hidden>
           <LockIcon size={20} />
@@ -148,7 +159,7 @@ function LoginForm() {
           id="login-password"
           type={showPassword ? "text" : "password"}
           autoComplete="current-password"
-          placeholder="Mật khẩu"
+          placeholder={t.password}
           maxLength={256}
           aria-invalid={Boolean(errors.password || error) || undefined}
           aria-describedby={errors.password ? "login-password-error" : undefined}
@@ -158,8 +169,8 @@ function LoginForm() {
           type="button"
           className="login-eye"
           onClick={() => setShowPassword(!showPassword)}
-          aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-          title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+          aria-label={showPassword ? t.hidePassword : t.showPassword}
+          title={showPassword ? t.hidePassword : t.showPassword}
           aria-pressed={showPassword}
         >
           {showPassword ? <EyeOffIcon size={20} /> : <EyeIcon size={20} />}
@@ -172,7 +183,7 @@ function LoginForm() {
       </div>
 
       <Checkbox checked={keep} onChange={setKeep}>
-        Ghi nhớ tên đăng nhập trên máy này
+        {t.remember}
       </Checkbox>
 
       {error && (
@@ -184,26 +195,113 @@ function LoginForm() {
       <button type="submit" className="login-btn" disabled={isSubmitting} aria-busy={isSubmitting || undefined}>
         {isSubmitting ? (
           <>
-            <StatusIcon tone="running" size={18} /> Đang đăng nhập…
+            <StatusIcon tone="running" size={18} /> {t.submitting}
           </>
         ) : (
-          "Đăng nhập"
+          <>
+            {t.submit} <Icon name="start" size={18} weight="bold" />
+          </>
         )}
       </button>
 
       <p className="login-foot">
-        Quên mật khẩu? <strong>Liên hệ quản trị viên</strong>.
+        {t.forgot}{" "}
+        <button
+          type="button"
+          className="login-link"
+          aria-expanded={contactOpen}
+          aria-controls="login-contact"
+          onClick={() => setContactOpen(!contactOpen)}
+        >
+          {t.forgotAction}
+        </button>
       </p>
+      {contactOpen && (
+        <div id="login-contact" className="login-contact" role="note">
+          <p>{t.contactText}</p>
+          {/^[^\s@<>]+@[^\s@<>]+$/.test(ADMIN_CONTACT) && (
+            <a href={`mailto:${ADMIN_CONTACT}`}>
+              {t.contactMail}: {ADMIN_CONTACT}
+            </a>
+          )}
+        </div>
+      )}
     </form>
   );
 }
 
+function readLang(): Lang {
+  try {
+    const saved = localStorage.getItem(LANG_KEY);
+    if (saved === "vi" || saved === "en") return saved;
+  } catch {
+    // trình duyệt chặn lưu trữ: dùng mặc định
+  }
+  return "vi";
+}
+
 export default function LoginPage() {
+  const { dark, setTheme } = useApp();
+  const [lang, setLang] = useState<Lang>("vi");
+  const [pick, setPick] = useState<{ user: string; password: string; n: number } | null>(null);
+  const t = LOGIN_TEXT[lang];
+
+  // Đọc ngôn ngữ đã lưu sau khi trang hiện (tránh lệch giữa máy chủ và trình duyệt)
+  useEffect(() => {
+    const first = setTimeout(() => setLang(readLang()), 0);
+    return () => clearTimeout(first);
+  }, []);
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
+  function chooseLang(next: Lang) {
+    setLang(next);
+    try {
+      localStorage.setItem(LANG_KEY, next);
+    } catch {
+      // bỏ qua
+    }
+  }
+
   return (
     <main className="login-page">
-      <Suspense fallback={null}>
-        <LoginForm />
-      </Suspense>
+      <div className="login-tools">
+        <div className="login-lang" role="group" aria-label={t.langLabel}>
+          {(["vi", "en"] as const).map((value) => (
+            <button key={value} type="button" aria-pressed={lang === value} onClick={() => chooseLang(value)}>
+              {value.toUpperCase()}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="login-tool"
+          onClick={() => setTheme(dark ? "light" : "dark")}
+          aria-label={dark ? t.themeToLight : t.themeToDark}
+          title={dark ? t.themeToLight : t.themeToDark}
+        >
+          <Icon name={dark ? "light" : "dark"} size={18} weight="fill" />
+        </button>
+      </div>
+
+      <section className="login-hero">
+        <div className="login-hero-brand">
+          <SparkIcon size={28} />
+          <span>P-113 Agent Studio</span>
+        </div>
+        <h2>{t.heroTitle}</h2>
+        <p className="login-hero-sub">{t.heroSub}</p>
+        <blockquote>{t.quote}</blockquote>
+        <LoginShowcase t={t} onPickAccount={(user, password) => setPick({ user, password, n: Date.now() })} />
+        <p className="login-hero-foot">{t.footer}</p>
+      </section>
+
+      <div className="login-side">
+        <Suspense fallback={null}>
+          <LoginForm t={t} pick={pick} />
+        </Suspense>
+      </div>
     </main>
   );
 }

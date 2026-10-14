@@ -8,15 +8,18 @@ Các lệnh dưới đây đã chạy thật trên máy tác giả (Windows, Doc
 | Nơi lưu | Chứa gì | Cấu hình |
 |---|---|---|
 | **PostgreSQL 17** (`p113_dev`) | Tài khoản, phiên đăng nhập, nhật ký kiểm toán, ảnh chụp cấu trúc nguồn | `DATABASE_URL`, `MIGRATION_DATABASE_URL` |
-| **SQLite** `data/app.db` | Các lần chạy (`runs`), quyết định duyệt (`reviews`), sổ lỗi (`error_entries`) | `STORE_PATH` |
-| **SQLite** `data/checkpoints.db` | Trạng thái graph LangGraph để tạm dừng/tiếp tục (J1, J1b, J2) | `CHECKPOINT_PATH` |
+| **PostgreSQL** (khi `STATE_BACKEND=postgres`, triển khai thật) | Thêm: `runs`, `reviews`, `error_entries`, `memory_items` (bộ nhớ agent) và bảng checkpoint LangGraph; tạo bởi migration 0003, 0004 | `DATABASE_URL` |
+| **SQLite** `data/app.db` (khi `STATE_BACKEND=sqlite`, mặc định, demo/test) | Các lần chạy (`runs`), quyết định duyệt (`reviews`), sổ lỗi (`error_entries`), `memory_items` | `STORE_PATH` |
+| **SQLite** `data/checkpoints.db` (như trên) | Trạng thái graph LangGraph để tạm dừng/tiếp tục (J1, J1b, J2) | `CHECKPOINT_PATH` |
 | **DuckDB** `pipelines/workspaces/<run_id>/sandbox.duckdb` | Sandbox chạy thử `dbt build` của từng lần chạy; không phải dữ liệu thật | `WORKSPACES_DIR` |
 | **Thư mục** `data/sources/` | Kho nguồn giả lập "P113 Retail" (CSV, JSON, SQLite, Parquet) | `SOURCES_DIR` |
 
 > Giải thích đời thường: PostgreSQL giống sổ đăng ký của tòa nhà (ai được vào, ai vào lúc nào). SQLite là sổ ghi chép công việc nằm cạnh máy chủ.
 > DuckDB là phòng thử nghiệm dùng một lần.
 
-**Quyết định (2026-10-10): giữ SQLite cho lần chạy và checkpoint.** Lý do: ít sửa nhất, đã được kiểm thử (613 test).
+**Cập nhật (2026-10-14): triển khai thật chuyển lần chạy, sổ lỗi, bộ nhớ agent và checkpoint sang PostgreSQL/Neon (`STATE_BACKEND=postgres`, 2 luồng chạy song song `RUN_WORKERS=2`); SQLite vẫn là chế độ mặc định cho demo và test.** Đoạn dưới là quyết định cũ (2026-10-10), chỉ còn đúng với chế độ SQLite.
+
+**Quyết định cũ (2026-10-10): giữ SQLite cho lần chạy và checkpoint.** Lý do: ít sửa nhất, đã được kiểm thử (613 test).
 Hệ quả: backend chỉ nên chạy **một bản** và cần **ổ đĩa bền** (volume Docker, đĩa máy ảo). Cloud Run mặc định có hệ thống tệp tạm,
 nên lần chạy đang dở có thể mất khi khởi động lại; xem [DEPLOY_GCP.md](DEPLOY_GCP.md). Chuyển sang PostgreSQL
 (gói `langgraph-checkpoint-postgres`, viết lại `store.py`/`error_memory.py`) là việc lớn, nằm trong hướng phát triển.
@@ -159,3 +162,10 @@ trỏ tới `p113_test`, rồi `pytest tests/test_api/test_auth.py tests/test_se
 
 Chuỗi kết nối production thêm `?sslmode=verify-full`; mật khẩu đặt trong dịch vụ quản lý bí mật. Xem
 [DEPLOY_VERCEL.md](DEPLOY_VERCEL.md) và [DEPLOY_GCP.md](DEPLOY_GCP.md). Biến môi trường: [CONFIG.md](CONFIG.md).
+
+## Bộ nhớ agent (`memory_items`)
+
+- **Ghi:** khi một lần chạy tự sửa lỗi thành công và tới bước chờ duyệt, agent đề xuất tối đa 3 mục loại `error_fix` (mô tả lỗi đã che số liệu + số lần sửa). Mục luôn ở trạng thái `pending` và được quét mẫu lệnh độc hại.
+- **Duyệt:** Reviewer duyệt hoặc bỏ ở trang Sổ lỗi (API `/memory`, có ghi nhật ký kiểm toán).
+- **Đọc:** planner và codegen chỉ nhận tối đa 3 mục `approved` của đúng tài khoản tạo yêu cầu, gửi trong khối `account_memory` của prompt. Không đọc được bộ nhớ của tài khoản khác.
+- **Chưa làm:** loại `pipeline_pattern`, `preference`, `chat_summary`; mục chưa lưu nội dung cách sửa (chỉ ghi lỗi từng gặp và đã sửa được); `pgvector`.

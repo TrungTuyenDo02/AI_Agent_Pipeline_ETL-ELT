@@ -100,6 +100,38 @@
   --login-error: light-dark(#9e0018, #ffd5da);
   --login-error-bg: light-dark(#ffe3e7, #4a1420);
 
+  /* Ảnh nền (public/bg/campus.png): lớp phủ riêng cho sáng/tối để thẻ đặc và chữ luôn đọc rõ */
+  --bg-photo: url("/bg/campus.png");
+  --bg-veil: light-dark(
+    linear-gradient(180deg, rgb(245 247 252 / 78%), rgb(238 242 250 / 90%)),
+    linear-gradient(180deg, rgb(8 10 18 / 82%), rgb(8 10 18 / 92%))
+  );
+  --bg-photo-filter: light-dark(blur(6px) saturate(115%), blur(6px) saturate(80%) brightness(0.8));
+  --scroll-thumb: light-dark(rgb(0 0 0 / 22%), rgb(255 255 255 / 24%));
+  --scroll-thumb-hover: light-dark(rgb(0 0 0 / 38%), rgb(255 255 255 / 40%));
+  /* Tiến trình: màu đặc, sáng rõ; vầng sáng quanh bước đang chạy */
+  --progress-glow: light-dark(rgb(0 102 204 / 38%), rgb(64 156 255 / 45%));
+  --ok-strong: light-dark(#1f7a35, #30d158);
+  --type-num: light-dark(#0b5cad, #7cb8ff);
+  --type-num-bg: light-dark(#e6f0fa, #12294a);
+  --type-text: light-dark(#5143c9, #b5b3ff);
+  --type-text-bg: light-dark(#eeedfb, #26244f);
+  --type-time: light-dark(#8a4b00, #ffc266);
+  --type-time-bg: light-dark(#fff1de, #3a2a0e);
+  --type-bool: light-dark(#0b6b5b, #6fe3cf);
+  --type-bool-bg: light-dark(#e2f5f1, #0f3029);
+
+  /* Trang đăng nhập kiểu chia đôi: khung thông tin bên trái có lớp phủ tối để chữ trắng đọc rõ trên ảnh */
+  --login-scrim: light-dark(rgb(14 38 78 / 82%), rgb(6 10 20 / 84%));
+  --login-hero-solid: light-dark(#2b466a, #1a2630); /* màu xấu nhất sau lớp phủ (dùng để kiểm tương phản) */
+  --login-hero-ink: light-dark(#ffffff, #ffffff);
+  --login-hero-muted: light-dark(#dbe4f2, #dbe4f2);
+  --login-hero-card: rgb(255 255 255 / 11%);
+  --login-hero-card-solid: light-dark(#3a5478, #26323d);
+  --login-hero-edge: rgb(255 255 255 / 22%);
+  --login-photo-veil: light-dark(rgb(240 245 252 / 12%), rgb(6 10 20 / 45%));
+  --login-accent: light-dark(#c8102e, #ff8591);
+
   --shadow: 0 1px 2px var(--shadow-color), 0 2px 6px var(--shadow-color);
   --radius: 16px;
 

@@ -14,10 +14,38 @@ import { useDismiss, waitingFor } from "./NotificationBell";
 
 export const ROLE_LABELS: Record<Role, string> = { engineer: "Engineer", reviewer: "Reviewer", admin: "Admin" };
 
+/** Nút sáng/tối hiển thị sẵn trên thanh trên: bấm đổi ngay (lựa chọn lưu ở trình duyệt; "Theo máy" vẫn chọn được trong menu). */
+export function ThemeToggle() {
+  const { dark, setTheme } = useApp();
+  const next = dark ? "light" : "dark";
+  const label = dark ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối";
+  return (
+    <button
+      type="button"
+      className="icon-btn theme-toggle"
+      aria-label={label}
+      title={label}
+      onClick={() => setTheme(next)}
+    >
+      <Icon name={dark ? "light" : "dark"} size={20} weight="fill" />
+    </button>
+  );
+}
+
 export function ModeBadges() {
   const { status, statusError } = useApp();
   if (statusError) return <span className="badge danger">Mất kết nối API</span>;
   if (!status) return <span className="badge muted">Đang kiểm tra API…</span>;
+  const open = (status.breakers ?? []).filter((b) => b.state !== "closed");
+  if (open.length > 0)
+    return (
+      <span
+        className="badge warn"
+        title={`Tạm ngắt vì nhiều lần lỗi liên tiếp: ${open.map((b) => `${b.key} (${b.state})`).join(", ")}. Hệ thống sẽ tự thử lại.`}
+      >
+        LLM tạm ngắt · {open.map((b) => b.key).join(", ")}
+      </span>
+    );
   return status.simulated ? (
     <span className="badge warn" title="LLM_PROVIDER=mock: câu trả lời LLM là cố định, không phải chất lượng thật">
       Mô phỏng

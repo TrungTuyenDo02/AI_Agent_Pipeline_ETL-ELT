@@ -5,7 +5,7 @@ import re
 
 from pydantic import ValidationError
 
-from src.agents.nodes.common import usage_of
+from src.agents.nodes.common import memory_notes, usage_of
 from src.agents.state import PipelineState
 from src.agents.tools.duckdb_tools import discover_sources
 from src.agents.tools.source_stats import column_values, with_stats
@@ -85,6 +85,7 @@ def planner_variables(state: PipelineState, catalog: list[dict], last_round: boo
         "answered_questions": to_json(state.get("answered", [])) if state.get("answered") else "(chưa có)",
         "spec_errors": to_json(state.get("spec_errors", [])),
         "plan_feedback": to_json(state.get("plan_feedback", [])) if state.get("plan_feedback") else "(chưa có)",
+        "memory_notes": to_json(memory_notes(state)),
         "round_note": "ĐÂY LÀ LƯỢT CUỐI: không được hỏi thêm." if last_round else "(chưa phải lượt cuối)",
     }
 

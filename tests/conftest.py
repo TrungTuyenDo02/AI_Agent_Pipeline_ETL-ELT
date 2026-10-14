@@ -135,6 +135,16 @@ async def client(login):
     return await login("engineer")
 
 
+@pytest.fixture(autouse=True)
+def _fresh_breakers():
+    """Bộ ngắt mạch LLM nằm trong bộ nhớ tiến trình: mỗi test bắt đầu với bộ ngắt trống."""
+    from src.services.circuit_breaker import reset_breakers
+
+    reset_breakers()
+    yield
+    reset_breakers()
+
+
 @pytest.fixture
 def mock_llm(monkeypatch: pytest.MonkeyPatch):
     """Thay câu trả lời LLM của một tác vụ bằng dict cố định: `mock_llm("codegen", {...})`."""

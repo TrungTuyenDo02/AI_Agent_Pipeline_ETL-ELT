@@ -33,6 +33,7 @@ def demo_env() -> dict[str, str]:
     env.update(
         {
             "APP_ENV": "development",
+            "NEXT_PUBLIC_SHOW_DEMO_ACCOUNTS": "true",  # trang đăng nhập hiện tài khoản demo (chỉ bản demo cục bộ)
             "LLM_PROVIDER": "mock",
             "LLM_FALLBACK": "none",
             "OPENAI_API_KEY": "",

@@ -20,9 +20,10 @@ from src.agents.tools.rewrite_rules import rules_candidate, sqlglot_candidate
 from src.agents.tools.slow_patterns import detect_slow_patterns
 from src.agents.tools.sql_tools import SqlCheckError, render_dbt_sql
 from src.config import get_settings
+from src.models.contracts import OptCandidate, hand_off
 from src.models.evidence import Finding, OptimizationReport
 from src.models.schemas import LLMUsage
-from src.services.llm import LLMConfigError, LLMOutputError, call_llm, parse_json_output, to_json
+from src.services.llm import LLMCallError, LLMConfigError, LLMOutputError, call_llm, parse_json_output, to_json
 from src.services.prompt_context import referenced_schema
 
 logger = logging.getLogger(__name__)
@@ -66,7 +67,9 @@ def llm_rewrite(job: ProposalInput) -> tuple[dict, LLMUsage | None]:
     """Gọi LLM đề xuất viết lại dựa trên dấu hiệu chậm + kế hoạch thực thi + phản hồi lần trước."""
     try:
         response = call_llm("optimizer", optimizer_variables(job))
-    except LLMConfigError as exc:  # thiếu khóa của model tối ưu: giữ bản gốc, không làm hỏng lần chạy đã đúng
+    except (LLMConfigError, LLMCallError) as exc:
+        # Tối ưu là bước tùy chọn: thiếu khóa, nhà cung cấp lỗi/quá hạn/đang ngắt mạch → giữ bản gốc đã đúng, không làm
+        # hỏng cả lần chạy (CLAUDE.md: pipeline đúng là ưu tiên số một). Lý do hiện trong báo cáo tối ưu.
         candidate = {"sql": "", "explanation": "", "warehouse_hints": [], "invalid": str(exc)}
         return {**candidate, "source": "llm", "assumptions": []}, None
     try:
@@ -149,7 +152,7 @@ def optimizer_node(state: PipelineState) -> dict:
         "llm_cost_usd": cost,
     }
     candidate.pop("feedback", None)
-    update = {"opt_candidate": candidate, "opt_attempts": attempt}
+    update = {"opt_candidate": hand_off(OptCandidate, candidate), "opt_attempts": attempt}
     return {**update, "llm_usage": [usage.model_dump()]} if usage else update
 
 

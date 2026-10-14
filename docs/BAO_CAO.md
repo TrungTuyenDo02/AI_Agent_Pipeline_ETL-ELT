@@ -186,9 +186,9 @@ Nguồn: [eval/results/report.md](../eval/results/report.md), sinh bởi `python
 
 | Chỉ số | Điều kiện đo | Kết quả |
 |---|---|---|
-| Test tự động | `mock`, không cần khóa | 626 đạt, 0 lỗi |
-| Độ phủ code | `pytest --cov`, ngưỡng 60% | 91,76% |
-| Mutation: bắt lỗi giả | code, 0 token, 1 lần | 11/12 (91,7%) |
+| Test tự động | `mock`, không cần khóa | 730 đạt, 2 xfail, 0 lỗi (2026-10-14) |
+| Độ phủ code | `pytest --cov`, ngưỡng 60% | 92,19% |
+| Mutation: bắt lỗi giả | mô phỏng (bộ sinh test giả `mock`, pipeline gốc cố định), 1 lần | 11/12 (91,7%) |
 | Golden: kết quả đúng khớp SQL chuẩn | code | 11/11 ca |
 | Golden: agent đúng | LLM thật (gpt-5.6-luna; optimizer gpt-5.6-terra), 12 ca, 1 lần, đo 2026-10-08 | 12/12 ca |
 | Golden: đạt ngay lần đầu | như trên | 12/12 ca |
@@ -196,12 +196,14 @@ Nguồn: [eval/results/report.md](../eval/results/report.md), sinh bởi `python
 | Golden: token / chi phí mỗi ca | như trên | 6917 token / 0,0045 USD |
 | Golden: thời gian yêu cầu → bản duyệt | như trên | 46,4 giây |
 | ELT-Bench-Verified: khớp bảng đúng | LLM thật, 10 task, 34 bảng, 1 lần, chấm lại 2026-10-07 | 11/34 bảng |
-| TPC-H: query chậm được tối ưu | `mock`, sf=0,1, 2026-10-02 | 11/13, nhanh hơn 51%–94,7% |
+| TPC-H: query chậm được tối ưu | `mock`, sf=0,1, 2026-10-02; 10/11 ca nhờ luật cố định, **chưa kiểm chứng với LLM thật** | 11/13, nhanh hơn 51%–94,7% |
+| Optimizer: so model LLM | LLM thật, chỉ ứng viên do LLM viết (bỏ luật cố định), 13 query TPC-H, tối đa 2 lần thử, 1 lần/model, 2026-10-14 | gpt-5.6-terra: 5/13 bản đúng và nhanh hơn ngưỡng, 0,24 USD; Claude Opus 5.5 (medium): 3/13, 0,96 USD; Claude Haiku 4.5: 11/13 (áp dụng 8/13), 0,083 USD; Claude Haiku 5.5: 9/13 (áp dụng 7/13), 0,025 USD ([ab_optimizer.md](../eval/results/ab_optimizer.md)) |
+| Baseline TPC-H (viết tay không tối ưu = 100%) | `mock` (luật cố định + sqlglot), sf=0,1, 1 lần, 2026-10-14 | cả bộ còn 14% thời gian và 86% dòng quét; chi phí tính toán ước tính theo giả định 0,5 USD/giờ × 30 lần/tháng cũng còn 14% ([tpch_baseline.md](../eval/results/tpch_baseline.md)) |
 | Thời gian phản hồi API | trong cùng tiến trình, SQLite, 100 lần | `/health` p50 2,2 ms; `GET /runs/{id}` p95 15,3 ms ([api_latency.md](../eval/results/api_latency.md)) |
 | Agent so với DE làm tay | — | — (chưa có DE làm tay) |
 | Phản hồi người dùng thử | — | — (chưa thu thập) |
 
-Ghi chú: ELT-Bench 11/34 là điểm **nghiêm** (tính cả 2 model lỗi của chính benchmark); các bảng còn lại lệch nghĩa so với định nghĩa của benchmark.
+Ghi chú: ELT-Bench 11/34 (khoảng 32%) là điểm **nghiêm** (tính cả 2 model lỗi của chính benchmark); các bảng còn lại lệch nghĩa so với định nghĩa của benchmark.
 Trước đây báo cáo ghi 7/34 vì bộ chấm còn lỗi; đã sửa và chấm lại từ đầu ra đã lưu (không chạy lại LLM, 0 token).
 
 ## 7. Hạn chế, nói trung thực
@@ -210,8 +212,14 @@ Trước đây báo cáo ghi 7/34 vì bộ chấm còn lỗi; đã sửa và ch�
 - **Mỗi phép đo chạy 1 lần:** chênh một ca chưa đủ kết luận; tốc độ dao động giữa các lần đo.
 - **Nhãn kiểm thử do tác giả tự gán** (một phần do Claude viết thay, nhãn `ai_proxy`), chưa có người ngoài nhóm; kết quả bộ kiểm chứng chỉ nói về các ca đã có.
 - **Dữ liệu là kho giả lập** "P113 Retail" (8 hệ thống, 19 bảng, bẩn có chủ đích), chưa chạy trên dữ liệu công ty thật.
-- **Chưa deploy thật:** chưa có địa chỉ chạy công khai; lần chạy và checkpoint còn ở SQLite nên backend chỉ chạy một bản ([DATABASE.md](DATABASE.md)).
+- **Chưa deploy thật:** chưa có địa chỉ chạy công khai. Mã đã hỗ trợ lưu lần chạy/checkpoint trên Neon (kiểm thử trên nhánh dev, 2 lần chạy song song); chưa đo tải thật trên Render.
+- **A/B model Optimizer chỉ là mẫu nhỏ:** 13 query, 1 lần mỗi model, một mức suy luận (medium) của Opus, tối đa 2 lần thử. Trên mẫu này hai bản Haiku đều đúng nhiều hơn terra và Opus 5.5 với chi phí thấp hơn nhiều: Haiku 4.5 đúng nhiều nhất (11/13), Haiku 5.5 đúng ít hơn một chút (9/13) nhưng rẻ hơn khoảng 3 lần (0,025 so với 0,083 USD); Opus 5.5 kém hơn và đắt hơn terra khoảng 4 lần. Chưa đủ để kết luận chung (1 lần/model, mức chênh 11 so với 9 nằm trong dao động đo). Optimizer đang dùng Haiku 5.5.
+- **Baseline không phải hóa đơn thật:** chạy DuckDB cục bộ trên TPC-H nhỏ; "chi phí" là ước tính theo giả định giá tính toán; số byte đọc không đo được (DuckDB báo 0), chỉ dùng số dòng quét.
 - Chế độ `mock` chỉ chứng minh luồng chạy, không chứng minh chất lượng AI.
+- **ELT-Bench chỉ 11/34 bảng (khoảng 32%)** và có ca pipeline **được duyệt nhưng kết quả sai**: bộ kiểm chứng hiện chưa bắt hết, đây là rủi ro thật, không phải sai số nhỏ.
+- **Golden 12/12 chưa phải điểm kiểm độc lập:** bộ golden chưa tách thành tập chỉnh và tập kiểm riêng, nên không nên đọc là độ đúng trên yêu cầu lạ.
+- **Optimizer chưa có số đo với LLM thật:** con số tối ưu TPC-H đến từ `mock` và luật cố định; phần LLM của optimizer ghi là *chưa kiểm chứng*.
+- **Mutation test dùng bộ sinh test giả (`mock`):** đo khả năng bắt lỗi của bộ kiểm chứng, không đo chất lượng test do LLM thật viết. Lọt 1/12 ca (`count_distinct_id`).
 
 ## 8. Hướng phát triển
 

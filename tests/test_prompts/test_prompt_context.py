@@ -153,7 +153,7 @@ def test_temperature_and_max_tokens_per_task():
     assert settings.temperature_for("codegen") == 0.2  # Codegen thấp, không quá 0.2
     assert settings.max_tokens_for("codegen") == 5000  # không vượt trần chung
     assert settings.max_tokens_for("testgen") == 5000
-    assert settings.max_tokens_for("optimizer") == 5000  # trần riêng 16.000 (Opus luôn suy luận) bị trần chung chặn
+    assert settings.max_tokens_for("optimizer") == 5000  # trần riêng 16.000 (từ thời dùng Opus) bị trần chung chặn
     assert Settings().max_tokens_for("optimizer") == 16000
 
 

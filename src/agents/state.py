@@ -48,6 +48,7 @@ class PipelineState(TypedDict, total=False):
     sandbox: dict  # kết quả V2: {"passed", "error", "signature", "results", "sample", ...}
     fix_attempts: int  # số lần sửa sau lỗi V1/V2 trong vòng hiện tại
     error_signatures: list[str]  # chữ ký lỗi đã gặp (phát hiện lỗi lặp)
+    error_notes: list[str]  # mô tả lỗi đã che số liệu (ghi vào bộ nhớ agent khi lần chạy sửa xong)
     rescue_hint: str  # gợi ý của con người ở bước cứu hộ
     rescue_count: int  # số lần cứu hộ
 

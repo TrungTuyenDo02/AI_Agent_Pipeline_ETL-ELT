@@ -77,8 +77,47 @@ export function PipelineTrack() {
   const active = phases.find((p) => p.state === "failed" || p.state === "human" || p.state === "running")?.id ?? null;
   const open = opened === undefined ? active : opened;
   const current = phases.find((p) => p.id === open);
+  const total = phases.reduce((sum, p) => sum + p.items.length, 0);
+  const finished = phases.reduce((sum, p) => sum + p.done, 0);
+  const percent = total > 0 ? Math.round((finished / total) * 100) : 0;
+  const overallState = phases.some((p) => p.state === "failed")
+    ? "failed"
+    : phases.some((p) => p.state === "human")
+      ? "human"
+      : finished === total
+        ? "passed"
+        : "running";
+  const currentPhase = phases.find((p) => p.id === active);
   return (
     <section className="pipeline" aria-label="Tiến trình">
+      <div className="overall" data-state={overallState}>
+        <div className="overall-text">
+          <strong>
+            {overallState === "passed"
+              ? "Đã xong tất cả các bước"
+              : overallState === "failed"
+                ? `Dừng ở giai đoạn “${currentPhase?.label ?? ""}”`
+                : overallState === "human"
+                  ? `Đang chờ bạn ở giai đoạn “${currentPhase?.label ?? ""}”`
+                  : currentPhase
+                    ? `Đang ở giai đoạn “${currentPhase.label}”`
+                    : "Đang chuẩn bị"}
+          </strong>
+          <span className="muted">
+            {finished}/{total} bước · {percent}%
+          </span>
+        </div>
+        <div
+          className="overall-bar"
+          role="progressbar"
+          aria-label="Tiến độ toàn bộ lần chạy"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={percent}
+        >
+          <span style={{ width: `${percent}%` }} />
+        </div>
+      </div>
       <ol className="phase-track">
         {phases.map((phase, index) => (
           <li

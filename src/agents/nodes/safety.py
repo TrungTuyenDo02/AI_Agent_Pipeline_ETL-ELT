@@ -25,6 +25,7 @@ from src.agents.tools.sql_tools import (
     readable_columns,
     render_dbt_sql,
 )
+from src.models.contracts import SafetyResult, hand_off
 
 Catalog = dict[str, dict[str, dict[str, str]]]
 SECRET_RE = re.compile(r"password\s*=|passwd|secret\s*=|api[_-]?key\s*=|(postgres|mysql|snowflake)://\S+:\S+@", re.I)
@@ -237,7 +238,7 @@ def run_safety_checks(state: PipelineState) -> list[str]:
 def safety_node(state: PipelineState) -> dict:
     """Chặn code không an toàn/bịa tên; lỗi được ghi sổ lỗi và đếm vào vòng sửa."""
     issues = run_safety_checks(state)
-    result: dict = {"safety": {"passed": not issues, "issues": issues}}
+    result: dict = {"safety": hand_off(SafetyResult, {"passed": not issues, "issues": issues})}
     if issues:
         result.update(
             register_failure(

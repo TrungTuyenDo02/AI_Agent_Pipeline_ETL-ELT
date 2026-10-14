@@ -85,6 +85,7 @@ class RunDetail(BaseModel):
     schema_decision: dict = {}  # Engineer đã xác nhận gì khi có cột bị xóa/đổi tên
     value_filters: list[dict] = []  # mục 9: điều kiện cứng theo giá trị (tô sáng ở màn duyệt)
     reconciliation: list[dict] = []  # mục 9: số dòng vào → ra từng model staging
+    retryable: bool = False  # lần chạy lỗi nhưng còn checkpoint: có nút "Chạy lại từ bước lỗi"
 
 
 class RunFiles(BaseModel):

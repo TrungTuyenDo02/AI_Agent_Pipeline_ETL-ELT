@@ -1,0 +1,128 @@
+{
+  "label": "opus",
+  "model": "anthropic:claude-opus-5-5:medium",
+  "date": "2026-10-14",
+  "sf": 0.1,
+  "attempts": 2,
+  "bench_runs": 5,
+  "total_cost_usd": 0.957,
+  "rows": [
+    {
+      "query": "q01_distinct_star",
+      "decision": "skipped",
+      "gain_pct": 40.7,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.10739199999999999,
+      "reason": "Nhanh hơn 40.7% nhưng tiết kiệm/năm < chi phí tối ưu (0.1074 USD)."
+    },
+    {
+      "query": "q01_order_in_subquery",
+      "decision": "skipped",
+      "gain_pct": null,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.057908,
+      "reason": "Optimizer không đề xuất thay đổi nào an toàn; giữ nguyên bản gốc."
+    },
+    {
+      "query": "q01_union_select_star",
+      "decision": "skipped",
+      "gain_pct": null,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.08383199999999999,
+      "reason": "Optimizer không đề xuất thay đổi nào an toàn; giữ nguyên bản gốc."
+    },
+    {
+      "query": "q01_window_dedupe",
+      "decision": "skipped",
+      "gain_pct": -70.4,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.091552,
+      "reason": "Bản viết lại chậm hơn 70.4% (ngưỡng 15.0%): giữ nguyên bản gốc."
+    },
+    {
+      "query": "q03_cast_join",
+      "decision": "skipped",
+      "gain_pct": null,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.060496,
+      "reason": "Optimizer không đề xuất thay đổi nào an toàn; giữ nguyên bản gốc."
+    },
+    {
+      "query": "q03_filter_after_join",
+      "decision": "skipped",
+      "gain_pct": null,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.049603999999999995,
+      "reason": "Optimizer không đề xuất thay đổi nào an toàn; giữ nguyên bản gốc."
+    },
+    {
+      "query": "q03_order_in_subquery",
+      "decision": "skipped",
+      "gain_pct": null,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.05938,
+      "reason": "Optimizer không đề xuất thay đổi nào an toàn; giữ nguyên bản gốc."
+    },
+    {
+      "query": "q05_range_join",
+      "decision": "skipped",
+      "gain_pct": null,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.058948,
+      "reason": "Optimizer không đề xuất thay đổi nào an toàn; giữ nguyên bản gốc."
+    },
+    {
+      "query": "q09_distinct_star",
+      "decision": "skipped",
+      "gain_pct": null,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.0726,
+      "reason": "Optimizer không đề xuất thay đổi nào an toàn; giữ nguyên bản gốc."
+    },
+    {
+      "query": "q09_window_dedupe",
+      "decision": "skipped",
+      "gain_pct": 45.8,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.096076,
+      "reason": "Nhanh hơn 45.8% nhưng tiết kiệm/năm < chi phí tối ưu (0.0961 USD)."
+    },
+    {
+      "query": "q15_repeated_subquery",
+      "decision": "skipped",
+      "gain_pct": null,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.062948,
+      "reason": "Optimizer không đề xuất thay đổi nào an toàn; giữ nguyên bản gốc."
+    },
+    {
+      "query": "q18_union_subquery",
+      "decision": "skipped",
+      "gain_pct": 90.5,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.079208,
+      "reason": "Nhanh hơn 90.5% nhưng tiết kiệm/năm < chi phí tối ưu (0.0792 USD)."
+    },
+    {
+      "query": "q21_union_lineitem",
+      "decision": "skipped",
+      "gain_pct": null,
+      "attempts": 2,
+      "llm_calls": 2,
+      "cost_usd": 0.07705200000000001,
+      "reason": "Optimizer không đề xuất thay đổi nào an toàn; giữ nguyên bản gốc."
+    }
+  ]
+}

@@ -3,7 +3,7 @@
 import logging
 import re
 
-from src.agents.nodes.common import usage_of
+from src.agents.nodes.common import memory_notes, usage_of
 from src.agents.state import PipelineState
 from src.agents.tools.dbt_tools import is_allowed_path
 from src.agents.tools.pii import mask_literals
@@ -82,6 +82,7 @@ def codegen_variables(state: PipelineState) -> dict[str, str]:
         "last_error": mask_literals(error) or "(không có)",
         "previous_code": previous_code(state),
         "error_hints": to_json(error_hints(error)),
+        "memory_notes": to_json(memory_notes(state)),
         "review_notes": to_json(state.get("review_notes", [])),
         "rescue_hint": state.get("rescue_hint") or "(không có)",
     }
