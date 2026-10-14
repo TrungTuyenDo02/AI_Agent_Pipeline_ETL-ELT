@@ -95,26 +95,3 @@ def test_ensure_demo_sources_only_when_empty(tmp_path: Path):
     assert files  # đã sinh dữ liệu mẫu
     assert ensure_demo_sources(target, 42) is False  # có dữ liệu rồi thì không ghi đè
     assert sorted(p.name for p in target.iterdir()) == files
-
-
-def test_mask_literals_keeps_shape_not_values():
-    """CLAUDE.md 2.3: lỗi gửi LLM chỉ còn hình dạng giá trị; câu SQL in lại và chuỗi định dạng `%` giữ nguyên."""
-    from src.agents.tools.pii import mask_literals
-
-    error = (
-        "Conversion Error: Could not convert string 'Nguyễn Văn A' to INT32\n"
-        "Could not parse string '25/13/2026' according to format specifier '%d/%m/%Y'\n"
-        "LINE 12: where status = 'completed'"
-    )
-    assert mask_literals(error) == (
-        "Conversion Error: Could not convert string 'Aaaaaa Aaa A' to INT32\n"
-        "Could not parse string '99/99/9999' according to format specifier '%d/%m/%Y'\n"
-        "LINE 12: where status = 'completed'"
-    )
-
-
-def test_codegen_prompt_gets_masked_error():
-    from src.agents.nodes.codegen import codegen_variables
-
-    state = {"sandbox": {"passed": False, "error": "Could not convert string 'an@x.vn' to INT32"}, "code_files": {}}
-    assert codegen_variables(state)["last_error"] == "Could not convert string 'aa@a.aa' to INT32"

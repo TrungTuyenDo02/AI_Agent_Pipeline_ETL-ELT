@@ -34,6 +34,7 @@ class CurrentUser(BaseModel):
     name: str  # tên đăng nhập: ghi vào requester/reviewer của lần chạy
     display_name: str
     role: auth.Role
+    department_id: int | None = None  # phòng ban (sổ nguồn): quyết định người này thấy nguồn nào
 
 
 def client_ip(request: Request) -> str:
@@ -62,7 +63,13 @@ def current_user(request: Request) -> CurrentUser:
     if user is None:
         raise HTTPException(status_code=401, detail="Bạn cần đăng nhập.", headers={"WWW-Authenticate": "Cookie"})
     check_csrf(request)
-    return CurrentUser(id=user.id, name=user.username, display_name=user.display_name, role=user.role)
+    return CurrentUser(
+        id=user.id,
+        name=user.username,
+        display_name=user.display_name,
+        role=user.role,
+        department_id=user.department_id,
+    )
 
 
 def require_role(*roles: str) -> Callable[..., CurrentUser]:
@@ -86,6 +93,36 @@ Reviewer = Annotated[CurrentUser, Depends(require_role("reviewer"))]
 Admin = Annotated[CurrentUser, Depends(require_role("admin"))]
 # Xem dữ liệu (hồ sơ cột + dòng xem trước đã che PII): người làm và người duyệt pipeline, không phải Admin
 DataViewer = Annotated[CurrentUser, Depends(require_role("engineer", "reviewer"))]
+
+
+PRIVILEGED_ROLES = ("reviewer", "admin")  # xem được mọi lần chạy: Reviewer cần bằng chứng để duyệt, Admin quản trị
+
+
+def run_visible_to(user: CurrentUser, record: RunRecord, visible: set[str] | None = None) -> bool:
+    """Người này có được xem lần chạy không. Reviewer/Admin và người tạo: có. Engineer khác: chỉ khi thấy TẤT CẢ nguồn lần chạy
+    đó dùng (cùng phòng ban hoặc được cấp quyền). Lần chạy chưa chọn nguồn nào: chỉ người tạo (và Reviewer/Admin) thấy.
+    `visible` = tên bảng người này được thấy (truyền vào khi lọc cả danh sách để không hỏi sổ nguồn nhiều lần)."""
+    if user.role in PRIVILEGED_ROLES or record.requester == user.name:
+        return True
+    used = set(record.summary.get("sources") or [])
+    return bool(used) and used <= (visible if visible is not None else visible_table_names(user))
+
+
+def visible_table_names(user: CurrentUser) -> set[str]:
+    """Tên bảng nguồn người này được thấy (qua sổ nguồn)."""
+    from src.models.sources import UserContext  # noqa: PLC0415
+    from src.services import source_registry  # noqa: PLC0415
+
+    context = UserContext(name=user.name, role=user.role, user_id=user.id, department_id=user.department_id)
+    return {item["name"] for item in source_registry.visible_catalog(context)}
+
+
+def run_for_user(run_id: str, user: CurrentUser) -> RunRecord:
+    """Lần chạy theo id nếu người này được xem; không có hoặc không được xem đều trả CÙNG thông báo 404 (không lộ có tồn tại)."""
+    record = run_or_404(run_id)
+    if not run_visible_to(user, record):
+        raise HTTPException(status_code=404, detail="Không tìm thấy lần chạy này.")
+    return record
 
 
 def run_or_404(run_id: str) -> RunRecord:

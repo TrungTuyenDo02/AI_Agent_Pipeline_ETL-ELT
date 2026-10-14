@@ -10,11 +10,9 @@ import logging
 import threading
 from collections import OrderedDict
 from functools import lru_cache
-from pathlib import Path
 
 from pydantic import ValidationError
 
-from src.agents.tools.duckdb_tools import discover_sources
 from src.agents.tools.input_checks import (
     GateResult,
     GateRules,
@@ -29,8 +27,7 @@ from src.agents.tools.input_checks import (
 )
 from src.config import GATE_TASK, get_settings
 from src.models.llm_outputs import GateOutput
-from src.services import llm
-from src.services.company import read_manifest
+from src.services import llm, source_registry
 
 logger = logging.getLogger(__name__)
 MAX_TABLES_SENT = 60  # chỉ gửi TÊN bảng, tối đa chừng này để prompt không phình
@@ -42,28 +39,15 @@ def rules() -> GateRules:
     return load_rules(get_settings().input_gate_file)
 
 
-def _signature(directory: Path) -> tuple:
-    files = sorted(directory.glob("*")) if directory.exists() else []
-    return tuple((p.name, p.stat().st_mtime_ns, p.stat().st_size) for p in files if p.is_file())
-
-
-@lru_cache(maxsize=4)
-def _directory_catalog(directory: str, signature: tuple) -> tuple[dict, ...]:
-    """Tên + cột + nhãn các nguồn trong thư mục (bỏ dòng mẫu); nhớ tới khi file nguồn đổi."""
-    path = Path(directory)
-    labels = read_manifest(path)
-    return tuple(
-        {"name": i.name, "kind": i.kind, "columns": dict(i.columns), "label": labels.get(i.name, {}).get("label", "")}
-        for i in discover_sources(path)
-    )
-
-
-def gate_catalog(state_catalog: list[dict] | None = None) -> list[dict]:
-    """Danh mục dùng cho cửa kiểm tra: danh mục trong state nếu có, nếu không thì thư mục nguồn."""
+def gate_catalog(state_catalog: list[dict] | None = None, requester: str = "") -> list[dict]:
+    """Danh mục dùng cho cửa kiểm tra: danh mục trong state nếu có; nếu không thì các bảng mà `requester` được thấy trong sổ nguồn
+    (chỉ tên bảng, tên cột, nhãn; không có dòng dữ liệu)."""
     if state_catalog:
         return [{k: item.get(k) for k in ("name", "kind", "columns", "label") if k in item} for item in state_catalog]
-    directory = get_settings().sources_dir
-    return list(_directory_catalog(str(directory.resolve()), _signature(directory)))
+    return [
+        {k: item.get(k) for k in ("name", "kind", "columns", "label") if k in item}
+        for item in source_registry.catalog_for(requester)
+    ]
 
 
 class ResultCache:
@@ -123,12 +107,12 @@ def static_check(text: str, catalog: list[dict]) -> GateResult:
     return result
 
 
-def precheck(text: str, catalog: list[dict] | None = None) -> GateResult:
+def precheck(text: str, catalog: list[dict] | None = None, requester: str = "") -> GateResult:
     """Dùng ở API/CLI trước khi tạo lần chạy: chỉ tầng 0–1 (0 token).
 
     `rejected` thì chặn ngay; `ok` và `unclear` đều cho tạo lần chạy (`unclear` sẽ qua tầng 2 ở node `input_gate`).
     """
-    return static_check(text, gate_catalog(catalog))
+    return static_check(text, gate_catalog(catalog, requester))
 
 
 def tier2(text: str, catalog: list[dict]) -> tuple[GateResult, list[dict]]:
@@ -152,12 +136,12 @@ def tier2(text: str, catalog: list[dict]) -> tuple[GateResult, list[dict]]:
     return decide_tier2("unclear", 0.0, [], examples), usage
 
 
-def evaluate(text: str, catalog: list[dict] | None = None) -> tuple[GateResult, list[dict]]:
+def evaluate(text: str, catalog: list[dict] | None = None, requester: str = "") -> tuple[GateResult, list[dict]]:
     """Cửa đầy đủ cho node graph: tầng 0–1, và tầng 2 khi tầng 1 trả `unclear`. Trả (kết luận, `llm_usage` mới).
 
     Kết quả tầng 2 cũng nhớ theo (băm câu, dấu vân tay danh mục): câu giống hệt không tốn thêm token.
     """
-    items = gate_catalog(catalog)
+    items = gate_catalog(catalog, requester)
     static = static_check(text, items)
     if static.status != "unclear":
         return static, []

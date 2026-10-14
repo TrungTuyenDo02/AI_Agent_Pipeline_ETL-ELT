@@ -163,6 +163,7 @@ def summarize(values: dict, error: str) -> dict:
         "cost_usd": round(sum(u.get("cost_usd", 0.0) for u in usage), 6),
         "simulated": any(u.get("simulated") for u in usage),
         "workspace": values.get("workspace"),
+        "sources": [s.get("name") for s in values.get("spec", {}).get("sources", []) if s.get("name")],
         "error": error or values.get("error", ""),
     }
 
@@ -243,13 +244,19 @@ def resume_run(request: ResumeRequest, on_event: EventCallback | None = None) ->
     return _finish(request.run_id, _stream(request.run_id, Command(resume=request.value), on_event))
 
 
-def review_permission_error(role: str) -> str:
+SELF_REVIEW = "Người tạo yêu cầu không được tự duyệt hoặc từ chối. Hãy nhờ một Reviewer khác."
+
+
+def review_permission_error(role: str, reviewer: str = "", requester: str = "") -> str:
     """Luật duyệt J2 (dùng chung cho CLI và API); chuỗi rỗng = được phép.
 
-    Chỉ vai trò Reviewer được duyệt hoặc từ chối; Reviewer được duyệt cả yêu cầu do chính mình tạo (người dùng chọn
-    ngày 2026-10-08, xem docs/adr/0004). Không có đường tắt: Engineer/Admin đều bị chặn.
+    Chỉ vai trò Reviewer được duyệt hoặc từ chối. REQUIRE_SEPARATE_REVIEWER (mặc định bật, ADR 0006 thay ADR 0004): người tạo
+    yêu cầu không tự duyệt được; tắt công tắc khi chạy demo cá nhân. Không có đường tắt: Engineer/Admin đều bị chặn.
     """
-    return "" if role == "reviewer" else "Chỉ vai trò Reviewer mới được duyệt hoặc từ chối."
+    if role != "reviewer":
+        return "Chỉ vai trò Reviewer mới được duyệt hoặc từ chối."
+    same_person = bool(reviewer) and reviewer == requester
+    return SELF_REVIEW if same_person and get_settings().require_separate_reviewer else ""
 
 
 def check_review(decision: ReviewDecision, role: str) -> None:
@@ -257,7 +264,7 @@ def check_review(decision: ReviewDecision, role: str) -> None:
     record = get_store().get_run(decision.run_id)
     if record is None:
         raise RunStateError(f"Không tìm thấy lần chạy {decision.run_id}.")
-    problem = review_permission_error(role)
+    problem = review_permission_error(role, decision.reviewer, record.requester)
     if problem:
         raise PermissionDeniedError(problem)
     check_resumable(decision.run_id, "review")

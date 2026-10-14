@@ -137,7 +137,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     if args.role != "engineer":
         console.print("[red]Chỉ vai trò Engineer tạo yêu cầu (--as engineer).[/]")
         return 2
-    gate = precheck(args.request)  # cửa kiểm tra đầu vào: bị chặn thì không tạo lần chạy
+    gate = precheck(args.request, requester=args.user)  # cửa kiểm tra đầu vào: bị chặn thì không tạo lần chạy
     if gate.status == "rejected":
         print_rejection(gate.message)
         return 2
@@ -175,7 +175,7 @@ def _check_reviewer(args: argparse.Namespace) -> str:
     record = get_store().get_run(args.run_id)
     if record is None:
         return f"Không tìm thấy lần chạy {args.run_id}."
-    return runner.review_permission_error(args.role)
+    return runner.review_permission_error(args.role, args.user, record.requester)
 
 
 def _resolve_run_id(run_id: str) -> str:

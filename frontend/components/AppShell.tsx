@@ -20,12 +20,13 @@ type NavItem = NavLinkItem;
 const HOME: NavItem = { href: "/", label: "Trang chủ", icon: "home" };
 const RUNS: NavItem = { href: "/runs", label: "Lần chạy", icon: "runs" };
 const SOURCES: NavItem = { href: "/catalog", label: "Dữ liệu nguồn", icon: "sources" };
+const REGISTRY: NavItem = { href: "/sources", label: "Nguồn dữ liệu", icon: "registry" };
 const ERRORS: NavItem = { href: "/errors", label: "Sổ lỗi", icon: "errors" };
 // Mỗi vai trò thấy trước việc của mình (ẩn mục chỉ để gọn; quyền thật kiểm ở backend).
 const NAV: Record<Role, NavItem[]> = {
-  engineer: [HOME, RUNS, SOURCES, ERRORS],
-  reviewer: [{ ...HOME, label: "Hàng đợi" }, RUNS, ERRORS, SOURCES],
-  admin: [HOME, { href: "/admin", label: "Người dùng", icon: "users" }, RUNS, SOURCES],
+  engineer: [HOME, RUNS, SOURCES, REGISTRY, ERRORS],
+  reviewer: [{ ...HOME, label: "Hàng đợi" }, RUNS, ERRORS, SOURCES, REGISTRY],
+  admin: [HOME, { href: "/admin", label: "Người dùng", icon: "users" }, RUNS, SOURCES, REGISTRY],
 };
 function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);

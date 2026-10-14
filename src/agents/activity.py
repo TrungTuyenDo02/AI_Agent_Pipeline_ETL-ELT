@@ -8,7 +8,6 @@ không có % tiến độ giả. Thiếu dữ liệu thì bỏ câu đó, không
 from collections.abc import Callable
 
 from src.agents.nodes.mock_data import DATASET_NAMES
-from src.config import get_settings
 
 MAX_ITEMS = 4  # số tên (bảng, cột) tối đa trong một câu
 MAX_TEXT = 90  # cắt trích dẫn dài
@@ -48,17 +47,20 @@ def _last_error(state: dict) -> str:
 
 
 def _catalog_names(state: dict) -> list[str]:
-    """Tên bảng nguồn Planner sẽ xem: catalog trong state, hoặc (vòng đầu) tên file trong thư mục nguồn."""
+    """Tên bảng nguồn Planner sẽ xem: catalog trong state, hoặc (vòng đầu) các bảng người tạo lần chạy được thấy."""
     if catalog := state.get("source_catalog"):
         return [s.get("name", "") for s in catalog if s.get("name")]
-    folder = get_settings().sources_dir
-    return sorted(p.stem for p in folder.glob("*") if p.is_file()) if folder.is_dir() else []
+    from src.services import source_registry  # noqa: PLC0415 — chỉ liệt kê bảng mà người tạo lần chạy được thấy
+
+    return [item["name"] for item in source_registry.catalog_for(state.get("requester", ""))]
 
 
 def _planner(state: dict) -> list[str]:
     lines = [f"Đọc yêu cầu {_quote(state.get('request_text', ''))}"]
     if sources := _catalog_names(state):
-        lines.append(f"Xem schema và dòng mẫu (đã che PII) của {len(sources)} bảng nguồn: {_names(sources)}")
+        lines.append(
+            f"Xem cấu trúc và thống kê (không có dòng dữ liệu thật) của {len(sources)} bảng nguồn: {_names(sources)}"
+        )
     if answered := state.get("answered"):
         lines.append(f"Dùng {len(answered)} câu trả lời làm rõ của bạn")
     if feedback := state.get("plan_feedback"):

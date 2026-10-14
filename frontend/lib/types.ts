@@ -431,6 +431,7 @@ export interface CurrentUser {
   name: string;
   display_name: string;
   role: Role;
+  department_id?: number | null;
 }
 
 /** Tài khoản trong màn quản trị (không có mật khẩu/chuỗi băm). */
@@ -439,6 +440,33 @@ export interface AdminUser {
   username: string;
   display_name: string;
   role: Role;
+  department_id?: number | null;
   is_active: boolean;
   last_login_at: string | null;
+}
+
+/** Sổ nguồn dữ liệu (giai đoạn 3). `secret_ref` chỉ Admin thấy và chỉ là TÊN tham chiếu, không bao giờ là giá trị bí mật. */
+export type SourceKind = "file" | "duckdb" | "postgres";
+export type Sensitivity = "low" | "medium" | "high";
+export type LLMAccess = "schema_only" | "profile" | "masked_sample";
+
+export interface Department {
+  id: number;
+  name: string;
+}
+
+export interface SourceView {
+  id: number;
+  name: string;
+  department_id: number;
+  department_name: string;
+  kind: SourceKind;
+  secret_ref: string;
+  allowed_tables: string[];
+  sensitivity: Sensitivity;
+  llm_access: LLMAccess;
+  llm_access_effective: LLMAccess;
+  access_text: string;
+  restricted_columns: string[];
+  enabled: boolean;
 }

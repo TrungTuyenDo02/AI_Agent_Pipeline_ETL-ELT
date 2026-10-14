@@ -36,11 +36,13 @@ def test_planner_invalid_output_goes_to_spec_errors(seeded_sources, mock_llm):
 
 
 def test_planner_without_sources_fails_clearly(monkeypatch, tmp_path):
-    from src.agents.nodes import planner
+    from src.services import source_registry
 
-    monkeypatch.setattr(planner, "discover_sources", lambda _: [])
-    update = planner_node({"request_text": "x"})
-    assert update["status"] == "failed" and "seed" in update["error"]
+    monkeypatch.setattr(
+        source_registry, "visible_catalog", lambda *args, **kwargs: []
+    )  # người này không thấy nguồn nào
+    update = planner_node({"request_text": "x", "requester": "alice"})
+    assert update["status"] == "failed" and "chưa được cấp quyền" in update["error"]
 
 
 def test_clarify_keeps_only_valid_options():

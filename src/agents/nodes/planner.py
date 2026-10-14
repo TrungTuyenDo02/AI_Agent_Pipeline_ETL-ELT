@@ -7,13 +7,12 @@ from pydantic import ValidationError
 
 from src.agents.nodes.common import memory_notes, usage_of
 from src.agents.state import PipelineState
-from src.agents.tools.duckdb_tools import discover_sources
-from src.agents.tools.source_stats import column_values, with_stats
+from src.agents.tools.source_stats import column_values
 from src.config import get_settings
 from src.models.schemas import RunStatus
 from src.models.spec import ModeSignals, PipelineSpec, decide_mode, signals_from_sources
 from src.services.llm import LLMOutputError, call_llm, parse_json_output, to_json
-from src.services.prompt_context import compact_catalog
+from src.services.llm_context import LLMContext, context_for_state
 
 logger = logging.getLogger(__name__)
 
@@ -68,19 +67,12 @@ def with_value_options(spec: PipelineSpec, catalog: list[dict]) -> PipelineSpec:
     return spec.model_copy(update={"questions": questions})
 
 
-def _catalog(state: PipelineState) -> list[dict]:
-    """Danh mục nguồn kèm `stats` do code đếm (thay dòng mẫu khi gửi LLM)."""
-    if state.get("source_catalog"):
-        return with_stats(state["source_catalog"])
-    return with_stats([info.model_dump() for info in discover_sources(get_settings().sources_dir)])
-
-
-def planner_variables(state: PipelineState, catalog: list[dict], last_round: bool) -> dict[str, str]:
+def planner_variables(state: PipelineState, context: LLMContext, last_round: bool) -> dict[str, str]:
     """Biến điền vào prompt planner."""
     answers = state.get("answers", {})
     return {
         "request_text": state["request_text"],
-        "source_catalog": to_json(compact_catalog(catalog)),
+        "source_catalog": to_json(context.planner_catalog()),  # cửa duy nhất: mức truy cập theo từng nguồn
         "answers": to_json(answers) if answers else "(chưa có)",  # không có trong prompt; LLM mock đọc
         "answered_questions": to_json(state.get("answered", [])) if state.get("answered") else "(chưa có)",
         "spec_errors": to_json(state.get("spec_errors", [])),
@@ -92,16 +84,19 @@ def planner_variables(state: PipelineState, catalog: list[dict], last_round: boo
 
 def planner_node(state: PipelineState) -> dict:
     """Gọi LLM lập đặc tả; lỗi định dạng được trả về `spec_errors` để V0 cho làm lại."""
-    catalog = _catalog(state)
+    context = context_for_state(
+        state, audit=not state.get("source_catalog")
+    )  # lần đầu: ghi AuditLog nguồn nào, mức nào
+    catalog = context.catalog
     rounds = state.get("plan_rounds", 0) + 1
     if not catalog:
         return {
             "status": RunStatus.FAILED.value,
-            "error": "Chưa có nguồn dữ liệu trong data/sources. Chạy: python -m src.cli seed",
+            "error": "Bạn chưa được cấp quyền xem nguồn dữ liệu nào hoặc chưa có dữ liệu (quản trị viên đăng ký nguồn; demo: python -m src.cli seed).",
         }
     answers = state.get("answers", {})
     last_round = rounds >= get_settings().max_plan_rounds
-    response = call_llm("planner", planner_variables(state, catalog, last_round))
+    response = call_llm("planner", planner_variables(state, context, last_round))
     base = {"source_catalog": catalog, "plan_rounds": rounds, "llm_usage": usage_of(response)}
     try:
         data = fill_sources(drop_answered(parse_json_output(response.text), state.get("answered", [])), catalog)

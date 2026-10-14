@@ -66,6 +66,16 @@ ID = BigInteger().with_variant(Integer, "sqlite")  # SQLite chỉ tự tăng v�
 DETAIL = JSON().with_variant(JSONB, "postgresql")
 
 
+class Department(Base):
+    """Phòng ban (sổ nguồn dữ liệu, giai đoạn 3): người dùng chỉ thấy nguồn của phòng mình, trừ Admin."""
+
+    __tablename__ = "departments"
+
+    id: Mapped[int] = mapped_column(ID, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(80), unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class User(Base):
     """Tài khoản do doanh nghiệp cấp (không có đăng ký tự do); khóa bằng `is_active`, không xóa."""
 
@@ -75,6 +85,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(32), unique=True)
     display_name: Mapped[str] = mapped_column(String(80))
     role: Mapped[str] = mapped_column(String(16), index=True)
+    department_id: Mapped[int | None] = mapped_column(ForeignKey("departments.id"), nullable=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
@@ -321,7 +332,7 @@ def list_users() -> list[User]:
         return list(db.scalars(select(User).order_by(User.username)))
 
 
-def create_user(username: str, display_name: str, role: str, password: str) -> User:
+def create_user(username: str, display_name: str, role: str, password: str, department_id: int | None = None) -> User:
     """Tạo tài khoản (ValueError nếu tên/vai trò/mật khẩu không hợp lệ hoặc tên đã có)."""
     name = username.strip().lower()
     if not USERNAME_PATTERN.fullmatch(name):
@@ -335,8 +346,10 @@ def create_user(username: str, display_name: str, role: str, password: str) -> U
     with Session(get_engine()) as db:
         if db.scalar(select(User.id).where(User.username == name)) is not None:
             raise ValueError("Tên đăng nhập đã tồn tại.")
+        department_id = _valid_department(db, department_id)
         user = User(
             username=name,
+            department_id=department_id,
             display_name=display_name.strip()[:80] or name,
             role=role,
             password_hash=hash_password(password),
@@ -351,9 +364,19 @@ def create_user(username: str, display_name: str, role: str, password: str) -> U
     return user
 
 
+def _valid_department(db: Session, department_id: int | None) -> int | None:
+    """Phòng ban phải có thật; để trống thì vào phòng mặc định (phòng đầu tiên) — người dùng cũ cũng thuộc phòng này."""
+    if department_id is None:
+        return db.scalar(select(Department.id).order_by(Department.id).limit(1))
+    if db.get(Department, department_id) is None:
+        raise ValueError("Không có phòng ban này.")
+    return department_id
+
+
 def update_user(
     user_id: int,
     *,
+    department_id: int | None = None,
     role: str | None = None,
     is_active: bool | None = None,
     password: str | None = None,
@@ -371,6 +394,11 @@ def update_user(
         if display_name is not None:
             user.display_name = display_name.strip()[:80] or user.username
         changed_access = False
+        if department_id is not None and department_id != user.department_id:
+            user.department_id, changed_access = (
+                _valid_department(db, department_id),
+                True,
+            )  # đổi phòng = đổi quyền xem nguồn
         if role is not None and role != user.role:
             user.role, changed_access = role, True
         if is_active is not None and is_active != user.is_active:

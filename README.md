@@ -20,6 +20,7 @@ DE mất nhiều giờ viết lặp staging, mart, test, DAG; dữ liệu bẩn 
 Nguyên tắc **J-E-V**: người **phán đoán** (J), agent **thực thi** (E), code thuần **kiểm chứng** (V, 0 token).
 
 - **Cửa kiểm tra đầu vào (0 token):** yêu cầu rỗng, vô nghĩa, tấn công prompt hoặc lạc đề bị chặn trước Planner, kèm ví dụ hợp lệ lấy từ danh mục thật; có trần token mỗi lần chạy, số vòng hỏi làm rõ và số lần chạy mỗi ngày.
+- **Sổ nguồn + phân quyền theo phòng ban:** Admin đăng ký nguồn, người dùng chỉ thấy nguồn phòng mình; AI chỉ thấy đúng mức dữ liệu của nguồn (`schema_only` < `profile` < `masked_sample`), không bao giờ thấy dòng thật chưa che, mật khẩu hay chuỗi kết nối; lỗi từ dbt/DuckDB/Postgres được che giá trị trước khi vào prompt.
 - **Hỏi trước khi làm:** Planner hỏi trắc nghiệm khi còn điểm chưa rõ, rồi trình kế hoạch có giải thích để DE duyệt.
 - **Sinh đầy đủ:** model dbt, DAG Airflow, test đối soát do một agent khác viết **không nhìn code**.
 - **Kiểm chứng bằng code:** sqlglot chặn lệnh nguy hiểm và tên bảng/cột bịa; `dbt build` trong DuckDB có giới hạn thời gian và bộ nhớ.

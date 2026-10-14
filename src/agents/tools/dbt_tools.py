@@ -92,12 +92,13 @@ def write_generated_files(workspace: Path, files: dict[str, str]) -> None:
 # V1 đã chặn Jinja env_var() trong model; đây là lớp thứ hai nếu V1 lọt.
 SECRET_ENV_SUFFIXES = ("_API_KEY", "_TOKEN", "_SECRET", "_PASSWORD", "_DATABASE_URL", "_DSN")
 SECRET_ENV_NAMES = {"DATABASE_URL", "PGPASSWORD", "SESSION_SECRET"}
+SECRET_ENV_PREFIXES = ("P113_SECRET_",)  # bí mật của sổ nguồn (src/services/secrets.py): dbt không được thấy
 
 
 def is_secret_env(name: str) -> bool:
     """Tên biến môi trường có thể chứa bí mật (so không phân biệt hoa/thường, vì Windows)."""
     upper = name.upper()
-    return upper in SECRET_ENV_NAMES or upper.endswith(SECRET_ENV_SUFFIXES)
+    return upper in SECRET_ENV_NAMES or upper.endswith(SECRET_ENV_SUFFIXES) or upper.startswith(SECRET_ENV_PREFIXES)
 
 
 def _dbt_env() -> dict[str, str]:

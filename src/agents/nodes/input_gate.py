@@ -23,7 +23,7 @@ HANDOFF = (
 
 def input_gate_node(state: PipelineState) -> dict:
     """Kiểm tra `request_text`; token của tầng 2 (nếu có) vào `llm_usage` với task `input_gate`."""
-    result, usage = evaluate(state.get("request_text", ""), state.get("source_catalog"))
+    result, usage = evaluate(state.get("request_text", ""), state.get("source_catalog"), state.get("requester", ""))
     update: dict = {"input_gate": result.model_dump(), "llm_usage": usage}
     if result.status == "rejected":
         update.update(status=RunStatus.REJECTED_INPUT.value, error=result.message)

@@ -12,7 +12,16 @@ from src.agents import runner
 from src.agents.nodes.clarify import valid_answers
 from src.agents.runner import ResumeRequest, RunStateError
 from src.agents.stages import pipeline_stages, stage_of
-from src.api.deps import CurrentUser, Engineer, client_ip, run_or_404
+from src.api.deps import (
+    CurrentUser,
+    Engineer,
+    LoggedIn,
+    client_ip,
+    run_for_user,
+    run_or_404,
+    run_visible_to,
+    visible_table_names,
+)
 from src.api.requests import (
     Accepted,
     AnswerBody,
@@ -40,9 +49,13 @@ SPEC_FIELDS = (
 
 
 @router.get("", response_model=list[RunRecord])
-async def list_runs(limit: int = Query(default=20, ge=1, le=100)) -> list[RunRecord]:
-    """Danh sách lần chạy mới nhất."""
-    return get_store().list_runs(limit)
+def list_runs(user: LoggedIn, limit: int = Query(default=20, ge=1, le=100)) -> list[RunRecord]:
+    """Danh sách lần chạy mới nhất mà bạn được xem (Engineer chỉ thấy lần chạy của mình hoặc dùng nguồn bạn được thấy)."""
+    runs = get_store().list_runs(limit)
+    if user.role in ("reviewer", "admin"):
+        return runs
+    visible = visible_table_names(user)
+    return [r for r in runs if run_visible_to(user, r, visible)]
 
 
 @router.post("", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
@@ -50,7 +63,7 @@ def create_run(body: CreateRunBody, user: Engineer, request: Request) -> Accepte
     """Tạo yêu cầu mới; agent chạy nền tới điểm dừng đầu tiên (câu hỏi làm rõ hoặc bản duyệt)."""
     # Cửa kiểm tra đầu vào, tầng 0–1 (0 token): bị chặn thì không tạo lần chạy, không tính hạn mức.
     # `unclear` đi tiếp: tầng 2 (model nhỏ) quyết định trong graph.
-    gate = precheck(body.request_text)
+    gate = precheck(body.request_text, requester=user.name)
     if gate.status == "rejected":
         raise HTTPException(status_code=422, detail=gate.message)
     _check_limits(user.name)  # trước khi tạo: bị chặn thì không để lại lần chạy treo
@@ -61,9 +74,9 @@ def create_run(body: CreateRunBody, user: Engineer, request: Request) -> Accepte
 
 
 @router.get("/{run_id}", response_model=RunDetail)
-def get_run(run_id: str) -> RunDetail:
+def get_run(run_id: str, user: LoggedIn) -> RunDetail:
     """Trạng thái, câu hỏi đang chờ, tiến trình từng bước, đặc tả, bằng chứng, báo cáo tối ưu."""
-    record = run_or_404(run_id)
+    record = run_for_user(run_id, user)
     jobs = get_jobs()
     values = runner.get_values(run_id)
     spec = values.get("spec", {})
@@ -104,9 +117,9 @@ def get_run(run_id: str) -> RunDetail:
 
 
 @router.get("/{run_id}/files", response_model=RunFiles)
-def get_files(run_id: str) -> RunFiles:
+def get_files(run_id: str, user: LoggedIn) -> RunFiles:
     """Code + test hiện tại và bộ file vòng trước (để xem diff)."""
-    run_or_404(run_id)
+    run_for_user(run_id, user)
     values = runner.get_values(run_id)
     return RunFiles(
         code_files=values.get("code_files", {}),
@@ -116,9 +129,9 @@ def get_files(run_id: str) -> RunFiles:
 
 
 @router.get("/{run_id}/download", response_class=Response)
-def download(run_id: str) -> Response:
+def download(run_id: str, user: LoggedIn) -> Response:
     """Gói zip code dbt + test + DAG (không kèm dữ liệu sandbox) để DE đưa vào repo và mở PR."""
-    run_or_404(run_id)
+    run_for_user(run_id, user)
     workspace = runner.get_values(run_id).get("workspace")
     if not workspace or not Path(workspace).exists():
         raise HTTPException(status_code=409, detail="Lần chạy chưa sinh code nên chưa có gì để tải.")
@@ -156,7 +169,7 @@ def _resume(run_id: str, kind: str, value: dict, user: CurrentUser) -> Accepted:
 @router.post("/{run_id}/retry", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
 def retry(run_id: str, user: Engineer, request: Request) -> Accepted:
     """Chạy lại từ bước lỗi: các bước đã xong giữ nguyên, chỉ làm lại bước đang dở (xem runner.retry_problem)."""
-    record = run_or_404(run_id)
+    record = run_for_user(run_id, user)
     if get_jobs().busy(run_id):
         raise HTTPException(status_code=409, detail="Lần chạy đang chạy, vui lòng đợi.")
     problem = runner.retry_problem(run_id)
@@ -171,7 +184,7 @@ def retry(run_id: str, user: Engineer, request: Request) -> Accepted:
 @router.post("/{run_id}/answers", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
 def answer(run_id: str, body: AnswerBody, user: Engineer) -> Accepted:
     """Trả lời câu hỏi làm rõ (J1); lựa chọn phải đúng một trong các đáp án đã đưa ra."""
-    run_or_404(run_id)
+    run_for_user(run_id, user)
     questions = [ClarifyQuestion.model_validate(q) for q in _pending(run_id, "clarify").get("questions", [])]
     if len(valid_answers(questions, {"answers": body.answers})) != len(questions):
         raise HTTPException(status_code=422, detail="Cần chọn đáp án có sẵn cho mỗi câu hỏi.")
@@ -181,7 +194,7 @@ def answer(run_id: str, body: AnswerBody, user: Engineer) -> Accepted:
 @router.post("/{run_id}/input", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
 def add_input(run_id: str, body: InputBody, user: Engineer, request: Request) -> Accepted:
     """Cửa kiểm tra đầu vào hỏi bổ sung hoặc xin viết lại yêu cầu: gửi thêm thông tin hoặc dừng."""
-    run_or_404(run_id)
+    run_for_user(run_id, user)
     _pending(run_id, "input")
     if body.action == "send" and not body.text.strip():
         raise HTTPException(status_code=422, detail="Hãy nhập thông tin bổ sung hoặc câu yêu cầu viết lại.")
@@ -192,7 +205,7 @@ def add_input(run_id: str, body: InputBody, user: Engineer, request: Request) ->
 @router.post("/{run_id}/plan", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
 def review_plan(run_id: str, body: PlanBody, user: Engineer, request: Request) -> Accepted:
     """Duyệt kế hoạch (J1b): đồng ý → agent sinh code; sửa (kèm ghi chú) → agent lập lại kế hoạch."""
-    run_or_404(run_id)
+    run_for_user(run_id, user)
     _pending(run_id, "plan")
     if body.decision == "revise" and not body.note.strip():
         raise HTTPException(status_code=422, detail="Yêu cầu sửa kế hoạch thì cần ghi chú cần sửa gì.")
@@ -203,7 +216,7 @@ def review_plan(run_id: str, body: PlanBody, user: Engineer, request: Request) -
 @router.post("/{run_id}/schema", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
 def confirm_schema(run_id: str, body: SchemaBody, user: Engineer, request: Request) -> Accepted:
     """Nguồn có cột bị xóa/nghi đổi tên: Engineer xác nhận cặp đổi tên (không tự đoán) rồi chạy tiếp, hoặc dừng."""
-    run_or_404(run_id)
+    run_for_user(run_id, user)
     _pending(run_id, "schema")
     detail = {"action": body.action, "renames": body.renames}
     auth.audit("schema.confirm", user.name, target=run_id, ip=client_ip(request), detail=detail)
@@ -213,7 +226,7 @@ def confirm_schema(run_id: str, body: SchemaBody, user: Engineer, request: Reque
 @router.post("/{run_id}/rescue", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
 def rescue(run_id: str, body: RescueBody, user: Engineer) -> Accepted:
     """Cứu hộ khi agent sửa không được: gợi ý rồi thử lại, hoặc dừng."""
-    run_or_404(run_id)
+    run_for_user(run_id, user)
     _pending(run_id, "rescue")
     if body.action == "retry" and not body.hint.strip():
         raise HTTPException(status_code=422, detail="Hãy nhập gợi ý cho agent trước khi thử lại.")

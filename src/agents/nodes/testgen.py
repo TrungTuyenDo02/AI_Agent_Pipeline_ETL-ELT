@@ -11,10 +11,11 @@ import yaml
 
 from src.agents.nodes.common import spec_of, usage_of
 from src.agents.state import PipelineState
-from src.agents.tools.pii import mask_literals
+from src.agents.tools.scrub import prompt_error
 from src.models.spec import OutputColumn, PipelineSpec
 from src.services.llm import LLMOutputError, call_llm, parse_json_output, to_json
-from src.services.prompt_context import compact_profile, spec_for_build
+from src.services.llm_context import context_for_state
+from src.services.prompt_context import spec_for_build
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,9 @@ def blind_inputs(state: PipelineState) -> dict[str, str]:
     """Đầu vào cho LLM testgen: chỉ spec + hồ sơ dữ liệu raw (đủ tên bảng, cột, kiểu). Không có `code_files`."""
     return {
         "spec": to_json(spec_for_build(state.get("spec", {}))),
-        "profile": to_json(compact_profile(state.get("profile", {}))),
+        "profile": to_json(
+            context_for_state(state, tables=list(state.get("profile", {}))).build_profile(state.get("profile", {}))
+        ),
     }
 
 
@@ -127,7 +130,7 @@ def testgen_node(state: PipelineState) -> dict:
     if previous and not errors:
         return {"test_files": {**files, **previous}, "test_notes": state.get("test_notes", notes)}
     variables = {**blind_inputs(state), "previous_tests": to_json(previous) if errors else "(chưa có)"}
-    test_errors = mask_literals("\n".join(errors)) or "(không có)"
+    test_errors = prompt_error("\n".join(errors)) or "(không có)"
     response = call_llm("testgen", {**variables, "test_errors": test_errors})
     llm_files, llm_notes = _parse_expected(response.text, spec)
     return {"test_files": {**files, **llm_files}, "test_notes": notes + llm_notes, "llm_usage": usage_of(response)}

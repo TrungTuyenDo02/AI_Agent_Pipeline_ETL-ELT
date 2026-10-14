@@ -34,6 +34,16 @@ Luật cố định (mẫu tấn công prompt, động từ nghiệp vụ, bản
 | `RUN_TOKEN_BUDGET` | Trần token (vào + ra) mỗi lần chạy, cộng dồn cả các lượt chạy tiếp; vượt thì dừng và báo rõ; `0` không chặn | `200000` | không |
 | `USER_DAILY_RUN_LIMIT` | Số lần chạy tối đa mỗi người mỗi ngày (giờ VN); lần bị chặn ở cửa kiểm tra không tính; `0` không chặn | `30` | không |
 
+## Sổ nguồn, mức truy cập của LLM, bí mật nguồn
+
+| Biến | Ý nghĩa | Mặc định | Bí mật |
+|---|---|---|---|
+| `LLM_ACCESS_DEFAULT` | Mức dữ liệu AI được xem cho nguồn **đăng ký mới**: `schema_only` (chỉ cấu trúc), `profile` (thống kê + dạng giá trị, không dòng thật), `masked_sample` (vài dòng đã che). Nguồn `high` ép về `schema_only`, `medium` tối đa `profile`. Đặt `schema_only` để quay về quyết định ban đầu "chỉ cho xem schema" | `profile` | không |
+| `LLM_SAMPLE_MAX_ROWS` | Trần số dòng đã che ở mức `masked_sample` | `5` | không |
+| `REQUIRE_SEPARATE_REVIEWER` | `true`: người tạo yêu cầu không tự duyệt được ([ADR 0006](adr/0006-tach-nguoi-tao-va-nguoi-duyet.md)); `false` khi chạy demo cá nhân | `true` | không |
+| `P113_SECRET_<TÊN IN HOA>` | Giá trị thật của bí mật có tên tham chiếu `<tên>` ở sổ nguồn (chuỗi kết nối, đường dẫn thư mục dữ liệu). Chỉ lớp kết nối đọc; lọc khỏi môi trường của dbt, không vào prompt/log/state | trống | **có** |
+| `SECRETS_DIR` | Thư mục chứa bí mật dạng file (mỗi file một tên tham chiếu, kiểu Docker/Kubernetes secrets), thay cho biến môi trường | trống | không |
+
 ## Đăng nhập và cơ sở dữ liệu
 
 | Biến | Ý nghĩa | Mặc định | Bí mật |

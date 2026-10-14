@@ -31,8 +31,6 @@ def mask_rows(rows: list[dict]) -> list[dict]:
     return [{key: mask_value(val) for key, val in row.items()} for row in rows]
 
 
-QUOTED_RE = re.compile(r"'((?:[^'\n]|'')*)'")
-SQL_ECHO_RE = re.compile(r"^\s*LINE \d+:")  # DuckDB in lại câu SQL (code do LLM viết, không phải dữ liệu)
 SHAPE_LIMIT = 40
 
 
@@ -43,15 +41,24 @@ def value_shape(value: str) -> str:
     return shape[:SHAPE_LIMIT] + ("…" if len(shape) > SHAPE_LIMIT else "")
 
 
-def mask_literals(text: str) -> str:
-    """Thông báo lỗi gửi LLM (CLAUDE.md 2.3): giá trị trong nháy đơn chỉ còn hình dạng.
+SENSITIVE_NAME_RE = re.compile(
+    r"(e?mail|phone|sdt|dien_?thoai|mobile|\btel\b|address|dia_?chi|full_?name|first_?name|last_?name|"
+    r"(customer|client|user|person|employee|staff|contact|owner|recipient|receiver|buyer|member)_?name|ho_?ten|^name$|"
+    r"cccd|cmnd|passport|national_?id|\bssn\b|tax_?(code|id)|\bmst\b|birth|\bdob\b|ngay_?sinh|password|passwd|"
+    r"secret|token|card_?(no|num)|account_?(no|num)|iban|salary|\bluong\b|income|ip_?addr)",
+    re.IGNORECASE,
+)
 
-    Giữ nguyên dòng DuckDB in lại câu SQL và chuỗi định dạng có `%` (vd '%d/%m/%Y') vì đó là code, không phải dữ liệu.
-    """
 
-    def _line(line: str) -> str:
-        if SQL_ECHO_RE.match(line):
-            return line
-        return QUOTED_RE.sub(lambda m: m.group(0) if "%" in m.group(1) else f"'{value_shape(m.group(1))}'", line)
+def sensitive_column(name: str, restricted: tuple[str, ...] | list[str] = ()) -> bool:
+    """Cột nhạy cảm: tên gợi ý thông tin cá nhân (email, số điện thoại, họ tên, địa chỉ, ...) hoặc admin đánh dấu thêm
+    (`restricted`: `cột` hoặc `bảng.cột`). Chỉ xét TÊN; việc dò giá trị nằm ở `looks_like_pii`."""
+    column = name.rsplit(".", 1)[-1].lower()
+    marked = {r.lower() for r in restricted}
+    return bool(SENSITIVE_NAME_RE.search(column)) or column in marked or name.lower() in marked
 
-    return "\n".join(_line(line) for line in text.splitlines())
+
+def looks_like_pii(value: object) -> bool:
+    """Giá trị có dạng email hoặc số điện thoại."""
+    text = str(value)
+    return bool(EMAIL_RE.search(text) or PHONE_RE.search(text) or SPLIT_PHONE_RE.search(text))

@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 
 from src.agents.state import PipelineState
-from src.agents.tools.pii import mask_literals
+from src.agents.tools.scrub import scrub_error
 from src.models.evidence import ErrorEntry
 from src.models.spec import PipelineSpec
 from src.services.agent_memory import get_agent_memory
@@ -38,12 +38,14 @@ def usage_of(response: LLMResponse) -> list[dict]:
 def register_failure(state: PipelineState, message: str, sql_before: str = "") -> dict:
     """Ghi lỗi V-node vào sổ lỗi và tăng bộ đếm sửa; trả về phần cập nhật state."""
     signature = error_signature(message)
-    entry = ErrorEntry(code=classify_error(message), signature=signature, description=message, sql_before=sql_before)
+    entry = ErrorEntry(
+        code=classify_error(message), signature=signature, description=scrub_error(message), sql_before=sql_before
+    )
     get_error_memory().record(entry)
     return {
         "fix_attempts": state.get("fix_attempts", 0) + 1,
         "error_signatures": [*state.get("error_signatures", []), signature],
-        "error_notes": [*state.get("error_notes", []), f"{entry.code}: {mask_literals(message)[:200]}"],
+        "error_notes": [*state.get("error_notes", []), f"{entry.code}: {scrub_error(message)[:200]}"],
     }
 
 

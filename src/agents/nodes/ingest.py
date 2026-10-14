@@ -9,6 +9,7 @@ from src.agents.state import PipelineState
 from src.agents.tools.dbt_tools import prepare_workspace, write_sources_yml
 from src.agents.tools.duckdb_tools import SourceInfo, ingest_sources
 from src.models.schemas import RunStatus
+from src.services.source_registry import audit_access
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,19 @@ def ingest_node(state: PipelineState) -> dict:
     wanted = {s.name for s in spec_of(state).sources}
     infos = [SourceInfo.model_validate(i) for i in state.get("source_catalog", []) if i["name"] in wanted]
     workspace = prepare_workspace(state["run_id"])
+    audit_access(
+        state.get("requester", ""),
+        "source.ingest",
+        sorted(
+            {
+                i.get("source_id")
+                for i in state.get("source_catalog", [])
+                if i["name"] in wanted and i.get("source_id") is not None
+            }
+        ),
+        state["run_id"],
+        tables=sorted(wanted),
+    )
     try:
         counts = ingest_sources(workspace / SANDBOX_DB, infos)
     except (duckdb.Error, OSError) as exc:

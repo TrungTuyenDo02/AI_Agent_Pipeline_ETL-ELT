@@ -55,7 +55,9 @@ class ModelTable(BaseModel):
 def load_model_table(path: Path = MODELS_FILE) -> ModelTable:
     """Đọc và kiểm tra `config/models.yaml` (thiếu bước nào thì báo lỗi ngay, không đoán model)."""
     table = ModelTable.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
-    missing = [task for task in (*TASKS, GATE_TASK) if task not in table.models]
+    missing = [
+        task for task in TASKS if task not in table.models
+    ]  # `input_gate` tùy chọn: thiếu thì dùng model dự phòng
     if missing:
         raise ValueError(f"{path} thiếu model cho bước: {', '.join(missing)}")
     return table
@@ -149,6 +151,13 @@ class Settings(BaseSettings):
         default=30, ge=0
     )  # số lần chạy tối đa mỗi người mỗi ngày (không tính lần bị chặn ở cửa kiểm tra)
 
+    # Mức truy cập dữ liệu của LLM (CLAUDE.md bản 2, giai đoạn 3). Mặc định `profile` (thống kê, không dòng thật); đặt `schema_only`
+    # để quay về quyết định ban đầu "chỉ cho xem schema". Nguồn `high` luôn bị ép về schema_only, `medium` tối đa profile.
+    llm_access_default: Literal["schema_only", "profile", "masked_sample"] = "profile"
+    llm_sample_max_rows: int = Field(default=5, ge=1, le=20)  # trần số dòng đã che ở mức masked_sample
+    require_separate_reviewer: bool = True  # true: người tạo yêu cầu không tự duyệt được (ADR 0006, thay ADR 0004)
+    secrets_dir: Path | None = None  # thư mục chứa bí mật dạng file (mỗi file một tên tham chiếu), tùy chọn
+
     # Dữ liệu thử (E2)
     seed: int = 42
     mock_small_rows: int = Field(default=200, ge=10)
@@ -196,8 +205,10 @@ class Settings(BaseSettings):
         """Nhà cung cấp + model của một bước; LLM_PROVIDER=google thì mọi bước dùng model dự phòng."""
         if self.llm_provider == "google":
             return self.model_table.fallback
-        models = self.model_table.models
-        return models.get(task, models["planner"])
+        table = self.model_table
+        if task == GATE_TASK:  # bộ phân loại của cửa kiểm tra: model riêng, không mượn model của planner/optimizer
+            return table.models.get(task, table.fallback)
+        return table.models.get(task, table.models["planner"])
 
     def model_for(self, task: str, provider: str | None = None) -> str:
         """Tên model dùng cho một bước (planner/codegen/testgen/optimizer)."""

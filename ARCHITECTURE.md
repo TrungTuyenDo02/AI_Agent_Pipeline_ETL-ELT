@@ -21,6 +21,11 @@ Mermaid + mô tả thành phần: [docs/architecture_diagram.md](docs/architectu
   cấu trúc và hồ sơ dữ liệu, sổ lỗi, quản trị.
 - **Đăng nhập** (`src/services/auth.py`): tài khoản nội bộ (argon2id), phiên phía máy chủ, 3 vai trò `engineer` / `reviewer` / `admin`, nhật ký `audit_log`.
 
+### 1b. Cửa kiểm tra, sổ nguồn, ngữ cảnh dữ liệu cho LLM (CLAUDE.md bản 2)
+- **Cửa kiểm tra đầu vào (G0)** (`src/services/input_gate.py`, node `input_gate`): tầng 0 luật cố định, tầng 1 đối chiếu danh mục nghiệp vụ (code, 0 token), tầng 2 bộ phân loại model nhỏ (`input_gate` ở `config/models.yaml`). Chặn trước khi tạo lần chạy.
+- **Sổ nguồn** (`src/services/source_registry.py`, bảng `departments`/`data_sources`/`source_grants`): `get_visible_sources(user)` là cửa duy nhất vào danh sách nguồn; người dùng chỉ thấy nguồn của phòng ban mình ([ADR 0007](docs/adr/0007-so-nguon-luu-cung-csdl-tai-khoan.md)).
+- **`build_llm_context`** (`src/services/llm_context.py`): cửa duy nhất tạo ngữ cảnh dữ liệu cho prompt theo mức `llm_access` của nguồn ([ADR 0008](docs/adr/0008-muc-truy-cap-du-lieu-cua-llm.md)); lỗi vào prompt qua `scrub_error` (`src/agents/tools/scrub.py`).
+
 ### 2. Runner (`src/agents/runner.py`)
 - Mỗi lần chạy có `run_id` = `thread_id` của checkpointer SQLite.
 - `start_run`, `resume_run`, `submit_review`: dùng chung cho CLI và API; kiểm tra quyền trước khi tiếp tục.

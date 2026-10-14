@@ -1,6 +1,9 @@
 <!--
-version: 8
-changes: 2026-10-13 v8 — CLAUDE.md 2.3 (LLM sees schema only): source_catalog has no sample rows; code-counted
+version: 9
+changes: 2026-10-15 v9 — data access level (CLAUDE.md bản 2, giai đoạn 3): `stats` may now also hold `formats` (value shapes per
+  column: digit → 9, letter → a) and `null_pct`; rule 5 tells the model to normalize mixed shapes itself, not ask. At level
+  schema_only there are no stats at all.
+  2026-10-13 v8 — CLAUDE.md 2.3 (LLM sees schema only): source_catalog has no sample rows; code-counted
   `stats` instead (rows, few_values = number of distinct values, repeated keys and how many differ). Rule 3 cites stats.
   New rule 4: a question about which values of one column count sets `column`; code shows the person the real
   values to tick, the model only sees the chosen ones (answered_questions). Rule 5: without samples the model asked
@@ -32,7 +35,7 @@ Rules, most important first:
 2. Never guess a business decision that changes the numbers and that the request leaves open (e.g. which statuses count, whether refunds or cancellations count). Add it to `unknowns` and add exactly one multiple-choice question for it to `questions`.
 3. Ask only with evidence: the request leaves it open, or stats show it (e.g. a status column in few_values, none named in the request). Ask about duplicates only if repeated_keys_differing > 0 and the request does not say how to treat them; identical copies count once. Do not ask hypothetical cases ("if a duplicated record has different dates…") or anything the request already states.
 4. You never see data values. To ask which values of a column count (e.g. statuses), set `column` to "source.column"; code lets the person tick its real values. One question per source column, still 2–4 fallback options.
-5. Do not ask about handling the system does itself: parsing date formats, money strings like "1.075.000", casts, combining sources with UNION, column naming. Record that handling in `assumptions`. If the request or column names give one currency (e.g. revenue in VND) and nothing names another, assume it for every money column; if timestamps carry no timezone, use the stored date; record both.
+5. Do not ask about handling the system does itself: parsing date formats, money strings like "1.075.000", casts, combining sources with UNION, column naming. Record that handling in `assumptions`. stats.formats shows value shapes per column (9 = digit, a = letter): several shapes mean mixed notation (dates, money) to normalize, not to ask about. If the request or column names give one currency (e.g. revenue in VND) and nothing names another, assume it for every money column; if timestamps carry no timezone, use the stored date; record both.
 6. Ask every needed question in one round: at most 3, highest impact first.
 7. answered_questions are resolved: never ask them again in any wording; drop them from `unknowns`, record each answer in `assumptions` and apply it to `filters`/`metrics`. Do not ask follow-ups on an answered point; choose the safest reasonable option and record it in `assumptions`.
 8. If round_note says this is the last round, leave `unknowns` and `questions` empty, choose the safest reasonable option for every open point and record it in `assumptions`.

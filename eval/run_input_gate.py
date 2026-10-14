@@ -180,7 +180,13 @@ def main() -> int:
         sys.stdout.reconfigure(encoding="utf-8")
     with tempfile.TemporaryDirectory() as tmp:
         os.environ.setdefault("LLM_PROVIDER", "mock")
-        os.environ.update({"SOURCES_DIR": str(Path(tmp) / "sources"), "INPUT_GATE_CACHE_SIZE": "0"})
+        os.environ.update(
+            {
+                "SOURCES_DIR": str(Path(tmp) / "sources"),
+                "INPUT_GATE_CACHE_SIZE": "0",
+                "DATABASE_URL": "",
+            }  # sổ nguồn trong bộ nhớ: không chạm CSDL thật
+        )
         rows, info = run()
         report = render(rows, info)
     OUT.parent.mkdir(parents=True, exist_ok=True)

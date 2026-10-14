@@ -30,7 +30,7 @@ def _required_fields(spec: PipelineSpec) -> list[str]:
 def _sources_exist(spec: PipelineSpec, catalog: list[dict]) -> list[str]:
     known = {item["name"]: item["kind"] for item in catalog}
     return [
-        f"Nguồn '{s.name}' không có trong thư mục dữ liệu."
+        f"Nguồn '{s.name}' không có trong danh mục bạn được phép dùng (không tồn tại hoặc bạn chưa được cấp quyền xem)."
         if s.name not in known
         else f"Nguồn '{s.name}' sai loại ({s.kind} ≠ {known[s.name]})."
         for s in spec.sources

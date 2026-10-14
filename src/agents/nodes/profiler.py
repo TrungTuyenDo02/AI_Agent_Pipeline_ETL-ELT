@@ -144,7 +144,6 @@ def _column_profile(con: duckdb.DuckDBPyConnection, table: str, column_type: tup
         "nulls": total - filled,
         "null_pct": round(100 * (total - filled) / total, 2) if total else 0.0,
         "distinct": distinct,
-        "examples": [mask_value(v) for v in texts[:3]],
     }
     if dtype == "VARCHAR":
         profile.update(text_hints(con, (ref, column), texts))

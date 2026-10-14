@@ -75,6 +75,16 @@ Chạy thử không cần khóa: tầng 2 dùng luật từ khóa giả lập (`
 Cập nhật mẫu chặn: sửa [config/input_gate.yaml](../config/input_gate.yaml). Đo lại: `python eval/run_input_gate.py` (ghi `eval/results/input_gate.md`).
 Trần chi phí: `MAX_CLARIFY_ROUNDS`, `RUN_TOKEN_BUDGET`, `USER_DAILY_RUN_LIMIT` (xem [CONFIG](CONFIG.md)); chạm trần thì lần chạy dừng với thông báo tiếng Việt nêu đúng tên biến.
 
+#### Sổ nguồn dữ liệu và mức truy cập của AI
+
+- **Cập nhật cơ sở dữ liệu trước:** `alembic upgrade head` (migration `0005_source_registry` tạo phòng ban, nguồn, quyền xem thêm; seed phòng "Mặc định" và nguồn "P113 Retail" để demo cũ chạy; người dùng cũ vào phòng mặc định). Có Neon: chạy bằng `MIGRATION_DATABASE_URL`.
+- **Đăng ký nguồn (Admin, web "Nguồn dữ liệu" hoặc `POST /api/v1/sources`):** chọn phòng ban, loại nguồn, bảng được phép (`*` = mọi bảng), độ nhạy cảm, mức AI được xem. Người thường chỉ thấy nguồn của phòng ban mình; Admin cấp thêm quyền qua `grants`. Gán phòng ban cho người dùng ở trang "Người dùng".
+- **Mức AI được xem:** `schema_only` (cấu trúc) < `profile` (thống kê + dạng giá trị, mặc định) < `masked_sample` (vài dòng đã che, chỉ nguồn độ nhạy cảm thấp, Admin bật rõ ràng). Nguồn độ nhạy cảm cao luôn `schema_only`, trung bình tối đa `profile`. Quay về "chỉ cấu trúc" cho nguồn đã đăng ký: `PATCH /sources/{id}` với `llm_access`; cho nguồn mới: `LLM_ACCESS_DEFAULT=schema_only`.
+- **Bí mật nguồn:** sổ nguồn chỉ lưu tên tham chiếu (`secret_ref`, vd `conn_orders_db`). Đặt giá trị thật trên máy chủ: biến `P113_SECRET_CONN_ORDERS_DB` (hoặc file cùng tên trong `SECRETS_DIR`). Thiếu thì nguồn đó tạm bị bỏ qua kèm cảnh báo log (các nguồn khác vẫn chạy).
+- **Nhật ký truy cập:** `GET /api/v1/admin/audit` (hoặc bảng `audit_log`): `source.list`, `source.create/update/grant/revoke`, `source.ingest`, `llm.context`, `llm_access.downgraded`, `catalog.profile`.
+- **Đo:** `python eval/run_llm_access.py` (số token ngữ cảnh từng mức + kiểm rò rỉ, 0 token LLM) ghi `eval/results/llm_access.md`.
+- **Người duyệt khác người tạo:** mặc định bật (`REQUIRE_SEPARATE_REVIEWER`); tắt khi demo cá nhân.
+
 ### 2.3 Duyệt (bước con người J2)
 
 ```powershell

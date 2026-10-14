@@ -13,6 +13,8 @@ Số lượt gọi LLM trong cả bộ: **10** (chỉ cho câu tầng 1 chưa ch
 
 Cột chỉ tầng 0–1 tính `unclear` là bị chặn (cách của giai đoạn 1). Cột có tầng 2: chỉ `ok` mới cho qua; `needs_info` (xin viết lại/bổ sung, chưa phải từ chối thẳng) vẫn tính là chưa qua.
 
+**Giới hạn của phép đo:** bộ mẫu nhỏ và do tác giả viết nên tầng 0–1 đã bắt hết câu lạc đề ở đây; chưa chứng minh được tầng 2 làm giảm tỷ lệ lọt. Cần bộ câu lạc đề lớn hơn và đo bằng LLM thật (`LLM_PROVIDER=openai python eval/run_input_gate.py`) trước khi kết luận.
+
 ## Chi phí tầng 2 (ước tính)
 
 - Model: `claude-haiku-5-5`; trung bình **397 token vào** (system + schema + tên bảng + câu hỏi, tiktoken) và ≤ 30 token ra → **≈ 0.000055 USD mỗi lần gọi** (10 câu tính trung bình).
