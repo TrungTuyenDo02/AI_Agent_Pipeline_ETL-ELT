@@ -70,6 +70,27 @@ def test_users_seed_dev_prints_random_passwords_once(capsys):
     assert main(["users", "unlock", "--username", "an"]) == 0 and auth.find_user("an").is_active
 
 
+def test_users_bulk_create_roles_csv_and_idempotent(tmp_path: Path, capsys):
+    import csv
+    import uuid
+
+    from src.services import auth
+
+    prefix = f"t{uuid.uuid4().hex[:6]}"  # kho test (Postgres) dùng chung giữa các lần chạy: tên phải duy nhất
+    out = tmp_path / "accounts.csv"
+    args = ["users", "bulk-create", "--prefix", prefix, "--mix", "3/2/1", "--out", str(out)]
+    assert main(args) == 0
+    rows = list(csv.DictReader(out.open(encoding="utf-8-sig")))
+    assert [r["username"] for r in rows] == [f"{prefix}{n:02d}" for n in range(1, 7)]
+    assert [r["role"] for r in rows] == ["engineer"] * 3 + ["reviewer"] * 2 + ["admin"]
+    assert all(len(r["password"]) >= 12 for r in rows) and len({r["password"] for r in rows}) == 6
+    assert auth.authenticate(f"{prefix}01", rows[0]["password"]) is not None
+    capsys.readouterr()
+    assert main(args) == 0  # chạy lại: không tạo trùng
+    assert "bỏ qua" in capsys.readouterr().out
+    assert main(["users", "bulk-create", "--mix", "abc"]) == 2
+
+
 def test_optimize_without_datasets(tmp_path: Path, capsys):
     sql = tmp_path / "q.sql"
     sql.write_text("select 1", encoding="utf-8")

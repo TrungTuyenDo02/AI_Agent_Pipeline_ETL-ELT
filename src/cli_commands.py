@@ -1,6 +1,7 @@
 """Xử lý từng lệnh CLI. Mỗi hàm trả mã thoát (0 = thành công)."""
 
 import argparse
+import csv
 import getpass
 import secrets
 import subprocess
@@ -302,6 +303,42 @@ def _seed_dev_users() -> int:
     return 0
 
 
+def _bulk_create_users(prefix: str, mix: str, out: str) -> int:
+    """Tạo hàng loạt tài khoản thử với mật khẩu ngẫu nhiên; ghi CSV cục bộ. Tên đã có thì bỏ qua (chạy lại không trùng)."""
+    try:
+        engineers, reviewers, admins = (int(part) for part in mix.split("/"))
+    except ValueError:
+        console.print("[red]--mix phải có dạng Engineer/Reviewer/Admin, ví dụ 14/5/1.[/]")
+        return 2
+    roles = ["engineer"] * engineers + ["reviewer"] * reviewers + ["admin"] * admins
+    width = max(2, len(str(len(roles))))
+    rows: list[tuple[str, str, str]] = []
+    for index, role in enumerate(roles, start=1):
+        username = f"{prefix}{index:0{width}d}"
+        if auth.find_user(username):
+            console.print(f" [yellow]•[/] {username} đã có, bỏ qua")
+            continue
+        password = secrets.token_urlsafe(12)
+        try:
+            user = auth.create_user(username, f"{prefix.capitalize()} {index:0{width}d} ({role})", role, password)
+        except ValueError as exc:
+            console.print(f"[red]{username}: {exc}[/]")
+            return 2
+        auth.audit("user.create", "cli", target=user.username, detail={"role": role, "via": "cli-bulk"})
+        rows.append((username, role, password))
+    if rows:
+        path = Path(out)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", newline="", encoding="utf-8-sig") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["username", "role", "password"])
+            writer.writerows(rows)
+    for username, role, password in rows:
+        console.print(f" [green]✓[/] {username:<12} {role:<9} {password}", highlight=False)
+    console.print(f"[dim]Đã tạo {len(rows)} tài khoản. Mật khẩu chỉ hiện lần này" + (f"; bản CSV: {out}[/]" if rows else "[/]"))
+    return 0
+
+
 def cmd_users(args: argparse.Namespace) -> int:
     """Tài khoản đăng nhập web (cần DATABASE_URL đã chạy migration)."""
     missing = get_settings().missing_auth_settings
@@ -310,6 +347,8 @@ def cmd_users(args: argparse.Namespace) -> int:
         return 2
     if args.action == "seed-dev":
         return _seed_dev_users()
+    if args.action == "bulk-create":
+        return _bulk_create_users(args.prefix, args.mix, args.out)
     if args.action == "list":
         for user in auth.list_users():
             state = "" if user.is_active else " [red](đã khóa)[/]"
