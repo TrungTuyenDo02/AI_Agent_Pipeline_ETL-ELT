@@ -87,3 +87,7 @@ node_modules/
 
 # Dữ liệu demo cục bộ (demo/run_demo.py)
 demo_data/
+
+# Biến triển khai Render (chứa bí mật)
+.env.render
+.env_render
