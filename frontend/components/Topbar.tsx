@@ -20,7 +20,13 @@ export function ThemeToggle() {
   const next = dark ? "light" : "dark";
   const label = dark ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối";
   return (
-    <button type="button" className="icon-btn theme-toggle" aria-label={label} title={label} onClick={() => setTheme(next)}>
+    <button
+      type="button"
+      className="icon-btn theme-toggle"
+      aria-label={label}
+      title={label}
+      onClick={() => setTheme(next)}
+    >
       <Icon name={dark ? "light" : "dark"} size={20} weight="fill" />
     </button>
   );

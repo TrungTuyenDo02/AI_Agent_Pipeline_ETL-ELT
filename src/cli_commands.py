@@ -335,7 +335,9 @@ def _bulk_create_users(prefix: str, mix: str, out: str) -> int:
             writer.writerows(rows)
     for username, role, password in rows:
         console.print(f" [green]✓[/] {username:<12} {role:<9} {password}", highlight=False)
-    console.print(f"[dim]Đã tạo {len(rows)} tài khoản. Mật khẩu chỉ hiện lần này" + (f"; bản CSV: {out}[/]" if rows else "[/]"))
+    console.print(
+        f"[dim]Đã tạo {len(rows)} tài khoản. Mật khẩu chỉ hiện lần này" + (f"; bản CSV: {out}[/]" if rows else "[/]")
+    )
     return 0
 
 

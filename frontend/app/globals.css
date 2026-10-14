@@ -5032,7 +5032,6 @@ main > .schema-watch {
   }
 }
 
-
 /* =====================================================================================================
    Giao diện v2: ảnh nền, cuộn mượt, nút Quay lại / Sáng-Tối, tiến trình sáng rõ, panel schema
    (đặt cuối file để ghi đè các khai báo cũ cùng độ ưu tiên)
@@ -5134,8 +5133,16 @@ pre,
 /* Trang đăng nhập: để ảnh nền chung lộ ra dưới các vệt màu lưới */
 .login-page {
   background:
-    radial-gradient(60vmax 50vmax at 12% 18%, color-mix(in srgb, var(--login-mesh-a) 55%, transparent), transparent 60%),
-    radial-gradient(55vmax 45vmax at 88% 22%, color-mix(in srgb, var(--login-mesh-b) 55%, transparent), transparent 60%),
+    radial-gradient(
+      60vmax 50vmax at 12% 18%,
+      color-mix(in srgb, var(--login-mesh-a) 55%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      55vmax 45vmax at 88% 22%,
+      color-mix(in srgb, var(--login-mesh-b) 55%, transparent),
+      transparent 60%
+    ),
     radial-gradient(60vmax 50vmax at 70% 92%, color-mix(in srgb, var(--login-mesh-c) 55%, transparent), transparent 60%);
 }
 
@@ -5614,7 +5621,6 @@ pre,
     grid-template-columns: minmax(0, 1fr);
   }
 }
-
 
 /* =====================================================================================================
    Trang đăng nhập kiểu chia đôi: bên trái giới thiệu dự án (ảnh + lớp phủ), bên phải thẻ đăng nhập

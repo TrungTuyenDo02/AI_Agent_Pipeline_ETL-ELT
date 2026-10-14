@@ -1,8 +1,7 @@
 """Hàm dùng chung cho các node."""
 
-from pathlib import Path
-
 import logging
+from pathlib import Path
 
 from src.agents.state import PipelineState
 from src.agents.tools.pii import mask_literals
@@ -74,6 +73,8 @@ def remember_fixes(run_id: str, values: dict) -> int:
         return 0
     memory, saved = get_agent_memory(), 0
     for note in notes:
-        item = memory.add(account, "error_fix", f"Lỗi từng gặp ({note}); agent đã tự sửa được sau {attempts} lần.", run_id)
+        item = memory.add(
+            account, "error_fix", f"Lỗi từng gặp ({note}); agent đã tự sửa được sau {attempts} lần.", run_id
+        )
         saved += 1 if item else 0
     return saved

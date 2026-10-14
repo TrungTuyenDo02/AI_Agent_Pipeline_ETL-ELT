@@ -90,9 +90,13 @@ def _users_parser(sub: argparse._SubParsersAction) -> None:
     users.add_argument("--username", help="Tên đăng nhập (create/lock/unlock)")
     users.add_argument("--name", default="", help="Tên hiển thị (create)")
     users.add_argument("--role", choices=("engineer", "reviewer", "admin"), default="engineer", help="Vai trò (create)")
-    users.add_argument("--prefix", default="tester", help="Tiền tố tên đăng nhập (bulk-create): tester01, tester02, ...")
+    users.add_argument(
+        "--prefix", default="tester", help="Tiền tố tên đăng nhập (bulk-create): tester01, tester02, ..."
+    )
     users.add_argument("--mix", default="14/5/1", help="Số Engineer/Reviewer/Admin (bulk-create), mặc định 14/5/1")
-    users.add_argument("--out", default="out/accounts.csv", help="File CSV chứa mật khẩu (bulk-create); thư mục out/ đã .gitignore")
+    users.add_argument(
+        "--out", default="out/accounts.csv", help="File CSV chứa mật khẩu (bulk-create); thư mục out/ đã .gitignore"
+    )
 
 
 def configure(args: argparse.Namespace) -> None:

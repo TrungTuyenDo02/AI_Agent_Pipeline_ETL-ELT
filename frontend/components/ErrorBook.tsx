@@ -95,7 +95,8 @@ function MemoryRow({ item, onDone }: { item: MemoryItem; onDone: () => Promise<v
       <div className="stack" style={{ gap: 4 }}>
         <p>{item.content}</p>
         <small className="muted">
-          Tài khoản <span className="mono">{item.account}</span> · lần chạy <span className="mono">{item.source_run_id}</span>
+          Tài khoản <span className="mono">{item.account}</span> · lần chạy{" "}
+          <span className="mono">{item.source_run_id}</span>
         </small>
         {item.warnings?.length > 0 && (
           <div className="alert warn" role="note">
