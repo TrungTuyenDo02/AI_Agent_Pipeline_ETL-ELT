@@ -155,8 +155,9 @@ def test_rejection_message_is_polite_vietnamese_with_real_examples():
     assert len(result.examples) == 3 and any("shopee_orders" in e for e in result.examples)  # bảng có thật
 
 
-def test_precheck_turns_unclear_into_rejected_in_phase_1():
-    assert gate.precheck("thời tiết hôm nay đẹp quá nhỉ", CATALOG).status == "rejected"
+def test_precheck_blocks_only_tier_0_failures_and_lets_unclear_reach_tier_2():
+    assert gate.precheck("thời tiết hôm nay đẹp quá nhỉ", CATALOG).status == "unclear"  # tầng 2 quyết định trong graph
+    assert gate.precheck("asdfghjkl qwerty", CATALOG).status == "rejected"
     assert gate.precheck("Gộp shopee_orders và tiki_orders, tính doanh thu ngày", CATALOG).status == "ok"
 
 

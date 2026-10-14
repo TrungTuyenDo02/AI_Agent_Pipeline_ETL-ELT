@@ -31,6 +31,7 @@ Tiền tố `/api/v1`, riêng `/health` không có tiền tố.
 | GET | `/api/v1/runs/{run_id}/files` | đăng nhập | Code + test hiện tại và bản vòng trước (để xem diff) |
 | GET | `/api/v1/runs/{run_id}/download` | đăng nhập | Gói `.zip` code dbt + test + DAG (không kèm dữ liệu sandbox) |
 | POST | `/api/v1/runs/{run_id}/answers` | engineer | Trả lời câu hỏi làm rõ J1 (`answers`: id câu → lựa chọn nguyên văn) |
+| POST | `/api/v1/runs/{run_id}/input` | engineer | Cửa kiểm tra đầu vào hỏi bổ sung / xin viết lại: `action` = `send` (kèm `text`) hoặc `abort` |
 | POST | `/api/v1/runs/{run_id}/plan` | engineer | Duyệt kế hoạch J1b: `decision` = `approve` hoặc `revise` (kèm `note`) |
 | POST | `/api/v1/runs/{run_id}/schema` | engineer | Nguồn mất cột/nghi đổi tên: `action` = `continue` (kèm `renames`) hoặc `abort` |
 | POST | `/api/v1/runs/{run_id}/rescue` | engineer | Cứu hộ: `action` = `retry` (kèm `hint`) hoặc `abort` |

@@ -9,6 +9,7 @@ class RunStatus(StrEnum):
     """Trạng thái một lần chạy (lưu trong store)."""
 
     RUNNING = "running"
+    WAITING_INPUT = "waiting_input"  # cửa kiểm tra đầu vào hỏi bổ sung / xin viết lại yêu cầu
     WAITING_CLARIFICATION = "waiting_clarification"
     WAITING_PLAN = "waiting_plan_review"
     WAITING_SCHEMA = "waiting_schema"

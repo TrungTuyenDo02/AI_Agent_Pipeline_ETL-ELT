@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 # (id, mã, tên, loại E/V/J, các node graph thuộc nút này, nút tùy chọn — chỉ hiện khi đã xảy ra)
 STAGES: list[tuple[str, str, str, str, tuple[str, ...], bool]] = [
-    ("input_gate", "G0", "Kiểm tra đầu vào", "V", ("input_gate",), True),
+    ("input_gate", "G0", "Kiểm tra đầu vào", "V", ("input_gate", "input_info"), True),
     ("planner", "E1", "Lập kế hoạch", "E", ("planner",), False),
     ("clarify", "J1", "Hỏi làm rõ", "J", ("clarify",), True),
     ("spec_check", "V0", "Soát đặc tả", "V", ("spec_check",), False),
@@ -26,6 +26,7 @@ STAGES: list[tuple[str, str, str, str, tuple[str, ...], bool]] = [
     ("review", "J2", "Duyệt code", "J", ("review", "package", "finalize"), False),
 ]
 PENDING_STAGE = {
+    "input": "input_gate",
     "clarify": "clarify",
     "plan": "plan_review",
     "schema": "schema",

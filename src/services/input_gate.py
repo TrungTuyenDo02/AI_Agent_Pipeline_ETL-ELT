@@ -1,14 +1,18 @@
-"""Cửa kiểm tra đầu vào (dịch vụ): ghép tầng 0–1 (code) với danh mục nghiệp vụ, nhớ kết quả cho câu giống hệt.
+"""Cửa kiểm tra đầu vào (dịch vụ): ghép tầng 0–1 (code) với danh mục nghiệp vụ, tầng 2 (model nhỏ) cho câu còn lại.
 
-API và CLI gọi `precheck` TRƯỚC khi tạo lần chạy (0 token, bị chặn thì không tạo gì); node `input_gate` của graph gọi
-`evaluate` (cùng luật, thêm tầng 2 ở giai đoạn 2). Danh mục nghiệp vụ chỉ lấy tên bảng/cột/nhãn, không bao giờ lấy dữ liệu.
+API và CLI gọi `precheck` TRƯỚC khi tạo lần chạy (tầng 0–1, 0 token; bị chặn thì không tạo gì); node `input_gate` của graph
+gọi `evaluate` (cùng luật + tầng 2 khi tầng 1 chưa chắc). Danh mục nghiệp vụ chỉ lấy tên bảng/cột/nhãn; prompt tầng 2 chỉ
+chứa tên bảng và câu yêu cầu, không bao giờ có dòng dữ liệu.
 """
 
 import hashlib
+import logging
 import threading
 from collections import OrderedDict
 from functools import lru_cache
 from pathlib import Path
+
+from pydantic import ValidationError
 
 from src.agents.tools.duckdb_tools import discover_sources
 from src.agents.tools.input_checks import (
@@ -16,14 +20,21 @@ from src.agents.tools.input_checks import (
     GateRules,
     business_keywords,
     check_input,
+    decide_tier2,
     load_rules,
     request_hash,
     suggest_examples,
     terms_from_catalog,
     with_message,
 )
-from src.config import get_settings
+from src.config import GATE_TASK, get_settings
+from src.models.llm_outputs import GateOutput
+from src.services import llm
 from src.services.company import read_manifest
+
+logger = logging.getLogger(__name__)
+MAX_TABLES_SENT = 60  # chỉ gửi TÊN bảng, tối đa chừng này để prompt không phình
+MAX_REQUEST_CHARS = 2000
 
 
 def rules() -> GateRules:
@@ -113,8 +124,49 @@ def static_check(text: str, catalog: list[dict]) -> GateResult:
 
 
 def precheck(text: str, catalog: list[dict] | None = None) -> GateResult:
-    """Dùng ở API/CLI trước khi tạo lần chạy. Giai đoạn 1: yêu cầu `unclear` coi như bị chặn kèm gợi ý viết lại."""
-    result = static_check(text, gate_catalog(catalog))
-    if result.status == "unclear":
-        return result.model_copy(update={"status": "rejected"})
-    return result
+    """Dùng ở API/CLI trước khi tạo lần chạy: chỉ tầng 0–1 (0 token).
+
+    `rejected` thì chặn ngay; `ok` và `unclear` đều cho tạo lần chạy (`unclear` sẽ qua tầng 2 ở node `input_gate`).
+    """
+    return static_check(text, gate_catalog(catalog))
+
+
+def tier2(text: str, catalog: list[dict]) -> tuple[GateResult, list[dict]]:
+    """Tầng 2: hỏi model nhỏ nhãn của yêu cầu → (kết luận, mục `llm_usage`). Sai cấu trúc thì thử lại tối đa 1 lần,
+    vẫn sai thì coi là `unclear` (xin viết lại). Lỗi gọi LLM (mạng, hạn mức, vượt trần token) được ném lên cho runner báo."""
+    examples = suggest_examples(catalog)
+    variables = {
+        "tables": llm.to_json([str(i["name"]) for i in catalog][:MAX_TABLES_SENT]),
+        "request": text.strip()[:MAX_REQUEST_CHARS],
+    }
+    usage: list[dict] = []
+    for _ in range(2):
+        response = llm.call_llm(GATE_TASK, variables)  # qua module để test/eval đếm hoặc thay được
+        usage.append(response.usage.model_dump())
+        try:
+            out = GateOutput.model_validate(llm.parse_json_output(response.text))
+        except (llm.LLMOutputError, ValidationError) as exc:
+            logger.warning("input gate tier 2 output invalid", extra={"error": str(exc)[:200]})
+            continue
+        return decide_tier2(out.label, out.confidence, list(out.missing), examples), usage
+    return decide_tier2("unclear", 0.0, [], examples), usage
+
+
+def evaluate(text: str, catalog: list[dict] | None = None) -> tuple[GateResult, list[dict]]:
+    """Cửa đầy đủ cho node graph: tầng 0–1, và tầng 2 khi tầng 1 trả `unclear`. Trả (kết luận, `llm_usage` mới).
+
+    Kết quả tầng 2 cũng nhớ theo (băm câu, dấu vân tay danh mục): câu giống hệt không tốn thêm token.
+    """
+    items = gate_catalog(catalog)
+    static = static_check(text, items)
+    if static.status != "unclear":
+        return static, []
+    terms, labels = terms_from_catalog(items)
+    keywords = business_keywords(terms, rules(), labels)
+    key = (f"t2:{request_hash(text)}", catalog_fingerprint(keywords))
+    cache = result_cache()
+    if hit := cache.get(key):
+        return hit, []
+    result, usage = tier2(text, items)
+    cache.put(key, result)
+    return result, usage

@@ -19,6 +19,13 @@ class AnswerBody(BaseModel):
     answers: dict[str, str | list[str]] = Field(min_length=1)
 
 
+class InputBody(BaseModel):
+    """Trả lời cửa kiểm tra đầu vào: gửi thông tin bổ sung / yêu cầu viết lại, hoặc dừng."""
+
+    action: Literal["send", "abort"] = "send"
+    text: str = Field(default="", max_length=2000)
+
+
 class PlanBody(BaseModel):
     """Quyết định J1b: đồng ý kế hoạch, hoặc yêu cầu sửa kèm ghi chú cho Planner."""
 

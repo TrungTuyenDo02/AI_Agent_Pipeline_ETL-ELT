@@ -29,6 +29,7 @@ from src.services.store import get_store
 logger = logging.getLogger(__name__)
 EventCallback = Callable[[StepEvent | NodeStart], None]  # NodeStart: node bắt đầu; StepEvent: node xong
 INTERRUPT_STATUS = {
+    "input": RunStatus.WAITING_INPUT,
     "clarify": RunStatus.WAITING_CLARIFICATION,
     "plan": RunStatus.WAITING_PLAN,
     "schema": RunStatus.WAITING_SCHEMA,

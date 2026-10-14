@@ -7,8 +7,14 @@ from src.config import get_settings
 
 
 def after_input_gate(state: PipelineState) -> str:
-    """G0: bị chặn → kết thúc luồng (không tốn token); đạt → Planner."""
-    return END if state.get("input_gate", {}).get("status") == "rejected" else "planner"
+    """G0: bị chặn → kết thúc luồng; cần bổ sung thông tin → hỏi người dùng; đạt → Planner."""
+    status = state.get("input_gate", {}).get("status")
+    return END if status == "rejected" else "input_info" if status == "needs_info" else "planner"
+
+
+def after_input_info(state: PipelineState) -> str:
+    """Người dùng đã bổ sung → kiểm tra lại; hết vòng hoặc dừng → fail (chuyển cho người xử lý)."""
+    return "fail" if state.get("error") else "input_gate"
 
 
 def after_planner(state: PipelineState) -> str:

@@ -13,14 +13,16 @@ PLACEHOLDER_MARKERS = ("<", "your-", "sk-your", "-here")
 # Trần token đầu ra theo node: ≥ 5 lần mức cao nhất đo được ở golden thật 2026-10-02 (planner 1.104, codegen 1.638,
 # testgen 841, optimizer 295 — đã gồm token suy luận; trần 4.000 cũ từng bị dùng hết). Chỉnh lại sau khi có số đo mới.
 # Optimizer 16.000: trần rộng từ thời dùng Opus (suy luận tính vào trần); Haiku không suy luận nên thực tế dùng ít hơn nhiều.
-TASK_MAX_TOKENS = {"planner": 6000, "codegen": 12000, "testgen": 5000, "optimizer": 16000}
+# input_gate: JSON rất ngắn (nhãn + độ tin cậy + vài ô thiếu) nên trần thấp (CLAUDE.md bản 2, mục 2).
+TASK_MAX_TOKENS = {"planner": 6000, "codegen": 12000, "testgen": 5000, "optimizer": 16000, "input_gate": 200}
 # Hạn chờ mỗi lượt gọi LLM (giây). Optimizer chỉ là bước tùy chọn nên hạn ngắn: treo thì bỏ qua sớm thay vì chờ nhiều phút.
-TASK_TIMEOUT_SEC = {"planner": 120, "codegen": 180, "testgen": 120, "optimizer": 60}
+TASK_TIMEOUT_SEC = {"planner": 120, "codegen": 180, "testgen": 120, "optimizer": 60, "input_gate": 30}
 DEFAULT_TIMEOUT_SEC = 120
 CODEGEN_MAX_TEMPERATURE = 0.2
 MODELS_FILE = Path(__file__).resolve().parent.parent / "config" / "models.yaml"
 INPUT_GATE_FILE = Path(__file__).resolve().parent.parent / "config" / "input_gate.yaml"
 TASKS = ("planner", "codegen", "testgen", "optimizer")
+GATE_TASK = "input_gate"  # bộ phân loại tầng 2 của cửa kiểm tra đầu vào: model riêng, rẻ nhất, không dùng model của planner/optimizer
 
 
 def is_real_secret(value: str | None) -> bool:
@@ -45,7 +47,7 @@ class ModelTable(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    models: dict[Literal["planner", "codegen", "testgen", "optimizer"], ModelChoice]
+    models: dict[Literal["planner", "codegen", "testgen", "optimizer", "input_gate"], ModelChoice]
     fallback: ModelChoice
 
 
@@ -53,7 +55,7 @@ class ModelTable(BaseModel):
 def load_model_table(path: Path = MODELS_FILE) -> ModelTable:
     """Đọc và kiểm tra `config/models.yaml` (thiếu bước nào thì báo lỗi ngay, không đoán model)."""
     table = ModelTable.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
-    missing = [task for task in TASKS if task not in table.models]
+    missing = [task for task in (*TASKS, GATE_TASK) if task not in table.models]
     if missing:
         raise ValueError(f"{path} thiếu model cho bước: {', '.join(missing)}")
     return table
@@ -206,7 +208,7 @@ class Settings(BaseSettings):
     @property
     def providers_in_use(self) -> set[str]:
         """Các nhà cung cấp mà bảng model đang cần (để kiểm tra khóa)."""
-        return {self.choice_for(task).provider for task in TASKS}
+        return {self.choice_for(task).provider for task in (*TASKS, GATE_TASK)}
 
     def max_tokens_for(self, task: str) -> int:
         """Trần token đầu ra (gồm token suy luận ẩn) của một bước, không vượt LLM_MAX_TOKENS."""

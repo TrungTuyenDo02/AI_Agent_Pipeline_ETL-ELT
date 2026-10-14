@@ -9,6 +9,7 @@ from src.services.schema_watch import SchemaReport
 
 NODE_LABELS = {
     "input_gate": "G0 Kiểm tra đầu vào",
+    "input_info": "G0 Bổ sung yêu cầu",
     "planner": "E1 Lập kế hoạch",
     "clarify": "J1 Hỏi làm rõ",
     "plan_review": "J1b Duyệt kế hoạch",

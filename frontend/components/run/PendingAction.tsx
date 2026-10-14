@@ -85,6 +85,52 @@ export function ClarifyForm({ unknowns, questions }: { unknowns: string[]; quest
   );
 }
 
+/** Cửa kiểm tra đầu vào hỏi bổ sung (câu hỏi theo mẫu cố định) hoặc xin viết lại yêu cầu. */
+export function InputInfoForm({ message, rewrite }: { message: string; rewrite: boolean }) {
+  const { act } = useRun();
+  const engineer = useHasRole("engineer");
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [failure, setFailure] = useState("");
+
+  async function send(action: "send" | "abort") {
+    setSending(true);
+    setFailure(
+      await act(
+        "/input",
+        { action, text },
+        action === "send" ? "Đã gửi, agent kiểm tra lại yêu cầu." : "Đã dừng lần chạy.",
+      ),
+    );
+    setSending(false);
+  }
+
+  return (
+    <div className="stack" style={{ gap: 10 }}>
+      <RoleNote need="engineer" />
+      <div className="alert info" style={{ whiteSpace: "pre-line" }}>
+        <span>{message}</span>
+      </div>
+      <label htmlFor="input-info">{rewrite ? "Viết lại yêu cầu" : "Thông tin bổ sung"}</label>
+      <textarea id="input-info" value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} />
+      {failure && <ErrorBox message={failure} />}
+      <div className="row" style={{ justifyContent: "flex-end" }}>
+        <button type="button" className="btn danger" disabled={sending || !engineer} onClick={() => send("abort")}>
+          Dừng lần chạy
+        </button>
+        <button
+          type="button"
+          className="btn primary"
+          disabled={sending || !engineer || !text.trim()}
+          onClick={() => send("send")}
+        >
+          Gửi
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function RescueForm({ error, attempts }: { error: string; attempts: number }) {
   const { act } = useRun();
   const [hint, setHint] = useState("");

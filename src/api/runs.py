@@ -17,6 +17,7 @@ from src.api.requests import (
     Accepted,
     AnswerBody,
     CreateRunBody,
+    InputBody,
     PlanBody,
     RescueBody,
     RunDetail,
@@ -47,10 +48,10 @@ async def list_runs(limit: int = Query(default=20, ge=1, le=100)) -> list[RunRec
 @router.post("", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
 def create_run(body: CreateRunBody, user: Engineer, request: Request) -> Accepted:
     """Tạo yêu cầu mới; agent chạy nền tới điểm dừng đầu tiên (câu hỏi làm rõ hoặc bản duyệt)."""
-    gate = precheck(
-        body.request_text
-    )  # cửa kiểm tra đầu vào (0 token): bị chặn thì không tạo lần chạy, không tính hạn mức
-    if gate.status != "ok":
+    # Cửa kiểm tra đầu vào, tầng 0–1 (0 token): bị chặn thì không tạo lần chạy, không tính hạn mức.
+    # `unclear` đi tiếp: tầng 2 (model nhỏ) quyết định trong graph.
+    gate = precheck(body.request_text)
+    if gate.status == "rejected":
         raise HTTPException(status_code=422, detail=gate.message)
     _check_limits(user.name)  # trước khi tạo: bị chặn thì không để lại lần chạy treo
     run_id = runner.create_run(body.request_text.strip(), user.name)
@@ -175,6 +176,17 @@ def answer(run_id: str, body: AnswerBody, user: Engineer) -> Accepted:
     if len(valid_answers(questions, {"answers": body.answers})) != len(questions):
         raise HTTPException(status_code=422, detail="Cần chọn đáp án có sẵn cho mỗi câu hỏi.")
     return _resume(run_id, "clarify", {"answers": body.answers}, user)  # J1 tự kiểm và định dạng lại
+
+
+@router.post("/{run_id}/input", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
+def add_input(run_id: str, body: InputBody, user: Engineer, request: Request) -> Accepted:
+    """Cửa kiểm tra đầu vào hỏi bổ sung hoặc xin viết lại yêu cầu: gửi thêm thông tin hoặc dừng."""
+    run_or_404(run_id)
+    _pending(run_id, "input")
+    if body.action == "send" and not body.text.strip():
+        raise HTTPException(status_code=422, detail="Hãy nhập thông tin bổ sung hoặc câu yêu cầu viết lại.")
+    auth.audit(f"input.{body.action}", user.name, target=run_id, ip=client_ip(request))
+    return _resume(run_id, "input", {"action": body.action, "text": body.text.strip()}, user)
 
 
 @router.post("/{run_id}/plan", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)

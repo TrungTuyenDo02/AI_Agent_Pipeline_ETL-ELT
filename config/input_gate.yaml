@@ -91,6 +91,31 @@ business_verbs:
   - compute
   - count
 
+# ---- Tầng 1: từ vựng nghiệp vụ luôn được coi là từ khóa (dù danh mục chưa có cột trùng tên) ----
+always_keywords:
+  - don hang
+  - doanh thu
+  - doanh so
+  - khach hang
+  - san pham
+  - hoan tien
+  - ton kho
+  - cua hang
+  - nhan vien
+  - thanh toan
+  - giao hang
+  - quang cao
+  - order
+  - orders
+  - revenue
+  - customer
+  - customers
+  - product
+  - products
+  - refund
+  - inventory
+  - gmv
+
 # ---- Tầng 1: bảng đồng nghĩa (mỗi nhóm: mọi từ trong nhóm coi như nhau) ----
 synonyms:
   - [don hang, order, orders, don, giao dich, transaction, transactions]

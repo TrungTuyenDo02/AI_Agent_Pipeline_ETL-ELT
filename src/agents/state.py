@@ -15,7 +15,7 @@ class PipelineState(TypedDict, total=False):
     requester: str  # người tạo yêu cầu (không được tự duyệt)
 
     # G0 Cửa kiểm tra đầu vào
-    input_gate: dict  # GateResult.model_dump(): status, tier, code, message, examples, missing
+    input_gate: dict  # GateResult.model_dump(): status (ok|rejected|needs_info), tier, code, message, examples, missing
     clarify_rounds: int  # số vòng hỏi làm rõ đã dùng (J1); trần MAX_CLARIFY_ROUNDS
 
     # E1 Planner ⇄ J1, V0

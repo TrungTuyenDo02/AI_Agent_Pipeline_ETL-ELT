@@ -18,6 +18,8 @@ Nguồn sự thật của mặc định: [src/config.py](../src/config.py). Cộ
 | `LLM_MAX_TOKENS` | Trần token đầu ra chung (mỗi bước có trần riêng nhỏ hơn) | `16000` | không |
 | `LLM_STRUCTURED_OUTPUT` | Gửi JSON Schema strict; `false` = quay về `json_object` | `true` | không |
 
+Mục `input_gate` trong `models.yaml` là model của **tầng 2 cửa kiểm tra đầu vào** (thay cho biến `MODEL_GATE` mà CLAUDE.md bản 2 nêu: dự án cấm tên model ở biến môi trường): model rẻ nhất đang dùng, khác nhà cung cấp với Planner, trần đầu ra 200 token.
+
 **Tên model** không đặt bằng biến môi trường: chỉ khai báo trong [config/models.yaml](../config/models.yaml) (mỗi bước một dòng `provider` + `name`, Anthropic thêm `effort`; mục `fallback` là model Gemini). Hiện tại: Planner/Codegen/Testgen = `gpt-5.6-luna`, Optimizer = `claude-haiku-5-5` (không đặt effort), dự phòng = `gemini-3.1-flash-lite`. Các biến cũ `MODEL_NAME`, `MODEL_<BƯỚC>`, `GOOGLE_MODEL_NAME` không còn tác dụng.
 
 ## Cửa kiểm tra đầu vào và trần chi phí

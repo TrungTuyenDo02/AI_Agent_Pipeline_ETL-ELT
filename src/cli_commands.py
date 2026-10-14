@@ -82,6 +82,11 @@ def _step(outcome: RunOutcome, args: argparse.Namespace) -> RunOutcome | None:
     """Xử lý một điểm dừng; trả None khi cần dừng vòng lặp."""
     kind = (outcome.pending or {}).get("kind")
     auto = getattr(args, "auto_answer", False) or getattr(args, "auto_approve", False)
+    if kind == "input":  # cửa kiểm tra đầu vào hỏi bổ sung: --auto thì dừng (không tự bịa thông tin)
+        print_rejection(outcome.pending.get("message", ""))
+        text = "" if auto else Prompt.ask("Bổ sung / viết lại yêu cầu (Enter để dừng)", default="")
+        value = {"action": "send", "text": text} if text.strip() else {"action": "abort"}
+        return runner.resume_run(ResumeRequest(run_id=outcome.run_id, kind="input", value=value), print_event)
     if kind == "clarify":
         answers = (
             {q["id"]: q["options"][0] for q in outcome.pending["questions"]}
@@ -133,7 +138,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         console.print("[red]Chỉ vai trò Engineer tạo yêu cầu (--as engineer).[/]")
         return 2
     gate = precheck(args.request)  # cửa kiểm tra đầu vào: bị chặn thì không tạo lần chạy
-    if gate.status != "ok":
+    if gate.status == "rejected":
         print_rejection(gate.message)
         return 2
     if get_settings().is_mock:

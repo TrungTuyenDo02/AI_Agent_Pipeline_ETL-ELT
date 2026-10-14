@@ -68,6 +68,10 @@ Xem bằng chứng và duyệt: python -m src.cli review 8ff0c55055
 
 Yêu cầu qua cửa trước khi tạo lần chạy: luật cố định (rỗng, quá ngắn/dài, lặp ký tự, gõ bừa, mẫu tấn công prompt) rồi đối chiếu danh mục nghiệp vụ (tên bảng/cột có bỏ dấu và đồng nghĩa).
 Bị chặn: web/API trả `422` kèm 2–3 ví dụ hợp lệ lấy từ danh mục thật; CLI in khung "Yêu cầu chưa dùng được" và thoát mã 2; không tạo lần chạy, không tốn token, không tính hạn mức.
+Câu mà tầng 1 chưa chắc (không thấy từ khóa nghiệp vụ nào) đi tiếp vào graph, node `input_gate` hỏi **bộ phân loại tầng 2** (model riêng `input_gate` ở [config/models.yaml](../config/models.yaml), ≈ 400 token vào, ≤ 30 ra):
+`off_topic` chắc ≥ 0,8 → từ chối kèm ví dụ (trạng thái `rejected_input`); `pipeline`/`optimize` còn thiếu ô → hỏi bổ sung bằng **mẫu câu cố định** (LLM không soạn câu hỏi); `unclear`/độ tin cậy thấp → xin viết lại kèm ví dụ, không từ chối thẳng.
+Bước hỏi bổ sung dừng ở trạng thái `waiting_input` (web: khung ở bước 1; CLI: nhắc nhập; API: `POST /runs/{id}/input`), tối đa `MAX_CLARIFY_ROUNDS` vòng rồi chuyển cho kỹ sư dữ liệu. Chi phí tầng 2 hiện thành một dòng "Kiểm tra đầu vào" ở bảng token/chi phí.
+Chạy thử không cần khóa: tầng 2 dùng luật từ khóa giả lập (`LLM_PROVIDER=mock`); đo bằng model thật: `LLM_PROVIDER=openai python eval/run_input_gate.py` (tốn vài xu).
 Cập nhật mẫu chặn: sửa [config/input_gate.yaml](../config/input_gate.yaml). Đo lại: `python eval/run_input_gate.py` (ghi `eval/results/input_gate.md`).
 Trần chi phí: `MAX_CLARIFY_ROUNDS`, `RUN_TOKEN_BUDGET`, `USER_DAILY_RUN_LIMIT` (xem [CONFIG](CONFIG.md)); chạm trần thì lần chạy dừng với thông báo tiếng Việt nêu đúng tên biến.
 

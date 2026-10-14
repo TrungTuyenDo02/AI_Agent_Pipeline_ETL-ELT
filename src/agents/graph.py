@@ -14,7 +14,7 @@ from src.agents.nodes.clarify import clarify_node
 from src.agents.nodes.codegen import codegen_node
 from src.agents.nodes.compare import compare_node
 from src.agents.nodes.ingest import ingest_node
-from src.agents.nodes.input_gate import input_gate_node
+from src.agents.nodes.input_gate import input_gate_node, input_info_node
 from src.agents.nodes.mock_data import mock_data_node
 from src.agents.nodes.optimizer import optimizer_node
 from src.agents.nodes.package import package_node
@@ -32,6 +32,7 @@ from src.agents.state import PipelineState
 
 NODES = {
     "input_gate": input_gate_node,
+    "input_info": input_info_node,
     "planner": planner_node,
     "clarify": clarify_node,
     "spec_check": spec_check_node,
@@ -54,6 +55,7 @@ NODES = {
 }
 CONDITIONAL = {
     "input_gate": routing.after_input_gate,
+    "input_info": routing.after_input_info,
     "planner": routing.after_planner,
     "spec_check": routing.after_spec_check,
     "plan_review": routing.after_plan_review,

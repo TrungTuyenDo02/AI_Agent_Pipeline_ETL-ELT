@@ -2,6 +2,7 @@
 
 export type RunStatus =
   | "running"
+  | "waiting_input"
   | "waiting_clarification"
   | "waiting_plan_review"
   | "waiting_schema"
@@ -89,6 +90,7 @@ export interface PlanPending {
 }
 
 export type Pending =
+  | { kind: "input"; code: string; message: string; missing: string[]; examples: string[] }
   | { kind: "clarify"; unknowns: string[]; questions: ClarifyQuestion[] }
   | PlanPending
   | { kind: "schema"; report: SchemaReport }

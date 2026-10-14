@@ -11,6 +11,7 @@ from string import Template
 import sqlglot
 from sqlglot import exp
 
+from src.agents.tools.input_checks import normalize
 from src.models.schemas import LLMUsage
 from src.services.llm import LLMRequest, LLMResponse
 
@@ -316,11 +317,40 @@ def mock_optimizer(variables: dict[str, str]) -> dict:
     return {"sql": tree.sql(dialect="duckdb", pretty=True), "explanation": explanation, "warehouse_hints": hints}
 
 
+# Bộ phân loại tầng 2 giả lập: luật từ khóa đơn giản nhưng quyết định được (CI chạy không cần khóa).
+GATE_OFF_TOPIC = (
+    "thoi tiet", "nau an", "nau pho", "cong thuc nau", "phim", "bong da", "am nhac", "chuyen cuoi", "tong thong",
+    "gia vang", "du lich", "giam can", "dich cau", "bai tho", "lam tho", "game", "xo so", "horoscope", "weather", "movie",
+    "joke", "recipe",
+)  # fmt: skip
+GATE_OPTIMIZE = ("truy van", "query", "sql", "toi uu", "cham", "nhanh hon", "hieu nang", "performance")
+GATE_DATA = (
+    "so lieu", "du lieu", "bao cao", "thong ke", "ban hang", "nhap hang", "xuat hang", "ti le", "ty le", "tang truong",
+    "bieu do", "dashboard", "chi so", "tuan truoc", "thang truoc", "tong so", "bao nhieu", "luong ban",
+)  # fmt: skip
+
+
+def mock_input_gate(variables: dict[str, str]) -> dict:
+    """Phân loại bằng luật từ khóa: lạc đề → off_topic; nói về truy vấn chậm → optimize; nói về số liệu → pipeline
+    (thiếu `source` nếu không nhắc tới bảng nào trong danh sách); còn lại → unclear."""
+    text = f" {normalize(variables.get('request', ''))} "
+    tables = [normalize(str(t)) for t in _load(variables, "tables", [])]
+    if any(f" {w} " in text or w in text for w in GATE_OFF_TOPIC):
+        return {"label": "off_topic", "confidence": 0.9, "missing": []}
+    if any(f" {w} " in text for w in GATE_OPTIMIZE):
+        return {"label": "optimize", "confidence": 0.8, "missing": []}
+    if any(w in text for w in GATE_DATA):
+        names_table = any(t and f" {t} " in text for t in tables)
+        return {"label": "pipeline", "confidence": 0.7, "missing": [] if names_table else ["source"]}
+    return {"label": "unclear", "confidence": 0.3, "missing": []}
+
+
 HANDLERS: dict[str, Callable[[dict[str, str]], dict]] = {
     "planner": mock_planner,
     "codegen": mock_codegen,
     "testgen": mock_testgen,
     "optimizer": mock_optimizer,
+    "input_gate": mock_input_gate,
 }
 
 

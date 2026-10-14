@@ -34,6 +34,11 @@ FALLBACK_EXAMPLES = (
     "Tối ưu truy vấn chậm đọc bảng đơn hàng",
 )
 
+EXAMPLES_HEADER = "\nVí dụ yêu cầu hợp lệ:\n"
+REWRITE_MESSAGE = (
+    "Mình chưa chắc yêu cầu này nhằm tạo hay tối ưu bảng dữ liệu nào. Bạn viết lại giúp mình, nêu rõ bảng/nguồn "
+    "và việc cần làm."
+)
 MESSAGES = {
     "empty": "Bạn chưa nhập yêu cầu.",
     "too_short": "Yêu cầu quá ngắn (cần ít nhất {min} ký tự). Hãy nói rõ bạn cần bảng dữ liệu gì, từ nguồn nào.",
@@ -48,6 +53,18 @@ MESSAGES = {
         "các nguồn đã đăng ký). Hãy nêu rõ bảng/nguồn và việc cần làm."
     ),
     "off_topic": "Yêu cầu này nằm ngoài phạm vi của hệ thống (chỉ viết và tối ưu pipeline dữ liệu ELT/ETL).",
+}
+OFF_TOPIC_CONFIDENCE = (
+    0.8  # từ chối thẳng chỉ khi tầng 2 rất chắc là lạc đề (chặn nhầm gây khó chịu hơn tốn thêm vài đồng)
+)
+MIN_PASS_CONFIDENCE = 0.5  # nhãn pipeline/optimize dưới mức này coi như chưa rõ
+# Ô còn thiếu → cụm từ cố định trong câu hỏi bổ sung (không gọi LLM soạn câu hỏi, không lặp lại chữ do LLM trả về)
+MISSING_PHRASES = {
+    "source": "dữ liệu lấy từ bảng hoặc nguồn nào",
+    "metric": "cần tính chỉ số gì (ví dụ doanh thu, số đơn)",
+    "grain": "tính theo đơn vị nào (ngày, tháng, khách hàng, sản phẩm...)",
+    "filter": "điều kiện lọc (ví dụ chỉ đơn đã giao)",
+    "target": "tên bảng kết quả mong muốn",
 }
 NONSENSE_CODES = {"low_alnum", "repetitive", "keyboard_mash", "gibberish"}
 
@@ -76,6 +93,7 @@ class GateRules:
     verbs: tuple[str, ...]
     synonyms: tuple[frozenset[str], ...]
     generic: frozenset[str]
+    always: frozenset[str]
 
 
 # ---------- Chuẩn hóa ----------
@@ -115,6 +133,7 @@ def load_rules(path: Path) -> GateRules:
         verbs=tuple(normalize(v) for v in data.get("business_verbs", [])),
         synonyms=tuple(frozenset(normalize(w) for w in group) for group in data.get("synonyms", [])),
         generic=frozenset(data.get("generic_tokens", [])),
+        always=frozenset(normalize(w) for w in data.get("always_keywords", [])),
     )
 
 
@@ -200,7 +219,7 @@ def business_keywords(terms: Iterable[str], rules: GateRules, phrases: Iterable[
 
     `phrases` (nhãn nhóm bảng như "Cửa hàng", "Bán hàng"): chỉ nhận nguyên cụm, không tách từng từ vì các từ đơn
     ("của", "bán") là từ thường ngày."""
-    found: set[str] = {normalize(p) for p in phrases if " " in normalize(p)}
+    found: set[str] = {normalize(p) for p in phrases if " " in normalize(p)} | set(rules.always)
     for term in terms:
         words = normalize(term).split()
         if len(words) > 1 and any(w not in rules.generic for w in words):
@@ -274,13 +293,34 @@ def with_message(result: GateResult, examples: list[str]) -> GateResult:
     message = result.message or MESSAGES.get(result.code, MESSAGES["unclear"])
     if result.code == "no_business_term":
         message = MESSAGES["unclear"]
-    tail = "\nVí dụ yêu cầu hợp lệ:\n" + "\n".join(f"- {e}" for e in examples) if examples else ""
+    tail = EXAMPLES_HEADER + "\n".join(f"- {e}" for e in examples) if examples else ""
     return result.model_copy(update={"message": message + tail, "examples": examples})
 
 
-def minimal_rejection(code: str, examples: list[str], **fmt: object) -> GateResult:
-    """Kết quả từ chối dựng sẵn từ mã lý do (dùng cho tầng 2: off_topic, ...)."""
-    text = MESSAGES.get(code, MESSAGES["unclear"])
-    return with_message(
-        GateResult(status="rejected", tier=2, code=code, message=text.format(**fmt) if fmt else text), examples
-    )
+# ---------- Tầng 2: quyết định từ kết quả bộ phân loại (thuần, không gọi LLM) ----------
+
+
+def missing_question(missing: list[str]) -> str:
+    """Câu hỏi bổ sung theo mẫu cố định, ghép từ các ô còn thiếu (chỉ nhận ô thuộc danh sách cho phép)."""
+    asked = [MISSING_PHRASES[m] for m in dict.fromkeys(missing) if m in MISSING_PHRASES]
+    items = "; ".join(f"({i}) {text}" for i, text in enumerate(asked, start=1))
+    return f"Yêu cầu của bạn đúng hướng nhưng còn thiếu thông tin. Bạn bổ sung giúp: {items}."
+
+
+def decide_tier2(label: str, confidence: float, missing: list[str], examples: list[str]) -> GateResult:
+    """Quy tắc quyết định của tầng 2.
+
+    - `off_topic` và chắc ≥ 0.8 → từ chối kèm gợi ý;
+    - `pipeline`/`optimize` chắc ≥ 0.5: có ô thiếu → hỏi bằng mẫu câu cố định, không thiếu → cho qua Planner;
+    - còn lại (unclear, độ tin cậy thấp) → KHÔNG từ chối thẳng: xin người dùng viết lại kèm ví dụ.
+    """
+    base = {"tier": 2, "label": label, "confidence": confidence, "examples": examples}
+    if label == "off_topic" and confidence >= OFF_TOPIC_CONFIDENCE:
+        return with_message(GateResult(status="rejected", code="off_topic", **base), examples)
+    if label in ("pipeline", "optimize") and confidence >= MIN_PASS_CONFIDENCE:
+        asked = [m for m in dict.fromkeys(missing) if m in MISSING_PHRASES]
+        if not asked:
+            return GateResult(status="ok", code=label, **base)
+        return GateResult(status="needs_info", code="missing", message=missing_question(asked), missing=asked, **base)
+    text = REWRITE_MESSAGE + EXAMPLES_HEADER + "\n".join(f"- {e}" for e in examples)
+    return GateResult(status="needs_info", code="rewrite", message=text, **base)
