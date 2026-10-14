@@ -61,6 +61,10 @@ $spec_errors
 $plan_feedback
 </data>
 
+<data name="account_memory">
+$memory_notes
+</data>
+
 <data name="round_note">
 $round_note
 </data>

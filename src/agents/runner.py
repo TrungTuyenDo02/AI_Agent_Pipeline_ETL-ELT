@@ -18,6 +18,7 @@ from psycopg_pool import ConnectionPool
 from pydantic import BaseModel
 
 from src.agents.graph import build_graph
+from src.agents.nodes.common import remember_fixes
 from src.agents.progress import NodeStart, StepEvent, describe, node_started
 from src.config import get_settings
 from src.models.evidence import ReviewDecision
@@ -167,6 +168,8 @@ def _finish(run_id: str, error: str) -> RunOutcome:
     else:
         status = RunStatus(values.get("status") or RunStatus.RUNNING)
     get_store().update_run(run_id, status, summarize(values, error))
+    if status is RunStatus.WAITING_REVIEW:
+        remember_fixes(run_id, values)
     return RunOutcome(run_id=run_id, status=status, pending=pending, error=error or values.get("error", ""))
 
 

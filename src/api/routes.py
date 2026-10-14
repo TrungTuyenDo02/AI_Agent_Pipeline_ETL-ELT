@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends
 
-from src.api import auth, catalog, error_book, reviews, runs
+from src.api import auth, catalog, error_book, memory, reviews, runs
 from src.api.deps import current_user
 from src.config import APP_VERSION, get_settings
 from src.services.circuit_breaker import breaker_snapshots
@@ -14,6 +14,7 @@ protected = APIRouter(dependencies=[Depends(current_user)])
 protected.include_router(runs.router)
 protected.include_router(reviews.router)
 protected.include_router(error_book.router)
+protected.include_router(memory.router)
 protected.include_router(catalog.router)
 
 

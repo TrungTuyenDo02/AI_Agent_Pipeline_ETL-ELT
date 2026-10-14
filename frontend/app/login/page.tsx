@@ -12,7 +12,7 @@ import { EyeIcon, EyeOffIcon, Icon, LockIcon, SparkIcon, StatusIcon, UserIcon } 
 import { LoginShowcase } from "@/components/login/LoginShowcase";
 import { Checkbox } from "@/components/ui";
 import { messageOf } from "@/lib/api";
-import { LANG_KEY, LOGIN_TEXT, type Lang, type LoginText } from "@/lib/loginText";
+import { ADMIN_CONTACT, LANG_KEY, LOGIN_TEXT, type Lang, type LoginText } from "@/lib/loginText";
 
 // Đăng nhập bằng tài khoản doanh nghiệp cấp. KHÔNG có đăng ký tự do (CLAUDE.md mục 1–2, 9.4).
 // "Ghi nhớ" chỉ lưu TÊN đăng nhập trên máy này (không giữ phiên); mật khẩu không bao giờ lưu ở trình duyệt.
@@ -55,6 +55,7 @@ function LoginForm({ t, pick }: { t: LoginText; pick: { user: string; password: 
   const [keep, setKeep] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [contactOpen, setContactOpen] = useState(false);
   const [scope, animate] = useAnimate<HTMLFormElement>();
   const reduceMotion = useReducedMotion();
   const schema = useMemo(() => makeSchema(t), [t]);
@@ -204,8 +205,27 @@ function LoginForm({ t, pick }: { t: LoginText; pick: { user: string; password: 
       </button>
 
       <p className="login-foot">
-        {t.forgot} <strong>{t.forgotAction}</strong>.
+        {t.forgot}{" "}
+        <button
+          type="button"
+          className="login-link"
+          aria-expanded={contactOpen}
+          aria-controls="login-contact"
+          onClick={() => setContactOpen(!contactOpen)}
+        >
+          {t.forgotAction}
+        </button>
       </p>
+      {contactOpen && (
+        <div id="login-contact" className="login-contact" role="note">
+          <p>{t.contactText}</p>
+          {/^[^\s@<>]+@[^\s@<>]+$/.test(ADMIN_CONTACT) && (
+            <a href={`mailto:${ADMIN_CONTACT}`}>
+              {t.contactMail}: {ADMIN_CONTACT}
+            </a>
+          )}
+        </div>
+      )}
     </form>
   );
 }

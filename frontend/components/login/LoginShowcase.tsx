@@ -6,9 +6,6 @@ import { DEMO_ACCOUNTS, DEMO_COMMAND, SHOW_DEMO_ACCOUNTS, type LoginText } from 
 
 import { Icon } from "../icons";
 
-type Tab = "about" | "run" | "data";
-const TAB_ICON = { about: "agent", run: "sandbox", data: "sources" } as const;
-
 function CopyCommand({ text, t }: { text: string; t: LoginText }) {
   const [done, setDone] = useState(false);
   async function copy() {
@@ -31,7 +28,10 @@ function CopyCommand({ text, t }: { text: string; t: LoginText }) {
   );
 }
 
-/** Khung thông tin dự án bên trái trang đăng nhập: giới thiệu, hướng dẫn chạy, dữ liệu mẫu. */
+/**
+ * Khung thông tin dự án bên trái trang đăng nhập, bố cục kiểu canvas: một tấm bảng có lưới chấm, các thẻ nằm sẵn
+ * trên bảng và hiện hết cùng lúc (luồng agent nối bằng mũi tên, rồi thẻ Chạy thử, Dữ liệu mẫu, Tài khoản demo).
+ */
 export function LoginShowcase({
   t,
   onPickAccount,
@@ -39,96 +39,73 @@ export function LoginShowcase({
   t: LoginText;
   onPickAccount: (user: string, password: string) => void;
 }) {
-  const [tab, setTab] = useState<Tab>("about");
-  const tabs: Tab[] = ["about", "run", "data"];
   return (
-    <section className="hero-info" aria-label={t.tabsLabel}>
-      <div className="hero-tabs" role="tablist" aria-label={t.tabsLabel}>
-        {tabs.map((id) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            id={`hero-tab-${id}`}
-            aria-selected={tab === id}
-            aria-controls="hero-panel"
-            className={tab === id ? "hero-tab active" : "hero-tab"}
-            onClick={() => setTab(id)}
-          >
-            <Icon name={TAB_ICON[id]} size={16} weight={tab === id ? "fill" : "regular"} />
-            {t.tabs[id]}
-          </button>
+    <section className="canvas" aria-label={t.tabsLabel}>
+      <ol className="canvas-flow" aria-label={t.tabs.about}>
+        {t.about.map((item, index) => (
+          <li key={item.title} className="canvas-node">
+            <span className="hero-step-num">{index + 1}</span>
+            <strong>{item.title}</strong>
+            <small>{item.text}</small>
+          </li>
         ))}
-      </div>
-      <div className="hero-panel" id="hero-panel" role="tabpanel" aria-labelledby={`hero-tab-${tab}`}>
-        {tab === "about" && (
-          <>
-            <ol className="hero-flow">
-              {t.about.map((item, index) => (
-                <li key={item.title}>
-                  <span className="hero-step-num">{index + 1}</span>
-                  <span>
-                    <strong>{item.title}</strong>
-                    <small>{item.text}</small>
-                  </span>
-                </li>
+      </ol>
+      <p className="canvas-rule">
+        <Icon name="reviewer" size={16} weight="fill" /> {t.aboutNote}
+      </p>
+
+      <div className="canvas-cards">
+        <article className="canvas-card">
+          <h3>
+            <Icon name="sandbox" size={16} weight="fill" /> {t.tabs.run}
+          </h3>
+          <ol className="canvas-steps">
+            {t.runSteps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+          <CopyCommand text={DEMO_COMMAND} t={t} />
+        </article>
+
+        <article className="canvas-card">
+          <h3>
+            <Icon name="sources" size={16} weight="fill" /> {t.tabs.data}
+          </h3>
+          <ul className="canvas-data">
+            {t.datasets.map((set) => (
+              <li key={set.name}>
+                <strong>{set.name}</strong>
+                <small>{set.detail}</small>
+              </li>
+            ))}
+          </ul>
+          <p className="hero-note">{t.dataNote}</p>
+        </article>
+
+        {SHOW_DEMO_ACCOUNTS && (
+          <article className="canvas-card canvas-card-wide">
+            <h3>
+              <Icon name="users" size={16} weight="fill" /> {t.accountsTitle}
+            </h3>
+            <p className="hero-note">{t.accountsHint}</p>
+            <div className="hero-account-list">
+              {DEMO_ACCOUNTS.map((account) => (
+                <button
+                  key={account.user}
+                  type="button"
+                  onClick={() => onPickAccount(account.user, account.password)}
+                  aria-label={`${t.roles[account.role]}: ${account.user}`}
+                >
+                  <Icon
+                    name={account.role === "engineer" ? "engineer" : account.role === "reviewer" ? "reviewer" : "users"}
+                    size={16}
+                  />
+                  <span>{account.user}</span>
+                  <em>{t.roles[account.role]}</em>
+                </button>
               ))}
-            </ol>
-            <p className="hero-note">{t.aboutNote}</p>
-          </>
-        )}
-        {tab === "run" && (
-          <>
-            <ol className="hero-steps">
-              {t.runSteps.map((step) => (
-                <li key={step}>{step}</li>
-              ))}
-            </ol>
-            <p className="hero-note">{t.runOpen}</p>
-            <CopyCommand text={DEMO_COMMAND} t={t} />
-            {SHOW_DEMO_ACCOUNTS && (
-              <div className="hero-accounts">
-                <strong>{t.accountsTitle}</strong>
-                <small>{t.accountsHint}</small>
-                <div className="hero-account-list">
-                  {DEMO_ACCOUNTS.map((account) => (
-                    <button
-                      key={account.user}
-                      type="button"
-                      onClick={() => onPickAccount(account.user, account.password)}
-                      aria-label={`${t.roles[account.role]}: ${account.user}`}
-                    >
-                      <Icon
-                        name={
-                          account.role === "engineer" ? "engineer" : account.role === "reviewer" ? "reviewer" : "users"
-                        }
-                        size={16}
-                      />
-                      <span>{account.user}</span>
-                      <em>{t.roles[account.role]}</em>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-        {tab === "data" && (
-          <>
-            <p className="hero-note">{t.dataIntro}</p>
-            <ul className="hero-data">
-              {t.datasets.map((set) => (
-                <li key={set.name}>
-                  <Icon name="table" size={18} weight="duotone" />
-                  <span>
-                    <strong>{set.name}</strong>
-                    <small>{set.detail}</small>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <p className="hero-note">{t.dataNote}</p>
-          </>
+            </div>
+          </article>
         )}
       </div>
     </section>

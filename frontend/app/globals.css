@@ -5756,101 +5756,7 @@ body:has(.login-page)::after {
   font-size: 12px;
 }
 
-.hero-info {
-  max-width: 600px;
-  margin-top: 6px;
-}
-
-.hero-tabs {
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--login-hero-edge);
-  border-radius: 999px;
-  background: var(--login-hero-card);
-}
-
-.hero-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 34px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--login-hero-muted);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.hero-tab:hover {
-  color: var(--login-hero-ink);
-}
-
-.hero-tab.active {
-  background: var(--login-hero-ink);
-  color: var(--login-hero-solid);
-}
-
-.hero-tab:focus-visible,
-.hero-cmd button:focus-visible,
-.hero-account-list button:focus-visible {
-  outline: 2px solid var(--login-hero-ink);
-  outline-offset: 2px;
-}
-
-.hero-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 230px;
-  margin-top: 10px;
-  padding: 16px 18px;
-  border: 1px solid var(--login-hero-edge);
-  border-radius: 18px;
-  background: var(--login-hero-card);
-  font-size: 14px;
-}
-
-.hero-panel p,
-.hero-panel ol,
-.hero-panel ul {
-  max-width: none;
-  margin: 0;
-}
-
 .hero-note {
-  color: var(--login-hero-muted);
-  font-size: 13px;
-}
-
-.hero-flow,
-.hero-data,
-.hero-steps {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 0;
-  list-style: none;
-}
-
-.hero-flow li,
-.hero-data li {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.hero-flow strong,
-.hero-data strong {
-  display: block;
-}
-
-.hero-flow small,
-.hero-data small {
-  display: block;
   color: var(--login-hero-muted);
   font-size: 13px;
 }
@@ -5865,37 +5771,6 @@ body:has(.login-page)::after {
   background: var(--login-hero-ink);
   color: var(--login-hero-solid);
   font-size: 13px;
-  font-weight: 800;
-}
-
-.hero-data svg {
-  flex: none;
-  margin-top: 2px;
-}
-
-.hero-steps {
-  counter-reset: step;
-}
-
-.hero-steps li {
-  position: relative;
-  padding-left: 30px;
-  counter-increment: step;
-}
-
-.hero-steps li::before {
-  content: counter(step);
-  position: absolute;
-  left: 0;
-  top: 1px;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--login-hero-ink);
-  color: var(--login-hero-solid);
-  font-size: 12px;
   font-weight: 800;
 }
 
@@ -6092,4 +5967,230 @@ body:has(.login-page)::after {
 
 .retry-banner .btn {
   flex: none;
+}
+
+/* ----- Canvas: bảng có lưới chấm, các thẻ nằm sẵn trên bảng ----- */
+.canvas {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 660px;
+  margin-top: 6px;
+  padding: 18px;
+  border: 1px solid var(--login-hero-edge);
+  border-radius: 22px;
+  background-color: rgb(8 14 28 / 38%);
+  background-image: radial-gradient(rgb(255 255 255 / 22%) 1px, transparent 1.4px);
+  background-size: 18px 18px;
+}
+
+.canvas-flow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.canvas-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--login-hero-edge);
+  border-radius: 14px;
+  background: var(--login-hero-card-solid);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 28%);
+  font-size: 13px;
+}
+
+.canvas-node small {
+  color: var(--login-hero-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* mũi tên nối các nút */
+.canvas-node:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 24px;
+  left: 100%;
+  width: 22px;
+  height: 2px;
+  background: var(--login-hero-muted);
+}
+
+.canvas-node:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: 20px;
+  right: -23px;
+  z-index: 1;
+  border: 5px solid transparent;
+  border-left: 7px solid var(--login-hero-muted);
+}
+
+.canvas-rule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--login-hero-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.canvas-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.canvas-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--login-hero-edge);
+  border-radius: 16px;
+  background: var(--login-hero-card-solid);
+  box-shadow: 0 8px 22px rgb(0 0 0 / 30%);
+  font-size: 13px;
+}
+
+.canvas-card-wide {
+  grid-column: 1 / -1;
+}
+
+.canvas-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+}
+
+.canvas-card p {
+  margin: 0;
+}
+
+.canvas-steps,
+.canvas-data {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--login-hero-muted);
+}
+
+.canvas-data {
+  padding-left: 0;
+  list-style: none;
+}
+
+.canvas-data strong {
+  display: block;
+  color: var(--login-hero-ink);
+}
+
+.canvas-data small {
+  font-size: 12px;
+}
+
+.canvas-card .hero-cmd {
+  margin-top: auto;
+}
+
+.canvas-card .hero-cmd code {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .canvas-flow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .canvas-node:nth-child(2n)::after,
+  .canvas-node:nth-child(2n)::before {
+    display: none;
+  }
+
+  .canvas-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Nút "Liên hệ quản trị viên" và hộp hướng dẫn */
+.login-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--login-ink);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.login-link:hover {
+  color: var(--login-accent);
+}
+
+.login-link:focus-visible {
+  outline: 2px solid var(--login-ink);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.login-contact {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--login-field-edge);
+  border-radius: 12px;
+  background: var(--login-field);
+  color: var(--login-ink);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.login-contact p {
+  margin: 0 0 6px;
+}
+
+.login-contact a {
+  color: var(--login-ink);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+/* Bộ nhớ agent chờ duyệt (Sổ lỗi) */
+.memory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.memory-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2, var(--surface));
+}
+
+.memory-row p {
+  margin: 0;
 }

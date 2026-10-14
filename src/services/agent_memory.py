@@ -107,6 +107,14 @@ class AgentMemory:
         """Các mục của tài khoản đang chờ duyệt (mới nhất trước)."""
         return self._select("account=:account AND status='pending'", {"account": account}, "id DESC", 100)
 
+    def pending_all(self) -> list[MemoryItem]:
+        """Mọi mục chờ duyệt (cho Reviewer duyệt; agent không dùng hàm này)."""
+        return self._select("status='pending'", {}, "id DESC", 100)
+
+    def get(self, item_id: int) -> MemoryItem | None:
+        found = self._select("id=:id", {"id": item_id}, "id", 1)
+        return found[0] if found else None
+
     def approved(self, account: str, kind: str | None = None, query: str = "") -> list[MemoryItem]:
         """Tối đa `MAX_ITEMS` mục ĐÃ DUYỆT của tài khoản, ưu tiên mục chứa nhiều từ khóa trong `query`."""
         where = "account=:account AND status='approved'"

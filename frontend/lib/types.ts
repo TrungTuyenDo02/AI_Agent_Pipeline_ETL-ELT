@@ -387,6 +387,18 @@ export interface AgentStatus {
   breakers?: { key: string; state: string; recent_calls: number; recent_failures: number }[];
 }
 
+/** Mục bộ nhớ do agent đề xuất (chờ Reviewer duyệt mới được dùng lại cho đúng tài khoản đó). */
+export interface MemoryItem {
+  id: number;
+  account: string;
+  kind: string;
+  content: string;
+  status: string;
+  source_run_id: string;
+  warnings: string[];
+  created_at: string;
+}
+
 export interface ErrorEntry {
   id: number;
   code: string;

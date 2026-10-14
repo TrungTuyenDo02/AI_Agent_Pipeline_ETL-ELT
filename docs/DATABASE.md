@@ -162,3 +162,10 @@ trỏ tới `p113_test`, rồi `pytest tests/test_api/test_auth.py tests/test_se
 
 Chuỗi kết nối production thêm `?sslmode=verify-full`; mật khẩu đặt trong dịch vụ quản lý bí mật. Xem
 [DEPLOY_VERCEL.md](DEPLOY_VERCEL.md) và [DEPLOY_GCP.md](DEPLOY_GCP.md). Biến môi trường: [CONFIG.md](CONFIG.md).
+
+## Bộ nhớ agent (`memory_items`)
+
+- **Ghi:** khi một lần chạy tự sửa lỗi thành công và tới bước chờ duyệt, agent đề xuất tối đa 3 mục loại `error_fix` (mô tả lỗi đã che số liệu + số lần sửa). Mục luôn ở trạng thái `pending` và được quét mẫu lệnh độc hại.
+- **Duyệt:** Reviewer duyệt hoặc bỏ ở trang Sổ lỗi (API `/memory`, có ghi nhật ký kiểm toán).
+- **Đọc:** planner và codegen chỉ nhận tối đa 3 mục `approved` của đúng tài khoản tạo yêu cầu, gửi trong khối `account_memory` của prompt. Không đọc được bộ nhớ của tài khoản khác.
+- **Chưa làm:** loại `pipeline_pattern`, `preference`, `chat_summary`; mục chưa lưu nội dung cách sửa (chỉ ghi lỗi từng gặp và đã sửa được); `pgvector`.

@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { apiPost, messageOf } from "@/lib/api";
-import type { ErrorEntry } from "@/lib/types";
+import type { ErrorEntry, MemoryItem } from "@/lib/types";
 import { usePoll } from "@/lib/usePoll";
 
 import { useHasRole } from "./AppContext";
@@ -73,22 +73,88 @@ function EntryCard({ entry, onDone }: { entry: ErrorEntry; onDone: () => Promise
   );
 }
 
+function MemoryRow({ item, onDone }: { item: MemoryItem; onDone: () => Promise<void> }) {
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const toast = useToast();
+
+  async function send(action: "approve" | "discard") {
+    setSending(true);
+    try {
+      await apiPost(`/memory/${item.id}/${action}`, {});
+      toast(action === "approve" ? "Đã duyệt: agent được dùng lại cho tài khoản này." : "Đã bỏ mục bộ nhớ.");
+      await onDone();
+    } catch (exc) {
+      setError(messageOf(exc));
+      setSending(false);
+    }
+  }
+
+  return (
+    <li className="memory-row">
+      <div className="stack" style={{ gap: 4 }}>
+        <p>{item.content}</p>
+        <small className="muted">
+          Tài khoản <span className="mono">{item.account}</span> · lần chạy <span className="mono">{item.source_run_id}</span>
+        </small>
+        {item.warnings?.length > 0 && (
+          <div className="alert warn" role="note">
+            <span>Nội dung đáng ngờ ({item.warnings.join(", ")}). Không chắc thì bấm Bỏ.</span>
+          </div>
+        )}
+        {error && <ErrorBox message={error} />}
+      </div>
+      <div className="row">
+        <button type="button" className="btn danger" disabled={sending} onClick={() => send("discard")}>
+          Bỏ
+        </button>
+        <button type="button" className="btn ok" disabled={sending} onClick={() => send("approve")}>
+          Duyệt
+        </button>
+      </div>
+    </li>
+  );
+}
+
+/** Bộ nhớ agent đề xuất sau khi một lần chạy tự sửa lỗi xong. Chỉ Reviewer thấy; mục được duyệt mới vào prompt. */
+function MemorySection() {
+  const reviewer = useHasRole("reviewer");
+  const { data, refresh } = usePoll<MemoryItem[]>(reviewer ? "/memory" : null, null);
+  if (!reviewer || !data || data.length === 0) return null;
+  return (
+    <Card title="Bộ nhớ agent chờ duyệt" actions={<span className="badge muted">{data.length} mục</span>}>
+      <p className="muted">
+        Agent đề xuất sau khi tự sửa lỗi thành công. Mục được duyệt chỉ được gợi ý lại cho đúng tài khoản đã tạo ra nó
+        (tối đa 3 mục mỗi lần).
+      </p>
+      <ul className="memory-list">
+        {data.map((item) => (
+          <MemoryRow key={item.id} item={item} onDone={refresh} />
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
 export function ErrorBook() {
   const { data, error, loading, refresh } = usePoll<ErrorEntry[]>("/errors", null);
   if (loading && !data) return <Loading text="Đang tải sổ lỗi…" />;
   if (!data) return <ErrorBox message={error || "Không tải được sổ lỗi."} onRetry={refresh} />;
-  if (data.length === 0)
-    return (
-      <Empty icon="errors">Không có mục nào chờ duyệt. Lỗi mới agent gặp khi chạy sẽ hiện ở đây để Reviewer xem.</Empty>
-    );
   return (
     <div className="stack">
       <RoleNote need="reviewer" />
-      <div className="grid-2">
-        {data.map((entry) => (
-          <EntryCard key={entry.id} entry={entry} onDone={refresh} />
-        ))}
-      </div>
+      <MemorySection />
+      {data.length === 0 ? (
+        <Empty icon="errors">
+          Không có mục nào chờ duyệt. Lỗi mới agent gặp khi chạy sẽ hiện ở đây để Reviewer xem.
+        </Empty>
+      ) : (
+        <div className="grid-2">
+          {data.map((entry) => (
+            <EntryCard key={entry.id} entry={entry} onDone={refresh} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

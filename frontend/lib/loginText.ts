@@ -18,6 +18,8 @@ export interface LoginText {
   submitting: string;
   forgot: string;
   forgotAction: string;
+  contactText: string;
+  contactMail: string;
   heroTitle: string;
   heroSub: string;
   quote: string;
@@ -57,6 +59,9 @@ export const LOGIN_TEXT: Record<Lang, LoginText> = {
     submitting: "Đang đăng nhập…",
     forgot: "Quên mật khẩu?",
     forgotAction: "Liên hệ quản trị viên",
+    contactText:
+      "Tài khoản do quản trị viên của công ty cấp, không tự đăng ký. Gửi cho quản trị viên tên đăng nhập và vai trò cần dùng (Engineer hoặc Reviewer); họ sẽ cấp hoặc đặt lại mật khẩu cho bạn.",
+    contactMail: "Gửi email cho quản trị viên",
     heroTitle: "Từ một câu yêu cầu đến pipeline đã chạy thử.",
     heroSub:
       "P-113 lập kế hoạch, sinh model dbt và DAG Airflow, chạy thử trong sandbox DuckDB, tìm query chậm và đề xuất tối ưu. Người duyệt xem bằng chứng rồi mới merge.",
@@ -111,6 +116,9 @@ export const LOGIN_TEXT: Record<Lang, LoginText> = {
     submitting: "Signing in…",
     forgot: "Forgot password?",
     forgotAction: "Contact your administrator",
+    contactText:
+      "Accounts are issued by your company administrator; there is no self-signup. Send them your username and the role you need (Engineer or Reviewer) and they will issue or reset your password.",
+    contactMail: "Email the administrator",
     heroTitle: "From one sentence to a pipeline that already ran.",
     heroSub:
       "P-113 plans the work, generates dbt models and Airflow DAGs, runs them in a DuckDB sandbox, finds slow queries and suggests optimisations. A reviewer checks the evidence before anything is merged.",
@@ -159,4 +167,6 @@ export const DEMO_ACCOUNTS: { user: string; password: string; role: keyof LoginT
   { user: "quantri", password: "Demo-Admin-2026", role: "admin" },
 ];
 export const SHOW_DEMO_ACCOUNTS = process.env.NEXT_PUBLIC_SHOW_DEMO_ACCOUNTS === "true";
+/** Email quản trị viên (công khai, tùy chọn): đặt NEXT_PUBLIC_ADMIN_CONTACT khi build thì nút Liên hệ có thêm liên kết gửi email. */
+export const ADMIN_CONTACT = (process.env.NEXT_PUBLIC_ADMIN_CONTACT || "").trim();
 export const DEMO_COMMAND = "python demo/run_demo.py";
