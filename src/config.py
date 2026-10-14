@@ -21,6 +21,7 @@ DEFAULT_TIMEOUT_SEC = 120
 CODEGEN_MAX_TEMPERATURE = 0.2
 MODELS_FILE = Path(__file__).resolve().parent.parent / "config" / "models.yaml"
 INPUT_GATE_FILE = Path(__file__).resolve().parent.parent / "config" / "input_gate.yaml"
+DRIFT_RULES_FILE = Path(__file__).resolve().parent.parent / "config" / "drift_rules.yaml"
 TASKS = ("planner", "codegen", "testgen", "optimizer")
 GATE_TASK = "input_gate"  # bộ phân loại tầng 2 của cửa kiểm tra đầu vào: model riêng, rẻ nhất, không dùng model của planner/optimizer
 
@@ -166,6 +167,19 @@ class Settings(BaseSettings):
     sandbox_hash_salt: str = (
         ""  # muối băm cột nhạy cảm; đặt giá trị bí mật khi triển khai (trống: muối mặc định, đủ cho demo)
     )
+
+    # Giám sát thay đổi cấu trúc nguồn (giai đoạn 5)
+    drift_gate_enabled: bool = True  # tắt = bỏ bước G1 (chỉ dùng cho test/demo; bản chuẩn luôn bật)
+    drift_check_token: str = ""  # khóa nội bộ cho POST /sources/check-drift (lịch GitHub Actions); trống = tắt endpoint
+    drift_null_pct_delta: float = Field(
+        default=20.0, ge=0.0
+    )  # % rỗng của cột tăng hơn chừng này điểm phần trăm → cảnh báo
+    drift_rowcount_ratio: float = Field(
+        default=3.0, gt=1.0
+    )  # số dòng lệch hơn chừng này lần (tăng hoặc giảm) → cảnh báo
+    cast_fail_threshold: float = Field(
+        default=0.01, ge=0.0, le=1.0
+    )  # tỷ lệ dòng không ép được kiểu tối đa của pipeline sinh ra
 
     # Dữ liệu thử (E2)
     seed: int = 42

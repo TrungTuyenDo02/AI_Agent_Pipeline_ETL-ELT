@@ -7,7 +7,7 @@ import type { RunDetail, Stage } from "@/lib/types";
 import { CheckIcon, Icon, SpinningIcon } from "../../icons";
 import { StatusPill } from "../../StatusPill";
 import { Loading, StepCard } from "../../ui";
-import { ClarifyForm, InputInfoForm, RescueForm, SchemaForm } from "../PendingAction";
+import { ClarifyForm, DriftForm, InputInfoForm, RescueForm, SchemaForm } from "../PendingAction";
 import { PlanReview } from "../PlanReview";
 import { useRun } from "../RunContext";
 import { SpecBody } from "../SpecCard";
@@ -42,15 +42,17 @@ function NeedYou() {
 export function RequestStep({ detail }: { detail: RunDetail }) {
   const { record } = detail;
   const input = detail.pending?.kind === "input" ? detail.pending : null;
+  const drift = detail.pending?.kind === "drift" ? detail.pending : null;
   return (
     <StepCard
       step={1}
       title="Yêu cầu"
-      state={input ? "active" : "done"}
-      aside={input ? <NeedYou /> : <StatusPill status={record.status} />}
+      state={input || drift ? "active" : "done"}
+      aside={input || drift ? <NeedYou /> : <StatusPill status={record.status} />}
     >
       <blockquote className="request-quote">{record.request_text}</blockquote>
       {input && <InputInfoForm message={input.message} rewrite={input.code === "rewrite"} />}
+      {drift && <DriftForm message={drift.message} changes={drift.changes} />}
       {record.status === "rejected_input" && record.summary.error && (
         <div className="alert warn" role="status" style={{ whiteSpace: "pre-line" }}>
           <span>{record.summary.error}</span>
@@ -212,7 +214,7 @@ function TrackerRow({ stage, detail }: { stage: Stage; detail: RunDetail }) {
 
 export function TrackerStep({ detail }: { detail: RunDetail }) {
   const stages = (detail.stages ?? []).filter(
-    (s) => !["input_gate", "planner", "clarify", "spec_check", "plan_review"].includes(s.id),
+    (s) => !["input_gate", "drift_gate", "planner", "clarify", "spec_check", "plan_review"].includes(s.id),
   );
   const started = stages.some((s) => s.state !== "waiting");
   const done = detail.record.status === "approved";

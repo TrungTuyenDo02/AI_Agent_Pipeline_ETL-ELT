@@ -6,7 +6,7 @@ import { useApp } from "@/components/AppContext";
 import { useToast } from "@/components/Toast";
 import { Card, Empty, ErrorBox, Loading } from "@/components/ui";
 import { apiPatch, apiPost, messageOf } from "@/lib/api";
-import type { Department, LLMAccess, Sensitivity, SourceKind, SourceView } from "@/lib/types";
+import type { Department, DriftReport, LLMAccess, Sensitivity, SourceKind, SourceView } from "@/lib/types";
 import { usePoll } from "@/lib/usePoll";
 
 // Sổ nguồn dữ liệu (CLAUDE.md bản 2, giai đoạn 3). Người thường chỉ thấy nguồn của phòng ban mình; Admin đăng ký, sửa nguồn.
@@ -184,6 +184,31 @@ function SourceRow({ source, isAdmin, onDone }: { source: SourceView; isAdmin: b
     }
   }
 
+  const { user } = useApp();
+  const canCheck = user?.role === "admin" || user?.role === "engineer";
+
+  async function checkDrift() {
+    setBusy(true);
+    setError("");
+    try {
+      const report = await apiPost<DriftReport>(`/sources/${source.id}/check-drift`, {});
+      const blocking = report.open_breaking.length;
+      toast(
+        report.unreachable.length
+          ? "Không kiểm được nguồn này (mất kết nối hoặc thiếu bí mật)."
+          : blocking
+            ? `Có ${blocking} thay đổi chặn đang mở: xem trang Thay đổi cấu trúc.`
+            : report.new_changes.length
+              ? `Phát hiện ${report.new_changes.length} thay đổi mới, không có thay đổi chặn.`
+              : "Cấu trúc nguồn không đổi so với bản chuẩn.",
+      );
+    } catch (exc) {
+      setError(messageOf(exc));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <tr data-inactive={!source.enabled || undefined}>
       <td>
@@ -232,6 +257,11 @@ function SourceRow({ source, isAdmin, onDone }: { source: SourceView; isAdmin: b
           "Đang bật"
         ) : (
           "Đang tắt"
+        )}
+        {canCheck && source.enabled && (
+          <button type="button" className="btn small" disabled={busy} onClick={checkDrift}>
+            Kiểm tra lại cấu trúc
+          </button>
         )}
         {error && (
           <div className="small" style={{ color: "var(--fail)" }}>

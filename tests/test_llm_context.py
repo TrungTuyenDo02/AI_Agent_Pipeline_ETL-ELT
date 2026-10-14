@@ -237,7 +237,15 @@ ONLY_CONTEXT_MAY_USE = (
     "table_profile(",
     "masked_sample(",
 )
-ALLOWED = {"src/services/llm_context.py", "src/services/prompt_context.py", "src/services/profiling.py"}
+ALLOWED = {
+    "src/services/llm_context.py",
+    "src/services/prompt_context.py",
+    "src/services/profiling.py",
+    # bộ nạp cài `get_profile`/`sample` của giao diện chung: chỉ llm_context được GỌI chúng để dựng ngữ cảnh cho prompt
+    "src/services/connectors/file.py",
+    "src/services/connectors/duckdb_conn.py",
+    "src/services/connectors/postgres.py",
+}
 
 
 def test_no_node_builds_data_context_by_itself():

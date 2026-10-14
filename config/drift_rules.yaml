@@ -1,0 +1,19 @@
+# Luật phân loại thay đổi cấu trúc nguồn (giai đoạn 5, src/services/schema_drift.py). Sửa file là đủ, không cần sửa code.
+#
+# Kiểu viết theo kiểu CHUẨN HÓA của bộ nạp: integer, decimal, float, string, boolean, date, timestamp, json, other.
+
+# Đổi kiểu theo hướng mở rộng an toàn (từ → sang): chỉ cảnh báo (warning). MỌI đổi kiểu không có trong bảng này coi là breaking
+# (ví dụ string → integer, decimal → string, timestamp → date).
+safe_widening:
+  - [integer, decimal]
+  - [integer, float]
+  - [decimal, float]
+  - [date, timestamp]
+
+# Nghi đổi tên cột: xóa một cột và thêm một cột CÙNG KIỂU, và cùng vị trí hoặc tên gần giống (độ giống 0–1) trong cùng bảng.
+rename_name_similarity: 0.6
+
+# Cảnh báo thống kê (không chặn): % rỗng tăng quá DRIFT_NULL_PCT_DELTA điểm; số dòng lệch quá DRIFT_ROWCOUNT_RATIO lần;
+# dạng giá trị mới chiếm quá new_shape_share (%); khoảng giá trị cột số lệch quá range_shift_ratio lần ("có thể đổi đơn vị").
+new_shape_share: 5
+range_shift_ratio: 100

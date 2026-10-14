@@ -12,6 +12,7 @@ class RunStatus(StrEnum):
     WAITING_INPUT = "waiting_input"  # cửa kiểm tra đầu vào hỏi bổ sung / xin viết lại yêu cầu
     WAITING_CLARIFICATION = "waiting_clarification"
     WAITING_PLAN = "waiting_plan_review"
+    WAITING_DRIFT = "waiting_drift"  # nguồn đổi cấu trúc kiểu breaking: chờ Engineer xác nhận hoặc dừng
     WAITING_SCHEMA = "waiting_schema"
     WAITING_RESCUE = "waiting_rescue"
     WAITING_REVIEW = "waiting_review"

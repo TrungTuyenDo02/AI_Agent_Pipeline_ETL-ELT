@@ -1,6 +1,7 @@
 """Test bộ đánh giá Phase 6: golden (kết quả đúng kiểm bằng SQL chuẩn), đột biến áp dụng được, chọn đáp án J1."""
 
 import sys
+from fnmatch import fnmatch
 from pathlib import Path
 
 import pytest
@@ -35,7 +36,11 @@ def test_golden_expected_matches_reference_sql(case: Path, tmp_path: Path, monke
 @pytest.mark.parametrize("mutant", MUTANTS, ids=lambda m: m["id"])
 def test_every_mutant_applies_to_base_pipeline(mutant: dict, built_state: dict):
     """Đột biến phải tìm thấy đoạn code cần thay; nếu pipeline mẫu đổi thì test này báo để sửa mutants.yaml."""
-    assert mutant["old"] in built_state["code_files"][mutant["file"]]
+    files = built_state[mutant.get("store", "code_files")]
+    if mutant.get("remove"):
+        assert any(fnmatch(path, mutant["file"]) for path in files)
+    else:
+        assert mutant["old"] in files[mutant["file"]]
 
 
 @pytest.mark.parametrize(

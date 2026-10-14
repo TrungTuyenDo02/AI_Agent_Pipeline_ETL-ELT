@@ -13,6 +13,7 @@ from src.agents.tools.duckdb_tools import RAW_SCHEMA, connect_read
 from src.agents.tools.pii import mask_rows
 from src.agents.tools.sql_tools import SOURCE_RE, SqlCheckError, render_dbt_sql
 from src.models.contracts import SandboxResult, hand_off
+from src.services.connectors.base import normalize_type
 
 logger = logging.getLogger(__name__)
 SAMPLE_ROWS = 10
@@ -60,13 +61,32 @@ def reconcile_staging(db: Path, files: dict[str, str]) -> list[dict]:
     return out
 
 
+def type_mismatches(db: Path, spec) -> list[str]:  # noqa: ANN001 — PipelineSpec
+    """Kiểu cột của bảng đích phải cùng nhóm kiểu với đặc tả (integer/decimal/float/string/boolean/date/timestamp). Thay cho hợp
+    đồng mô hình dbt (`contract: enforced`): dbt-duckdb chưa ổn định với kiểu thập phân/thời gian, xem docs/adr/0010."""
+    with connect_read(db) as con:
+        rows = con.execute(
+            "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = 'main' AND table_name = ?",
+            [spec.target],
+        ).fetchall()
+    actual = {name.lower(): data_type for name, data_type in rows}
+    issues = []
+    for column in spec.output_columns:
+        want, got = normalize_type(column.type), normalize_type(actual.get(column.name.lower(), ""))
+        if want != "other" and got != "other" and want != got:
+            issues.append(
+                f"Cột {column.name} của bảng đích có kiểu {actual[column.name.lower()]} nhưng đặc tả yêu cầu {column.type}."
+            )
+    return issues
+
+
 def _summary(result: DbtResult) -> dict:
     tests = [r for r in result.results if r.unique_id.startswith("test.")]
     models = [r for r in result.results if r.unique_id.startswith("model.")]
     return {
         "models_ok": sum(r.status == "success" for r in models),
         "models_total": len(models),
-        "tests_ok": sum(r.status == "pass" for r in tests),
+        "tests_ok": sum(r.status in ("pass", "warn") for r in tests),
         "tests_total": len(tests),
     }
 
@@ -79,6 +99,10 @@ def sandbox_run_node(state: PipelineState) -> dict:
     spec = spec_of(state)
     if not result.ok:
         message = failure_message(result)
+        sandbox = hand_off(SandboxResult, {"passed": False, "error": message, **_summary(result)})
+        return {"sandbox": sandbox, **register_failure(state, message, state["code_files"].get(mart_path(spec), ""))}
+    if mismatched := type_mismatches(sandbox_db(state), spec):
+        message = "\n".join(mismatched)
         sandbox = hand_off(SandboxResult, {"passed": False, "error": message, **_summary(result)})
         return {"sandbox": sandbox, **register_failure(state, message, state["code_files"].get(mart_path(spec), ""))}
     rows, sample = mart_sample(sandbox_db(state), spec.target)

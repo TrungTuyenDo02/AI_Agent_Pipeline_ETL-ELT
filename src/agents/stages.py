@@ -10,6 +10,7 @@ from pydantic import BaseModel
 # (id, mã, tên, loại E/V/J, các node graph thuộc nút này, nút tùy chọn — chỉ hiện khi đã xảy ra)
 STAGES: list[tuple[str, str, str, str, tuple[str, ...], bool]] = [
     ("input_gate", "G0", "Kiểm tra đầu vào", "V", ("input_gate", "input_info"), True),
+    ("drift_gate", "G1", "Kiểm tra cấu trúc nguồn", "V", ("drift_gate",), True),
     ("planner", "E1", "Lập kế hoạch", "E", ("planner",), False),
     ("clarify", "J1", "Hỏi làm rõ", "J", ("clarify",), True),
     ("spec_check", "V0", "Soát đặc tả", "V", ("spec_check",), False),
@@ -26,6 +27,7 @@ STAGES: list[tuple[str, str, str, str, tuple[str, ...], bool]] = [
     ("review", "J2", "Duyệt code", "J", ("review", "package", "finalize"), False),
 ]
 PENDING_STAGE = {
+    "drift": "drift_gate",
     "input": "input_gate",
     "clarify": "clarify",
     "plan": "plan_review",
@@ -53,6 +55,7 @@ def _from_values(stage_id: str, values: dict, status: str) -> tuple[str, str] | 
     optimization = values.get("optimization") or {}
     checks: dict[str, tuple[str, str] | None] = {
         "input_gate": ("passed", "") if (values.get("input_gate") or {}).get("status") == "ok" else None,
+        "drift_gate": ("passed", "") if (values.get("drift") or {}).get("checked") else None,
         "planner": ("passed", "") if values.get("spec") else None,
         "clarify": ("passed", f"{len(values['answered'])} câu đã trả lời") if values.get("answered") else None,
         "spec_check": ("passed", "") if values.get("plan_review") or values.get("workspace") else None,
@@ -91,7 +94,9 @@ def _running_stage(events: list[dict], ids: list[str], current_node: str | None 
     if current_node and (found := stage_of(current_node)):
         return found
     if not events:
-        return next(s for s in ids if s != "input_gate")  # cửa kiểm tra chỉ hiện khi đã chạy (nút tùy chọn)
+        return next(
+            s for s in ids if s not in ("input_gate", "drift_gate")
+        )  # hai cửa chỉ hiện khi đã chạy (nút tùy chọn)
     stage = stage_of(str(events[-1].get("node")))
     if stage is None:
         return None

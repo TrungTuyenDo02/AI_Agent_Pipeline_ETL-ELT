@@ -19,6 +19,12 @@ class AnswerBody(BaseModel):
     answers: dict[str, str | list[str]] = Field(min_length=1)
 
 
+class DriftBody(BaseModel):
+    """Trả lời khi nguồn đổi cấu trúc kiểu breaking: dùng cấu trúc mới (`continue`) hoặc dừng (`abort`)."""
+
+    action: Literal["continue", "abort"]
+
+
 class InputBody(BaseModel):
     """Trả lời cửa kiểm tra đầu vào: gửi thông tin bổ sung / yêu cầu viết lại, hoặc dừng."""
 
@@ -96,6 +102,7 @@ class RunDetail(BaseModel):
     value_filters: list[dict] = []  # mục 9: điều kiện cứng theo giá trị (tô sáng ở màn duyệt)
     reconciliation: list[dict] = []  # mục 9: số dòng vào → ra từng model staging
     retryable: bool = False  # lần chạy lỗi nhưng còn checkpoint: có nút "Chạy lại từ bước lỗi"
+    drift: dict = {}  # cảnh báo cấu trúc nguồn: {warnings (lúc bắt đầu), recheck: {blocked, breaking, warnings} (ngay trước J2)}
 
 
 class RunFiles(BaseModel):

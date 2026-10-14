@@ -35,6 +35,7 @@ class DuckDBConnector(SourceConnector):
     def __init__(self, source: DataSource) -> None:
         super().__init__(source)
         self._tables: dict[str, tuple[str, str, dict[str, str]]] | None = None  # tên → (schema, bảng, cột → kiểu)
+        self._nullable: dict[str, dict[str, bool]] = {}
 
     def path(self) -> Path:
         return Path(secrets.resolve(self.source.secret_ref))
@@ -51,19 +52,20 @@ class DuckDBConnector(SourceConnector):
     def _load_tables(self) -> dict[str, tuple[str, str, dict[str, str]]]:
         if self._tables is None:
             sql = (
-                "SELECT c.table_schema, c.table_name, c.column_name, c.data_type FROM information_schema.columns c "
+                "SELECT c.table_schema, c.table_name, c.column_name, c.data_type, c.is_nullable FROM information_schema.columns c "
                 "JOIN information_schema.tables t ON t.table_schema = c.table_schema AND t.table_name = c.table_name "
                 "WHERE t.table_type = 'BASE TABLE' ORDER BY c.table_schema, c.table_name, c.ordinal_position"
             )
             found: dict[str, tuple[str, str, dict[str, str]]] = {}
             with self._read() as con:
-                for schema, table, column, dtype in con.execute(sql).fetchall():
+                for schema, table, column, dtype, nullable in con.execute(sql).fetchall():
                     if schema in SYSTEM_SCHEMAS:
                         continue
                     name = display_name(schema, table)
                     if not (self.source.allows_table(name) or self.source.allows_table(table)):
                         continue
                     found.setdefault(name, (schema, table, {}))[2][column] = dtype
+                    self._nullable.setdefault(name, {})[column] = str(nullable).upper() != "NO"
             self._tables = found
         return self._tables
 
@@ -72,7 +74,8 @@ class DuckDBConnector(SourceConnector):
 
     def get_schema(self, table: str) -> TableSchema:
         self.require_table(table)
-        return TableSchema(name=table, columns=dict(self._load_tables()[table][2]))
+        columns = dict(self._load_tables()[table][2])
+        return TableSchema(name=table, columns=columns, nullable=dict(self._nullable.get(table, {})))
 
     def catalog(self) -> list[dict]:
         return [

@@ -1,0 +1,118 @@
+{
+ "summary": {
+  "date": "2026-10-14",
+  "total": 6,
+  "blocked_or_failed_early": 4,
+  "harmless_unchanged": 1,
+  "warned_only": 1,
+  "silent_wrong": 0,
+  "false_alarms": 0,
+  "mean_detect_seconds": 0.29
+ },
+ "control": {
+  "false_alarms": 0,
+  "pipeline": "passed_same"
+ },
+ "rows": [
+  {
+   "key": "money_to_number",
+   "title": "Cột tiền từ chuỗi sang số (shopee_orders.total_amount)",
+   "expect": "blocked",
+   "structure": [
+    "breaking: type_incompatible"
+   ],
+   "stats": [
+    "stat_new_shape"
+   ],
+   "hints": [],
+   "gate_blocks": true,
+   "pipeline": "fail_early",
+   "pipeline_detail": "cau truc nguon da doi so voi luc sinh pipeline:; Cot shopee_orders.total_amount doi kieu: ky vong varchar, thuc te bigint.",
+   "silent_wrong": false,
+   "detect_seconds": 0.27,
+   "rerun_seconds": 5.17
+  },
+  {
+   "key": "rename_column",
+   "title": "Đổi tên cột order_date → ordered_at (shopee_orders)",
+   "expect": "blocked",
+   "structure": [
+    "breaking: possible_rename"
+   ],
+   "stats": [],
+   "hints": [
+    "possible_rename: order_date → ordered_at"
+   ],
+   "gate_blocks": true,
+   "pipeline": "fail_early",
+   "pipeline_detail": "cau truc nguon da doi so voi luc sinh pipeline:; Cot shopee_orders.order_date khong con o nguon.",
+   "silent_wrong": false,
+   "detect_seconds": 0.31,
+   "rerun_seconds": 4.98
+  },
+  {
+   "key": "drop_used_column",
+   "title": "Xóa cột đang dùng (tiki_orders.grand_total)",
+   "expect": "blocked",
+   "structure": [
+    "breaking: column_removed"
+   ],
+   "stats": [],
+   "hints": [],
+   "gate_blocks": true,
+   "pipeline": "fail_early",
+   "pipeline_detail": "cau truc nguon da doi so voi luc sinh pipeline:; Cot tiki_orders.grand_total khong con o nguon.",
+   "silent_wrong": false,
+   "detect_seconds": 0.27,
+   "rerun_seconds": 5.01
+  },
+  {
+   "key": "add_column",
+   "title": "Thêm cột mới (website_orders.channel)",
+   "expect": "harmless",
+   "structure": [
+    "info: column_added"
+   ],
+   "stats": [],
+   "hints": [],
+   "gate_blocks": false,
+   "pipeline": "passed_same",
+   "pipeline_detail": "",
+   "silent_wrong": false,
+   "detect_seconds": 0.29,
+   "rerun_seconds": 11.88
+  },
+  {
+   "key": "null_heavy",
+   "title": "Cột ngày bỗng rỗng nhiều (shopee_orders.order_date rỗng ~60%)",
+   "expect": "blocked",
+   "structure": [],
+   "stats": [
+    "stat_null_increase"
+   ],
+   "hints": [],
+   "gate_blocks": false,
+   "pipeline": "fail_test",
+   "pipeline_detail": "d0b38a8c9d, fct_daily_revenue",
+   "silent_wrong": false,
+   "detect_seconds": 0.31,
+   "rerun_seconds": 10.81
+  },
+  {
+   "key": "money_x1000",
+   "title": "Cột tiền đổi đơn vị ×1000 (shopee_orders.total_amount: 1.075.000 → 1.075.000.000)",
+   "expect": "warned",
+   "structure": [],
+   "stats": [
+    "stat_new_shape"
+   ],
+   "hints": [],
+   "gate_blocks": false,
+   "pipeline": "passed_different",
+   "pipeline_detail": "",
+   "silent_wrong": false,
+   "detect_seconds": 0.29,
+   "rerun_seconds": 11.22
+  }
+ ]
+}

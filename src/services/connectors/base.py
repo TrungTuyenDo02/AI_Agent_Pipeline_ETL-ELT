@@ -60,6 +60,7 @@ class TableSchema(BaseModel):
 
     name: str
     columns: dict[str, str]
+    nullable: dict[str, bool] = Field(default_factory=dict)  # cột → cho phép rỗng (không biết thì bỏ trống = có)
 
 
 class SchemaFingerprint(BaseModel):

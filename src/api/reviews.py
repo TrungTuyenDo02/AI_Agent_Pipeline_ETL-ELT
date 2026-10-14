@@ -8,7 +8,7 @@ from src.api.deps import FORBIDDEN, LoggedIn, Reviewer, client_ip, run_or_404, r
 from src.api.requests import Accepted, ReviewBody
 from src.models.evidence import ReviewDecision
 from src.models.schemas import RunRecord, RunStatus
-from src.services import auth
+from src.services import auth, schema_drift
 from src.services.jobs import JobLimitError, get_jobs
 from src.services.store import get_store
 
@@ -38,6 +38,13 @@ def review(run_id: str, body: ReviewBody, user: Reviewer, request: Request) -> A
         raise HTTPException(status_code=403, detail=str(exc) or FORBIDDEN) from exc
     except RunStateError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if (
+        body.decision == "approve"
+    ):  # ngay trước J2: cấu trúc nguồn đổi kiểu breaking sau lúc sinh code thì chặn nút duyệt
+        report = schema_drift.recheck_run(runner.get_values(run_id), run_id)
+        if report.blocked:
+            what = "; ".join(c.detail for c in report.open_breaking[:3])
+            raise HTTPException(status_code=409, detail=schema_drift.BLOCKED_REVIEW.format(what=what))
     if body.decision == "reject":  # từ chối → agent sửa lại (tốn LLM): tính giới hạn của người tạo yêu cầu
         try:
             get_jobs().check(owner, run_id)

@@ -57,7 +57,7 @@ def _chosen_columns(spec: dict, catalog: list[dict]) -> list[str]:
     return sorted({c for item in catalog if item.get("name") in names for c in item.get("columns", {})})
 
 
-def plan_payload(spec: dict, catalog: list[dict] | None = None) -> dict:
+def plan_payload(spec: dict, catalog: list[dict] | None = None, drift_warnings: list[dict] | None = None) -> dict:
     """Nội dung hiển thị cho DE ở J1b."""
     steps = spec.get("plan") or default_plan(spec)
     return {
@@ -69,6 +69,7 @@ def plan_payload(spec: dict, catalog: list[dict] | None = None) -> dict:
         "sources": [s.get("name") for s in spec.get("sources", [])],
         "next_steps": NEXT_STEPS,
         "time_columns": _chosen_columns(spec, catalog or []),
+        "drift_warnings": drift_warnings or [],  # thay đổi cấu trúc nguồn mức info/warning (không chặn)
         "option_choices": {  # giá trị DE được chọn ở J1b (mặc định là lựa chọn code đề xuất trong spec.options)
             "load_mode": [{"value": k, "label": v} for k, v in LOAD_LABELS.items()],
             "schedule": [{"value": k, "label": v} for k, v in SCHEDULE_LABELS.items()],
@@ -116,7 +117,8 @@ def _spec_with_choice(spec: dict, choice: dict[str, str], catalog: list[dict]) -
 def plan_review_node(state: PipelineState) -> dict:
     """Tạm dừng chờ DE; sửa → ghi chú chuyển cho Planner lập lại kế hoạch; đồng ý → lựa chọn pipeline của DE vào spec."""
     catalog = state.get("source_catalog", [])
-    reply = parse_plan_reply(interrupt(plan_payload(state.get("spec", {}), catalog)))
+    warnings = (state.get("drift") or {}).get("warnings", [])
+    reply = parse_plan_reply(interrupt(plan_payload(state.get("spec", {}), catalog, warnings)))
     if reply is None:
         return {"plan_review": {"invalid": True}}
     choice = reply.get("options", {})

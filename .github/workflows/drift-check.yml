@@ -1,0 +1,32 @@
+name: Drift check
+
+# Kiểm tra định kỳ cấu trúc các nguồn dữ liệu: gọi POST /api/v1/sources/check-drift của máy chủ API.
+# Cần hai secret của repo: DRIFT_CHECK_URL (gốc địa chỉ API, vd https://api.congty.vn) và DRIFT_CHECK_TOKEN (trùng
+# biến DRIFT_CHECK_TOKEN trên máy chủ). Thiếu secret thì job bỏ qua, không lỗi. Có thể thay bằng bộ lập lịch khác gọi cùng endpoint.
+on:
+  schedule:
+    - cron: "0 1 * * *" # hằng ngày 01:00 UTC (08:00 giờ VN)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      DRIFT_CHECK_URL: ${{ secrets.DRIFT_CHECK_URL }}
+      DRIFT_CHECK_TOKEN: ${{ secrets.DRIFT_CHECK_TOKEN }}
+    steps:
+      - name: Gọi kiểm tra cấu trúc nguồn
+        run: |
+          if [ -z "$DRIFT_CHECK_URL" ] || [ -z "$DRIFT_CHECK_TOKEN" ]; then
+            echo "Chưa cấu hình DRIFT_CHECK_URL/DRIFT_CHECK_TOKEN: bỏ qua."
+            exit 0
+          fi
+          code=$(curl -sS -o response.json -w "%{http_code}" -X POST \
+            -H "X-Drift-Token: $DRIFT_CHECK_TOKEN" \
+            "${DRIFT_CHECK_URL%/}/api/v1/sources/check-drift")
+          cat response.json
+          echo
+          test "$code" = "200"

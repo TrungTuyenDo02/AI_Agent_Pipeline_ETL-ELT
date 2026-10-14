@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 
-import type { ClarifyQuestion, SchemaReport } from "@/lib/types";
+import type { ClarifyQuestion, SchemaChange, SchemaReport } from "@/lib/types";
 
 import { useHasRole } from "../AppContext";
 import { RoleNote } from "../Topbar";
@@ -125,6 +125,51 @@ export function InputInfoForm({ message, rewrite }: { message: string; rewrite: 
           onClick={() => send("send")}
         >
           Gửi
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Nguồn đổi cấu trúc kiểu breaking: nêu rõ đổi gì ở đâu; Engineer dùng cấu trúc mới (đặt bản chuẩn mới) hoặc dừng. */
+export function DriftForm({ message, changes }: { message: string; changes: SchemaChange[] }) {
+  const { act } = useRun();
+  const engineer = useHasRole("engineer");
+  const [sending, setSending] = useState(false);
+  const [failure, setFailure] = useState("");
+
+  async function send(action: "continue" | "abort") {
+    setSending(true);
+    setFailure(
+      await act(
+        "/drift",
+        { action },
+        action === "continue" ? "Đã đặt cấu trúc mới làm bản chuẩn, agent chạy tiếp." : "Đã dừng lần chạy.",
+      ),
+    );
+    setSending(false);
+  }
+
+  return (
+    <div className="stack" style={{ gap: 10 }}>
+      <RoleNote need="engineer" />
+      <div className="alert danger" role="alert" style={{ whiteSpace: "pre-line" }}>
+        <span>{message}</span>
+      </div>
+      <ul className="schema-cols">
+        {changes.map((c) => (
+          <li key={c.id}>
+            <span className="badge danger">{c.table}</span> {c.detail}
+          </li>
+        ))}
+      </ul>
+      {failure && <ErrorBox message={failure} />}
+      <div className="row" style={{ justifyContent: "flex-end" }}>
+        <button type="button" className="btn danger" disabled={sending || !engineer} onClick={() => send("abort")}>
+          Dừng lần chạy
+        </button>
+        <button type="button" className="btn primary" disabled={sending || !engineer} onClick={() => send("continue")}>
+          Tôi đã biết, dùng cấu trúc mới
         </button>
       </div>
     </div>

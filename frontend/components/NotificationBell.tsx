@@ -12,6 +12,7 @@ import { BellIcon } from "./icons";
 /** Bước chờ Engineer (người tạo yêu cầu) và bước chờ Reviewer. */
 export const ENGINEER_ACTION: RunStatus[] = [
   "waiting_input",
+  "waiting_drift",
   "waiting_clarification",
   "waiting_plan_review",
   "waiting_schema",

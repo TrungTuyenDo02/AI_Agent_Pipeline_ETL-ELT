@@ -10,6 +10,7 @@ from src.services.schema_watch import SchemaReport
 NODE_LABELS = {
     "input_gate": "G0 Kiểm tra đầu vào",
     "input_info": "G0 Bổ sung yêu cầu",
+    "drift_gate": "G1 Kiểm tra cấu trúc nguồn",
     "planner": "E1 Lập kế hoạch",
     "clarify": "J1 Hỏi làm rõ",
     "plan_review": "J1b Duyệt kế hoạch",
@@ -109,6 +110,11 @@ def _detail_default(node: str, update: dict) -> tuple[bool, str]:
     if update.get("error"):
         return False, update["error"][:120]
     simple = {
+        "drift_gate": lambda u: (
+            "cấu trúc nguồn không có thay đổi chặn"
+            if (u.get("drift") or {}).get("checked")
+            else "chưa kiểm (không có cơ sở dữ liệu)"
+        ),
         "input_gate": lambda u: "đạt" if (u.get("input_gate") or {}).get("status") == "ok" else "bị chặn",
         "ingest": lambda u: ", ".join(f"{k}: {v} dòng" for k, v in u.get("row_counts", {}).items()),
         "profiler": lambda u: f"{len(u.get('profile', {}))} bảng",

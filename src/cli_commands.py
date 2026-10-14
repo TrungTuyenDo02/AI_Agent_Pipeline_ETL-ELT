@@ -104,6 +104,15 @@ def _step(outcome: RunOutcome, args: argparse.Namespace) -> RunOutcome | None:
     if kind == "rescue":
         value = {"action": "abort"} if auto else ask_rescue(outcome.pending)
         return runner.resume_run(ResumeRequest(run_id=outcome.run_id, kind="rescue", value=value), print_event)
+    if kind == "drift":  # nguồn đổi cấu trúc kiểu breaking: tự động (--auto) thì dừng, không tự xác nhận thay người
+        console.print(f"[yellow]{outcome.pending.get('message', '')}[/]")
+        go = (
+            not auto
+            and Prompt.ask("Tôi đã biết, dùng cấu trúc mới?", choices=["continue", "abort"], default="abort")
+            == "continue"
+        )
+        value = {"action": "continue" if go else "abort", "by": args.user}
+        return runner.resume_run(ResumeRequest(run_id=outcome.run_id, kind="drift", value=value), print_event)
     if kind == "schema":  # nguồn có cột bị xóa/đổi tên: đổi tên chỉ xác nhận trên web; ở đây chạy tiếp hoặc dừng
         console.print(
             f"[yellow]Cấu trúc nguồn thay đổi: {SchemaReport.model_validate(outcome.pending['report']).summary()}[/]"

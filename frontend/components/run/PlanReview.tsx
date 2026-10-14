@@ -230,6 +230,18 @@ export function PlanReview({ pending }: { pending: PlanPending }) {
           disabled={sending || !engineer}
         />
       )}
+      {!!pending.drift_warnings?.length && (
+        <div className="alert warn" role="status">
+          <span>
+            Nguồn có thay đổi cấu trúc (không chặn, nhưng nên xem):
+            <ul className="plain">
+              {pending.drift_warnings.map((w) => (
+                <li key={w.id}>{w.detail}</li>
+              ))}
+            </ul>
+          </span>
+        </div>
+      )}
       <div className="alert info">
         <span>{pending.next_steps}</span>
       </div>

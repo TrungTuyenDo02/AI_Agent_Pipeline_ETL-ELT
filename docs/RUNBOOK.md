@@ -94,6 +94,19 @@ Trần chi phí: `MAX_CLARIFY_ROUNDS`, `RUN_TOKEN_BUDGET`, `USER_DAILY_RUN_LIMIT
 4. Bộ nạp đọc bằng phiên `BEGIN READ ONLY`, kiểm mọi câu lệnh bằng sqlglot trước khi chạy (chỉ một câu SELECT, chỉ bảng được phép), có `statement_timeout` và giới hạn số dòng; dữ liệu chỉ vào sandbox DuckDB của lần chạy (tập con có hạt giống cố định, cột nhạy cảm của nguồn `high` đã băm).
 5. Kiểm thử với PostgreSQL thật (CI mặc định bỏ qua): `RUN_PG_TESTS=1 PG_SOURCE_DSN=postgresql://postgres:<mật khẩu>@127.0.0.1:5434/p113_retail python -m pytest tests/test_connectors.py` (không có `PG_SOURCE_DSN` thì dùng `TEST_DATABASE_URL`; tài khoản không được tạo schema thì tạm dùng bảng `customers`/`orders` trong `public` rồi xóa).
 
+#### Giám sát thay đổi cấu trúc nguồn (giai đoạn 5)
+
+Hệ thống **phát hiện** khi backend đổi kiểu dữ liệu, đổi tên cột, xóa cột mà không báo; nó **không ngăn được** việc đổi và không tự sửa. Thỏa thuận hợp đồng dữ liệu giữa các đội vẫn là việc của tổ chức.
+
+- **Cập nhật cơ sở dữ liệu:** `alembic upgrade head` (migration `0006_schema_drift`: ảnh chụp cấu trúc, thay đổi, thống kê cơ sở, phụ thuộc pipeline).
+- **Bản chuẩn:** lần kiểm đầu tiên của một nguồn (khi có người chạy, bấm "Kiểm tra lại cấu trúc", hoặc lịch định kỳ) đặt cấu trúc lúc đó làm bản chuẩn. Từ đó mọi lệch được ghi thành thay đổi `info` / `warning` / `breaking`.
+- **Trước mỗi run (cửa G1, 0 token):** có thay đổi `breaking` đang mở → run dừng ở trạng thái "Chờ xác nhận cấu trúc"; Engineer chọn "Tôi đã biết, dùng cấu trúc mới" (đặt bản chuẩn mới, ghi AuditLog) hoặc dừng. `warning`/`info` cho chạy tiếp và hiện ở màn Duyệt kế hoạch.
+- **Trước khi duyệt J2:** kiểm lại; nguồn đổi `breaking` sau lúc sinh code thì cảnh báo đỏ và nút Duyệt bị chặn tới khi chạy lại.
+- **Trang web "Thay đổi cấu trúc":** danh sách thay đổi, pipeline bị ảnh hưởng, nút "Đề xuất bản vá" (chỉ người bấm mới tạo run mới; hệ thống không bao giờ tự tạo, tự chạy hay tự merge).
+- **Kiểm tra định kỳ:** đặt `DRIFT_CHECK_TOKEN` (chuỗi ngẫu nhiên dài) ở máy chủ API, và hai secret của repo GitHub: `DRIFT_CHECK_URL` (vd `https://api.congty.vn`) cùng `DRIFT_CHECK_TOKEN` (cùng giá trị). Workflow `.github/workflows/drift-check.yml` gọi `POST /api/v1/sources/check-drift` hằng ngày (cũng chạy tay được); có thể thay bằng bộ lập lịch khác gọi cùng endpoint với header `X-Drift-Token`.
+- **Pipeline sinh ra tự phòng thủ:** khai báo nguồn dbt (`models/sources.yml`: cột, kiểu, `not_null`/`unique`/`accepted_values`/`freshness`), macro `check_source_schema` chạy trước mọi task (DAG có task đầu tiên gọi nó), không `SELECT *` ở staging/mart, test đếm dòng không ép được kiểu (ngưỡng `CAST_FAIL_THRESHOLD`).
+- **Mô phỏng 6 kịch bản "backend đổi không báo":** `python scripts/simulate_drift.py` (0 token, ghi `eval/results/drift.md`).
+
 ### 2.3 Duyệt (bước con người J2)
 
 ```powershell

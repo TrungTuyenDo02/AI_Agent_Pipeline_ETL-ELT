@@ -113,6 +113,18 @@ Luật cố định (mẫu tấn công prompt, động từ nghiệp vụ, bản
 | `OPT_BENCH_RUNS` | Số lần đo tốc độ (lấy trung vị) | `5` | không |
 | `COMPARE_ABS_TOL` | Sai số tuyệt đối khi so kết quả hai query | `1e-6` | không |
 
+## Giám sát thay đổi cấu trúc nguồn
+
+| Biến | Ý nghĩa | Mặc định | Bí mật |
+|---|---|---|---|
+| `DRIFT_CHECK_TOKEN` | Khóa nội bộ cho `POST /api/v1/sources/check-drift` (header `X-Drift-Token`); trống = kiểm tra định kỳ tắt | trống | **có** |
+| `DRIFT_GATE_ENABLED` | Bật cửa G1: so cấu trúc nguồn với bản chuẩn trước Planner, thay đổi `breaking` chặn run | `true` | không |
+| `DRIFT_NULL_PCT_DELTA` | % rỗng của cột tăng hơn chừng này điểm phần trăm → cảnh báo | `20` | không |
+| `DRIFT_ROWCOUNT_RATIO` | Số dòng lệch hơn chừng này lần (tăng hoặc giảm) → cảnh báo | `3` | không |
+| `CAST_FAIL_THRESHOLD` | Tỷ lệ dòng không ép được kiểu tối đa trong pipeline sinh ra; vượt thì test dbt fail | `0.01` | không |
+
+Bảng kiểu "mở rộng an toàn", ngưỡng tên cột giống nhau (nghi đổi tên), ngưỡng dạng giá trị mới và độ lệch khoảng giá trị nằm ở `config/drift_rules.yaml`.
+
 ## Theo dõi (tùy chọn)
 
 | Biến | Ý nghĩa | Mặc định | Bí mật |

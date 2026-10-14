@@ -49,7 +49,7 @@ SELECT_ONLY = "Chỉ cho phép một câu lệnh SELECT chỉ đọc; câu lện
 PROFILE_ROW_CAP = 200_000  # bảng lớn hơn chỉ đo trên chừng này dòng đầu
 FETCH_BATCH = 2000
 COLUMNS_SQL = (
-    "SELECT table_schema, table_name, column_name, data_type, numeric_precision, numeric_scale "
+    "SELECT table_schema, table_name, column_name, data_type, numeric_precision, numeric_scale, is_nullable "
     "FROM information_schema.columns WHERE table_schema NOT IN ('pg_catalog', 'information_schema', 'pg_toast') "
     "ORDER BY table_schema, table_name, ordinal_position"
 )
@@ -164,7 +164,7 @@ class PostgresConnector(SourceConnector):
         if self._tables is None:
             current = self._select("SELECT current_schema()", system=True)[0][0]
             found: dict[str, dict] = {}
-            for schema, table, column, dtype, precision, scale in self._select(COLUMNS_SQL, system=True):
+            for schema, table, column, dtype, precision, scale, nullable in self._select(COLUMNS_SQL, system=True):
                 if schema in SYSTEM_SCHEMAS or not IDENT_RE.match(table) or not IDENT_RE.match(column):
                     continue
                 name = table if schema == current else f"{schema}__{table}"
@@ -177,6 +177,7 @@ class PostgresConnector(SourceConnector):
                 entry = found.setdefault(name, {"schema": schema, "table": table, "columns": {}, "meta": {}})
                 entry["columns"][column] = dtype
                 entry["meta"][column] = (precision, scale)
+                entry.setdefault("nullable", {})[column] = str(nullable).upper() != "NO"
             self._tables = found
         return self._tables
 
@@ -185,7 +186,8 @@ class PostgresConnector(SourceConnector):
 
     def get_schema(self, table: str) -> TableSchema:
         self.require_table(table)
-        return TableSchema(name=table, columns=dict(self._load_tables()[table]["columns"]))
+        info = self._load_tables()[table]
+        return TableSchema(name=table, columns=dict(info["columns"]), nullable=dict(info.get("nullable", {})))
 
     def catalog(self) -> list[dict]:
         return [

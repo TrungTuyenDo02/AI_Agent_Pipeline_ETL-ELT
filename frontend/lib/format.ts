@@ -5,6 +5,7 @@ import type { Layer, RunStatus } from "./types";
 export const STATUS_LABELS: Record<RunStatus, string> = {
   running: "Đang chạy",
   waiting_input: "Chờ bạn bổ sung yêu cầu",
+  waiting_drift: "Nguồn đổi cấu trúc, chờ xác nhận",
   waiting_clarification: "Chờ trả lời câu hỏi",
   waiting_plan_review: "Chờ duyệt kế hoạch",
   waiting_schema: "Chờ xác nhận cấu trúc",
@@ -18,6 +19,7 @@ export const STATUS_LABELS: Record<RunStatus, string> = {
 export const STATUS_TONES: Record<RunStatus, string> = {
   running: "info",
   waiting_input: "warn",
+  waiting_drift: "danger",
   waiting_clarification: "warn",
   waiting_plan_review: "warn",
   waiting_schema: "danger",

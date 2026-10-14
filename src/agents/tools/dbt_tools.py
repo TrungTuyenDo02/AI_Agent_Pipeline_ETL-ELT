@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -61,9 +62,53 @@ def prepare_workspace(run_id: str) -> Path:
     return workspace
 
 
-def write_sources_yml(workspace: Path, tables: list[str]) -> None:
-    """Khai báo nguồn raw cho dbt từ danh mục thật (code sinh, không phải LLM)."""
-    doc = {"version": 2, "sources": [{"name": "raw", "schema": "raw", "tables": [{"name": t} for t in tables]}]}
+TIME_TYPES = ("DATE", "TIMESTAMP")
+TIME_NAME_RE = re.compile(r"date|time|day|_at$|_on$|_ts$", re.IGNORECASE)
+MAX_ACCEPTED_VALUES = 6
+
+
+def _column_declaration(name: str, info: dict, key: str, unique_key: bool) -> dict:
+    """Một cột nguồn: tên, kiểu kỳ vọng và test. `not_null` cho khóa và cột ngày chưa từng rỗng lúc sinh (rỗng về sau = nguồn đã đổi),
+    `unique` cho khóa chưa từng trùng, `accepted_values` (chỉ cảnh báo) cho cột phân loại ít giá trị."""
+    entry: dict = {"name": name, "data_type": str(info.get("type", "")).lower()}
+    tests: list = []
+    never_null = info.get("null_pct", 100) == 0
+    if never_null and (name == key or TIME_NAME_RE.search(name)):
+        tests.append("not_null")
+    if name == key and unique_key:
+        tests.append("unique")
+    categories = info.get("categories") or []
+    if 0 < len(categories) <= MAX_ACCEPTED_VALUES:
+        tests.append({"accepted_values": {"arguments": {"values": categories}, "config": {"severity": "warn"}}})
+    if tests:
+        entry["data_tests"] = tests
+    return entry
+
+
+def source_tables(profile: dict) -> list[dict]:
+    """Khai báo bảng nguồn từ hồ sơ dữ liệu (code sinh): cột kỳ vọng + kiểu + test + freshness khi có cột thời gian kiểu ngày/giờ."""
+    tables = []
+    for table, info in profile.items():
+        key = info.get("key_column", "")
+        unique_key = bool(key) and info.get("duplicate_keys", 1) == 0
+        columns = info.get("columns", {})
+        entry: dict = {
+            "name": table,
+            "columns": [_column_declaration(n, c, key, unique_key) for n, c in columns.items()],
+        }
+        clock = next((n for n, c in columns.items() if str(c.get("type", "")).upper().startswith(TIME_TYPES)), "")
+        if clock:
+            entry["loaded_at_field"] = f'"{clock}"'
+            entry["freshness"] = {"warn_after": {"count": 1, "period": "day"}}
+        tables.append(entry)
+    return tables
+
+
+def write_sources_yml(workspace: Path, tables: list[str] | dict[str, dict]) -> None:
+    """Khai báo nguồn raw cho dbt từ danh mục thật (code sinh, không phải LLM). Danh sách tên: chỉ bảng; hồ sơ dữ liệu: đủ cột,
+    kiểu, test và freshness để macro `check_source_schema` so cấu trúc thật lúc chạy."""
+    declared = source_tables(tables) if isinstance(tables, dict) else [{"name": t} for t in tables]
+    doc = {"version": 2, "sources": [{"name": "raw", "schema": "raw", "tables": declared}]}
     target = workspace / "models" / "sources.yml"
     target.parent.mkdir(parents=True, exist_ok=True)  # git không lưu thư mục trống: bản clone mới có thể thiếu models/
     target.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
@@ -118,8 +163,43 @@ def _read_run_results(workspace: Path) -> list[DbtNodeResult]:
     ]
 
 
+OK_STATUSES = (
+    "success",
+    "pass",
+    "warn",
+)  # `warn`: test khai báo severity warn (accepted_values) — không làm hỏng lần chạy
+PREFLIGHT_MARK = "P113_SOURCE_SCHEMA_CHANGED"
+PREFLIGHT_FAILED = "Cấu trúc nguồn đã đổi so với lúc sinh pipeline (preflight check_source_schema):"
+
+
+def run_preflight(workspace: Path) -> DbtResult | None:
+    """Chạy macro `check_source_schema` TRƯỚC khi build (cũng là task đầu của DAG). Lệch cấu trúc → DbtResult lỗi có thông báo rõ;
+    khớp → None. dbt không chạy được (macro thiếu) cũng báo lỗi, không im lặng bỏ qua."""
+    command = [
+        sys.executable, "-m", "dbt.cli.main", "run-operation", "check_source_schema",
+        "--project-dir", str(workspace), "--profiles-dir", str(workspace), "--no-use-colors",
+    ]  # fmt: skip
+    try:
+        proc = subprocess.run(  # noqa: S603 — lệnh cố định
+            command, cwd=workspace, env=_dbt_env(), capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=get_settings().sandbox_timeout_sec, check=False,
+        )  # fmt: skip
+    except subprocess.TimeoutExpired:
+        return DbtResult(ok=False, timed_out=True, log_tail="Kiểm tra cấu trúc nguồn vượt quá thời gian cho phép.")
+    if proc.returncode == 0:
+        return None
+    text = f"{proc.stdout}\n{proc.stderr}"
+    if PREFLIGHT_MARK in text:
+        detail = text.split(PREFLIGHT_MARK, 1)[1].lstrip(": ").splitlines()
+        lines = [detail[0].strip(), *[line.strip() for line in detail[1:] if line.strip().startswith("-")]]
+        return DbtResult(ok=False, log_tail=f"{PREFLIGHT_FAILED}\n" + "\n".join(lines))
+    return DbtResult(ok=False, log_tail=_log_tail(proc))
+
+
 def run_dbt_build(workspace: Path) -> DbtResult:
-    """V2: chạy `dbt build` trong tiến trình con (timeout, không có khóa API trong môi trường)."""
+    """V2: chạy preflight cấu trúc nguồn rồi `dbt build` trong tiến trình con (timeout, không có khóa API trong môi trường)."""
+    if (failed := run_preflight(workspace)) is not None:
+        return failed
     (workspace / "target" / "run_results.json").unlink(missing_ok=True)
     command = [
         sys.executable,
@@ -147,7 +227,7 @@ def run_dbt_build(workspace: Path) -> DbtResult:
     except subprocess.TimeoutExpired:
         return DbtResult(ok=False, timed_out=True, log_tail="dbt build vượt quá thời gian cho phép.")
     results = _read_run_results(workspace)
-    ok = proc.returncode == 0 and all(r.status in ("success", "pass") for r in results)
+    ok = proc.returncode == 0 and all(r.status in OK_STATUSES for r in results)
     return DbtResult(ok=ok, results=results, log_tail=_log_tail(proc))
 
 

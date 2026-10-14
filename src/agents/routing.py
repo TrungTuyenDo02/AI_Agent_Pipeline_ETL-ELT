@@ -9,12 +9,17 @@ from src.config import get_settings
 def after_input_gate(state: PipelineState) -> str:
     """G0: bị chặn → kết thúc luồng; cần bổ sung thông tin → hỏi người dùng; đạt → Planner."""
     status = state.get("input_gate", {}).get("status")
-    return END if status == "rejected" else "input_info" if status == "needs_info" else "planner"
+    return END if status == "rejected" else "input_info" if status == "needs_info" else "drift_gate"
 
 
 def after_input_info(state: PipelineState) -> str:
     """Người dùng đã bổ sung → kiểm tra lại; hết vòng hoặc dừng → fail (chuyển cho người xử lý)."""
     return "fail" if state.get("error") else "input_gate"
+
+
+def after_drift_gate(state: PipelineState) -> str:
+    """G1: Engineer chọn dừng khi nguồn đổi cấu trúc kiểu breaking → fail; còn lại → Planner."""
+    return "fail" if state.get("error") else "planner"
 
 
 def after_planner(state: PipelineState) -> str:

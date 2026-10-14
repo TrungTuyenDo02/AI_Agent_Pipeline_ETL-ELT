@@ -129,6 +129,20 @@ def to_dbt_refs(sql: str, models: list[str]) -> str:
     return sql
 
 
+def select_star_issues(sql: str) -> list[str]:
+    """Mọi `SELECT *` / `SELECT t.*` (kể cả trong CTE) ở model staging/mart: phải liệt kê cột tường minh để cột mới ở nguồn không vô
+    tình lọt vào mart và cột bị xóa làm hỏng TO thay vì sai lặng lẽ. `count(*)` không tính. SQL lỗi cú pháp để các kiểm tra khác báo."""
+    try:
+        tree = parse_single_select(render_dbt_sql(sql))
+    except SqlCheckError:
+        return []
+    for select in tree.find_all(exp.Select):
+        for item in select.expressions:
+            if isinstance(item, exp.Star) or (isinstance(item, exp.Column) and isinstance(item.this, exp.Star)):
+                return ["Không dùng SELECT * ở staging/mart: hãy liệt kê cột tường minh (chỉ lớp raw được đọc nguyên)."]
+    return []
+
+
 def parse_single_select(sql: str) -> exp.Query:
     """Parse đúng một câu SELECT; lỗi cú pháp hoặc lệnh khác SELECT đều bị từ chối."""
     try:

@@ -80,7 +80,7 @@ $unions
 ),
 
 deduped as (
-    select *
+    select source, order_id, order_date, status, amount_vnd
     from all_orders
     qualify row_number() over (
         partition by source, order_id
@@ -135,10 +135,11 @@ with DAG(
     catchup=False,
     tags=["p113", "dbt"],
 ) as dag:
+    preflight = BashOperator(task_id="check_source_schema", bash_command=DBT_CMD + " run-operation check_source_schema")
     build_models = BashOperator(task_id="dbt_run", bash_command=DBT_CMD + " run --select +$target")
     run_tests = BashOperator(task_id="dbt_test", bash_command=DBT_CMD + " test --select +$target")
 
-    build_models >> run_tests
+    preflight >> build_models >> run_tests
 ''')
 
 EXPECTED_DAILY = Template("""-- Kỳ vọng tính độc lập từ raw: mỗi ngày một dòng, số đơn hợp lệ và tổng tiền
@@ -278,7 +279,8 @@ def mock_codegen(variables: dict[str, str]) -> dict:
     target, names = spec.get("target") or "fct_daily_revenue", _staging_names(spec)
     statuses = "'completed'" if completed_only else "'completed', 'refunded'"
     joiner = "\n    union\n" if dedup else "\n    union all\n"
-    unions = joiner.join(f"    select * from {{{{ ref('stg_{n}') }}}}" for n in names)
+    columns = "source, order_id, order_date, status, amount_vnd"  # cột tường minh: không SELECT * ở staging/mart
+    unions = joiner.join(f"    select {columns} from {{{{ ref('stg_{n}') }}}}" for n in names)
     mart = (MART_DEDUP if dedup else MART_KEEP_ALL).substitute(unions=unions, statuses=statuses)
     files = {f"models/staging/stg_{n}.sql": STAGING[n] for n in names}
     files[f"models/marts/{target}.sql"] = mart
@@ -289,7 +291,7 @@ def mock_codegen(variables: dict[str, str]) -> dict:
         "Model đích gộp 3 nguồn, "
         + ("bỏ trùng theo (nguồn, mã đơn)" if dedup else "giữ mọi dòng")
         + ", tính theo ngày.",
-        f"DAG Airflow chạy dbt run rồi dbt test {schedule[1]}.",
+        f"DAG Airflow kiểm cấu trúc nguồn (preflight), chạy dbt run rồi dbt test {schedule[1]}.",
     ]
     return {"files": [{"path": k, "content": v} for k, v in files.items()], "notes": notes}
 

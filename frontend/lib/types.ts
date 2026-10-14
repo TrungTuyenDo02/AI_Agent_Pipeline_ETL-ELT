@@ -3,6 +3,7 @@
 export type RunStatus =
   | "running"
   | "waiting_input"
+  | "waiting_drift"
   | "waiting_clarification"
   | "waiting_plan_review"
   | "waiting_schema"
@@ -88,11 +89,13 @@ export interface PlanPending {
   sources: string[];
   next_steps: string;
   time_columns?: string[];
+  drift_warnings?: SchemaChange[];
   option_choices?: { load_mode: OptionChoice[]; schedule: OptionChoice[] };
 }
 
 export type Pending =
   | { kind: "input"; code: string; message: string; missing: string[]; examples: string[] }
+  | { kind: "drift"; message: string; changes: SchemaChange[] }
   | { kind: "clarify"; unknowns: string[]; questions: ClarifyQuestion[] }
   | PlanPending
   | { kind: "schema"; report: SchemaReport }
@@ -209,6 +212,7 @@ export interface RunDetail {
   schema_decision?: { by?: string; renames?: Record<string, string> };
   value_filters?: ValueFilter[];
   reconciliation?: RowReconciliation[];
+  drift?: RunDrift;
 }
 
 /** Mục 8: một đề xuất sửa do code dựng (Reviewer quyết, agent không tự áp dụng). */
@@ -487,4 +491,38 @@ export interface SourceView {
   access_text: string;
   restricted_columns: string[];
   enabled: boolean;
+}
+
+/** Giai đoạn 5: thay đổi cấu trúc nguồn. Chỉ cấu trúc và số đếm, không có giá trị dữ liệu. */
+export type DriftSeverity = "info" | "warning" | "breaking";
+
+export interface SchemaChange {
+  id: number;
+  source_id: number;
+  source_name?: string;
+  table: string;
+  change_type: string;
+  severity: DriftSeverity;
+  detail: string;
+  hint?: string;
+  from_version?: number;
+  to_version?: number;
+  detected_at?: string;
+  status?: "open" | "acknowledged" | "resolved";
+  acknowledged_by?: string;
+  affected_pipelines?: { run_id: string }[];
+}
+
+export interface RunDrift {
+  checked?: boolean;
+  warnings?: SchemaChange[];
+  recheck?: { blocked: boolean; breaking: SchemaChange[]; warnings: SchemaChange[] };
+}
+
+export interface DriftReport {
+  checked_sources: number;
+  unreachable: string[];
+  new_changes: SchemaChange[];
+  open_breaking: SchemaChange[];
+  warnings: SchemaChange[];
 }

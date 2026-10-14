@@ -15,6 +15,7 @@ import re
 import shutil
 import sys
 from datetime import date
+from fnmatch import fnmatch
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -64,9 +65,11 @@ class Mutant(BaseModel):
 
     id: str
     description: str
-    file: str
-    old: str
-    new: str
+    file: str  # đường dẫn tệp; với `remove` có thể là mẫu glob (vd tests/assert_*_castable.sql)
+    old: str = ""
+    new: str = ""
+    store: str = "code_files"  # nơi chứa tệp: code_files (Coder) hoặc test_files (test sinh bởi code/Testgen)
+    remove: bool = False  # true = xóa tệp (vd bỏ test ép kiểu) thay vì thay chuỗi
     also: list[Replacement] = []
     equivalent: bool = False
     labeled_by: str = "author"
@@ -110,7 +113,12 @@ def verify(state: dict) -> Outcome:
 def apply_mutant(base: dict, mutant: Mutant) -> dict | None:
     """Bản sao pipeline đã cấy lỗi; None nếu đoạn code cần thay không còn trong file."""
     state = copy.deepcopy(base)
-    files = state["code_files"]
+    files = state[mutant.store]
+    if mutant.remove:
+        hit = [path for path in files if fnmatch(path, mutant.file)]
+        for path in hit:
+            del files[path]
+        return state if hit else None
     for change in [Replacement(old=mutant.old, new=mutant.new), *mutant.also]:
         if change.old not in files.get(mutant.file, ""):
             return None
@@ -125,7 +133,11 @@ def run_all(base: dict, mutants: list[Mutant]) -> list[dict]:
         state = apply_mutant(base, mutant)
         outcome = verify(state) if state else Outcome(caught=False, by="không áp dụng", detail="không tìm thấy `old`")
         rows.append(
-            {**mutant.model_dump(exclude={"old", "new", "also"}), **outcome.model_dump(), "applied": state is not None}
+            {
+                **mutant.model_dump(exclude={"old", "new", "also", "store", "remove"}),
+                **outcome.model_dump(),
+                "applied": state is not None,
+            }
         )
         print(f"{'✓' if outcome.caught != mutant.equivalent else '✗'} {mutant.id}: {outcome.by}", flush=True)
     return rows

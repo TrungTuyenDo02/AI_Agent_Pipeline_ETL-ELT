@@ -8,6 +8,7 @@ import { Icon } from "./icons";
 
 const STATUS_ICON: Record<Exclude<RunStatus, "running">, IconName> = {
   waiting_input: "warning",
+  waiting_drift: "warning",
   waiting_clarification: "warning",
   waiting_plan_review: "warning",
   waiting_schema: "warning",

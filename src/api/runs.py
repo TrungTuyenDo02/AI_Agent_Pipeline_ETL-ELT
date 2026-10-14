@@ -26,6 +26,7 @@ from src.api.requests import (
     Accepted,
     AnswerBody,
     CreateRunBody,
+    DriftBody,
     InputBody,
     PlanBody,
     RescueBody,
@@ -35,7 +36,7 @@ from src.api.requests import (
 )
 from src.models.schemas import RunRecord
 from src.models.spec import ClarifyQuestion
-from src.services import auth
+from src.services import auth, schema_drift
 from src.services.cost import usage_breakdown
 from src.services.export import export_zip
 from src.services.input_gate import precheck
@@ -71,6 +72,20 @@ def create_run(body: CreateRunBody, user: Engineer, request: Request) -> Accepte
     auth.audit("run.create", user.name, target=run_id, ip=client_ip(request))
     get_jobs().submit(run_id, lambda sink: runner.run_created(run_id, sink), actor=user.name, owner=user.name)
     return Accepted(run_id=run_id, status="running", message="Đã nhận yêu cầu, agent đang chạy.")
+
+
+def _drift_view(run_id: str, values: dict, pending: dict | None) -> dict:
+    """Cảnh báo cấu trúc nguồn lúc bắt đầu; khi chờ duyệt (J2) kiểm lại cấu trúc hiện tại so với lúc bắt đầu."""
+    drift = values.get("drift") or {}
+    out: dict = {"checked": bool(drift.get("checked")), "warnings": drift.get("warnings", [])}
+    if (pending or {}).get("kind") == "review":
+        report = schema_drift.recheck_cached(run_id, values)
+        out["recheck"] = {
+            "blocked": report.blocked,
+            "breaking": [c.model_dump(mode="json") for c in report.open_breaking[:20]],
+            "warnings": [c.model_dump(mode="json") for c in report.warnings[:20]],
+        }
+    return out
 
 
 @router.get("/{run_id}", response_model=RunDetail)
@@ -113,6 +128,7 @@ def get_run(run_id: str, user: LoggedIn) -> RunDetail:
         value_filters=values.get("value_filters", []),
         reconciliation=values.get("reconciliation", []),
         retryable=not busy and str(record.status) == "failed" and not runner.retry_problem(run_id),
+        drift=_drift_view(run_id, values, pending),
     )
 
 
@@ -179,6 +195,54 @@ def retry(run_id: str, user: Engineer, request: Request) -> Accepted:
     auth.audit("run.retry", user.name, target=run_id, ip=client_ip(request))
     get_jobs().submit(run_id, lambda sink: runner.retry_run(run_id, sink), actor=user.name, owner=record.requester)
     return Accepted(run_id=run_id, status="running", message="Đã nhận, agent chạy lại từ bước lỗi.")
+
+
+@router.post("/{run_id}/patch", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
+def propose_patch(run_id: str, user: Engineer, request: Request) -> Accepted:
+    """ "Đề xuất bản vá": tạo lần chạy MỚI từ đặc tả cũ + các thay đổi cấu trúc đang mở (chỉ cấu trúc, không có dữ liệu), đi qua luồng
+    chuẩn (kiểm cấu trúc → sandbox → test → duyệt J2). Chỉ người bấm nút mới tạo bản vá; hệ thống không bao giờ tự làm."""
+    record = run_for_user(run_id, user)
+    values = runner.get_values(run_id)
+    spec = values.get("spec") or {}
+    if not spec.get("target"):
+        raise HTTPException(status_code=409, detail="Lần chạy này chưa có đặc tả nên chưa vá được.")
+    used = {s.get("name") for s in spec.get("sources", [])}
+    source_ids = sorted(
+        {
+            i["source_id"]
+            for i in values.get("source_catalog", [])
+            if i["name"] in used and i.get("source_id") is not None
+        }
+    )
+    changes = [c for c in schema_drift.list_changes(source_ids, status="open") if c.table in used]
+    if not changes:
+        raise HTTPException(
+            status_code=409, detail="Không có thay đổi cấu trúc nào đang mở ảnh hưởng tới lần chạy này."
+        )
+    _check_limits(user.name)
+    patch_id = runner.create_run(schema_drift.patch_request_text(record.request_text, spec, changes), user.name)
+    auth.audit(
+        "run.patch",
+        user.name,
+        target=patch_id,
+        ip=client_ip(request),
+        detail={"from": run_id, "changes": [c.id for c in changes]},
+    )
+    get_jobs().submit(patch_id, lambda sink: runner.run_created(patch_id, sink), actor=user.name, owner=user.name)
+    return Accepted(
+        run_id=patch_id,
+        status="running",
+        message="Đã tạo lần chạy bản vá; bản vá đi qua luồng chuẩn và bạn vẫn duyệt ở J2.",
+    )
+
+
+@router.post("/{run_id}/drift", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
+def confirm_drift(run_id: str, body: DriftBody, user: Engineer, request: Request) -> Accepted:
+    """Nguồn đổi cấu trúc kiểu breaking: "Tôi đã biết, dùng cấu trúc mới" (đặt bản chuẩn mới, ghi AuditLog) rồi chạy tiếp, hoặc dừng."""
+    run_for_user(run_id, user)
+    _pending(run_id, "drift")
+    auth.audit(f"drift.{body.action}", user.name, target=run_id, ip=client_ip(request))
+    return _resume(run_id, "drift", {"action": body.action, "by": user.name}, user)
 
 
 @router.post("/{run_id}/answers", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)

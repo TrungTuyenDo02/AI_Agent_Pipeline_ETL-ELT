@@ -32,6 +32,12 @@ Tiền tố `/api/v1`, riêng `/health` không có tiền tố.
 | GET/POST | `/api/v1/sources/{id}/grants` | admin | Xem / cấp thêm quyền xem cho một người hoặc một phòng ban |
 | DELETE | `/api/v1/sources/grants/{grant_id}` | admin | Thu hồi quyền xem thêm |
 | GET/POST | `/api/v1/departments` | admin | Xem / tạo phòng ban |
+| GET | `/api/v1/schema-changes` | đăng nhập | Thay đổi cấu trúc của nguồn bạn được thấy (lọc `status`, `severity`, `source_id`), kèm pipeline bị ảnh hưởng |
+| POST | `/api/v1/schema-changes/{id}/acknowledge` | admin, engineer | "Tôi đã biết, dùng cấu trúc mới": cấu trúc hiện tại thành bản chuẩn (ghi AuditLog) |
+| POST | `/api/v1/sources/{id}/check-drift` | admin, engineer | Nút "Kiểm tra lại cấu trúc" của một nguồn; trả `DriftReport` (thay đổi mới, thay đổi chặn đang mở, cảnh báo) |
+| POST | `/api/v1/sources/check-drift` | khóa nội bộ | Kiểm tra định kỳ mọi nguồn đang bật; header `X-Drift-Token` = `DRIFT_CHECK_TOKEN`. `503` nếu chưa cấu hình, `403` nếu sai khóa |
+| POST | `/api/v1/runs/{run_id}/drift` | engineer | Cửa G1 chờ: `action` = `continue` (dùng cấu trúc mới làm bản chuẩn) hoặc `abort` |
+| POST | `/api/v1/runs/{run_id}/patch` | engineer | "Đề xuất bản vá": tạo lần chạy MỚI từ đặc tả cũ + thay đổi cấu trúc đang mở (chỉ cấu trúc, không có dữ liệu); đi qua luồng chuẩn. `409` nếu không có thay đổi mở |
 | POST | `/api/v1/runs` | engineer | Tạo yêu cầu (`request_text` tối đa 4000 ký tự) → `202` + `run_id`. Qua cửa kiểm tra đầu vào trước: rỗng, quá ngắn/dài, vô nghĩa, tấn công prompt hoặc lạc đề → `422` + `detail` tiếng Việt kèm ví dụ hợp lệ, không tạo lần chạy. Quá giới hạn lần chạy/ngày → `429` |
 | GET | `/api/v1/runs/{run_id}` | đăng nhập | Trạng thái, câu hỏi đang chờ, tiến trình từng bước, đặc tả, bằng chứng, báo cáo tối ưu |
 | GET | `/api/v1/runs/{run_id}/files` | đăng nhập | Code + test hiện tại và bản vòng trước (để xem diff) |

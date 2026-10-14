@@ -23,6 +23,7 @@ from src.agents.progress import NodeStart, StepEvent, describe, node_started
 from src.config import get_settings
 from src.models.evidence import ReviewDecision
 from src.models.schemas import RunStatus
+from src.services import schema_drift
 from src.services.llm import LLMCallError, LLMConfigError, run_budget
 from src.services.store import get_store
 
@@ -32,6 +33,7 @@ INTERRUPT_STATUS = {
     "input": RunStatus.WAITING_INPUT,
     "clarify": RunStatus.WAITING_CLARIFICATION,
     "plan": RunStatus.WAITING_PLAN,
+    "drift": RunStatus.WAITING_DRIFT,
     "schema": RunStatus.WAITING_SCHEMA,
     "rescue": RunStatus.WAITING_RESCUE,
     "review": RunStatus.WAITING_REVIEW,
@@ -168,6 +170,16 @@ def summarize(values: dict, error: str) -> dict:
     }
 
 
+def record_dependencies(run_id: str, values: dict) -> None:
+    """Pipeline dùng cột nào của nguồn nào (phân tích SQL đã sinh bằng sqlglot): để biết thay đổi cấu trúc nào làm hỏng pipeline nào."""
+    try:
+        used = {s.get("name") for s in values.get("spec", {}).get("sources", [])}
+        catalog = [i for i in values.get("source_catalog", []) if i["name"] in used]
+        schema_drift.save_dependencies(run_id, schema_drift.extract_dependencies(values.get("code_files", {}), catalog))
+    except Exception:  # noqa: BLE001 — lỗi ghi phụ thuộc không được làm hỏng lần chạy
+        logger.exception("pipeline dependencies not saved", extra={"run_id": run_id})
+
+
 def _finish(run_id: str, error: str) -> RunOutcome:
     values, pending = get_values(run_id), pending_interrupt(run_id)
     if error:
@@ -179,6 +191,7 @@ def _finish(run_id: str, error: str) -> RunOutcome:
     get_store().update_run(run_id, status, summarize(values, error))
     if status is RunStatus.WAITING_REVIEW:
         remember_fixes(run_id, values)
+        record_dependencies(run_id, values)
     return RunOutcome(run_id=run_id, status=status, pending=pending, error=error or values.get("error", ""))
 
 

@@ -1,6 +1,8 @@
 <!--
-version: 6
-changes: 2026-10-15 v6 — pipeline options (CLAUDE.md bản 2, 4.4): spec has `options` {load_mode, incremental_column, schedule} chosen
+version: 7
+changes: 2026-10-16 v7 — defensive pipelines (CLAUDE.md bản 2, 5.5): no SELECT * in staging/mart (explicit columns), DAG starts
+  with the check_source_schema preflight task, string columns read with the profile's try_cast-style `duckdb_parse`.
+  2026-10-15 v6 — pipeline options (CLAUDE.md bản 2, 4.4): spec has `options` {load_mode, incremental_column, schedule} chosen
   at the plan review; rule 11 applies them to the DAG schedule and to incremental loading.
   2026-10-13 v5 — CLAUDE.md 2.3: profile no longer carries example values (schema + code-computed stats only);
   rule 10 no longer mentions examples.
@@ -22,11 +24,12 @@ Rules, most important first:
 4. If a column has `normalize` in profile (one value written with different case or spaces), apply that exact expression wherever the column is joined, filtered, deduplicated, compared or grouped, and output the normalized value.
 5. The mart returns exactly the spec's `output_columns` (same names) at the spec's grain. Drop rows whose grain column is null, also null after a join, unless the spec names a replacement label: the system adds a not_null test on grain columns.
 6. Each model is one SELECT (CTEs allowed) without a trailing `;`. Forbidden: DROP, ATTACH, INSTALL, LOAD, COPY, PRAGMA, SET, read_csv/read_parquet/read_json, file paths, URLs. Jinja: only source(), ref(), config().
-7. DAG: Airflow 2.x, `with DAG(...)`, BashOperator running `dbt build`, task order with `>>`. No hard-coded passwords, connection strings or absolute paths; use Airflow Variables or templates.
+7. DAG: Airflow 2.x, `with DAG(...)`, BashOperators, task order with `>>`. The FIRST task runs `dbt run-operation check_source_schema` (source structure preflight), then dbt run, then dbt test: `preflight >> build_models >> run_tests`. No hard-coded passwords, connection strings or absolute paths; use Airflow Variables or templates.
 8. Fix round (previous_code with last_error, reviewer_notes or rescue_hint): fix exactly what is reported in that code and keep what works; error_memory_hints are approved fixes for similar past errors. Return only the files you change; omitted files stay as they are. Check that the outer SELECT uses the column names after the CTE aliases.
 9. `notes`: short Vietnamese explanations of the key decisions.
 10. Filter or group by a specific value only if the spec or decisions name it; profile has no data values to copy from. Map other categorical values to 'khong_ro' instead of dropping rows.
-11. Apply spec.options: schedule hourly → DAG `schedule="@hourly"`, daily → `"@daily"`, event → `schedule=None` (triggered from outside). load_mode incremental → each staging model reads only new rows: `{% if is_incremental() %} where <incremental_column> > (select max(<incremental_column>) from {{ this }}) {% endif %}` and the mart is `{{ config(materialized='incremental', unique_key=<grain>) }}`; load_mode full → plain table, no incremental logic.
+11. Apply spec.options: schedule hourly → DAG `schedule="@hourly"`, daily → `"@daily"`, event → `schedule=None` (triggered from outside). load_mode incremental → the mart starts with `{{ config(materialized='incremental', unique_key='<grain column>') }}` (no is_incremental() block: not allowed); full → no config line.
+12. Never `SELECT *` or `t.*` in staging or mart (count(*) is fine): list columns explicitly, so a new source column does not leak into the mart and a dropped one fails loudly. Read string columns only with `try_cast`-style expressions (the profile's `duckdb_parse`), never a hard cast that would raise or hide failures.
 
 <!-- USER -->
 <data name="profile">
