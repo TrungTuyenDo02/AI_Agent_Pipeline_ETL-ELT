@@ -16,6 +16,7 @@ class RunStatus(StrEnum):
     WAITING_REVIEW = "waiting_review"
     APPROVED = "approved"
     FAILED = "failed"
+    REJECTED_INPUT = "rejected_input"  # bị chặn ở cửa kiểm tra đầu vào: không chạy, không tính hạn mức
 
 
 class RunRecord(BaseModel):

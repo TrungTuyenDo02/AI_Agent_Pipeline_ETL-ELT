@@ -19,6 +19,7 @@ TASK_TIMEOUT_SEC = {"planner": 120, "codegen": 180, "testgen": 120, "optimizer":
 DEFAULT_TIMEOUT_SEC = 120
 CODEGEN_MAX_TEMPERATURE = 0.2
 MODELS_FILE = Path(__file__).resolve().parent.parent / "config" / "models.yaml"
+INPUT_GATE_FILE = Path(__file__).resolve().parent.parent / "config" / "input_gate.yaml"
 TASKS = ("planner", "codegen", "testgen", "optimizer")
 
 
@@ -130,6 +131,21 @@ class Settings(BaseSettings):
     # Giới hạn theo người (CLAUDE.md mục 14): số lần chạy đang chờ/đang chạy; trần chi phí LLM mỗi ngày (0 = không chặn)
     max_active_runs_per_user: int = Field(default=2, ge=1)
     llm_daily_budget_usd: float = Field(default=1.0, ge=0.0)
+
+    # Cửa kiểm tra đầu vào (tầng 0–2) + trần chi phí toàn hệ thống (CLAUDE.md bản 2, mục 1). Đặt 0 = không chặn.
+    input_min_chars: int = Field(default=10, ge=1)
+    input_max_chars: int = Field(default=2000, ge=10)
+    input_gate_file: Path = INPUT_GATE_FILE
+    input_gate_cache_size: int = Field(
+        default=512, ge=0
+    )  # số kết quả kiểm tra nhớ lại cho câu giống hệt (đã chuẩn hóa + băm)
+    max_clarify_rounds: int = Field(
+        default=2, ge=0
+    )  # tối đa số vòng hỏi làm rõ mỗi lần chạy (J1 và hỏi bổ sung đầu vào)
+    run_token_budget: int = Field(default=200_000, ge=0)  # trần token (vào + ra) mỗi lần chạy; vượt thì dừng và báo rõ
+    user_daily_run_limit: int = Field(
+        default=30, ge=0
+    )  # số lần chạy tối đa mỗi người mỗi ngày (không tính lần bị chặn ở cửa kiểm tra)
 
     # Dữ liệu thử (E2)
     seed: int = 42

@@ -1,7 +1,14 @@
 """Hàm rẽ nhánh của graph (thuần, dễ test bằng parametrize)."""
 
+from langgraph.graph import END
+
 from src.agents.state import PipelineState
 from src.config import get_settings
+
+
+def after_input_gate(state: PipelineState) -> str:
+    """G0: bị chặn → kết thúc luồng (không tốn token); đạt → Planner."""
+    return END if state.get("input_gate", {}).get("status") == "rejected" else "planner"
 
 
 def after_planner(state: PipelineState) -> str:
@@ -15,7 +22,7 @@ def after_spec_check(state: PipelineState) -> str:
         return "plan_review"
     spec, rounds, limit = state.get("spec", {}), state.get("plan_rounds", 0), get_settings().max_plan_rounds
     if spec.get("unknowns") and spec.get("questions") and rounds <= limit:
-        return "clarify"
+        return "fail" if state.get("clarify_rounds", 0) >= get_settings().max_clarify_rounds else "clarify"
     return "fail" if rounds >= limit else "planner"
 
 

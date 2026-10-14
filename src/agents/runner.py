@@ -23,7 +23,7 @@ from src.agents.progress import NodeStart, StepEvent, describe, node_started
 from src.config import get_settings
 from src.models.evidence import ReviewDecision
 from src.models.schemas import RunStatus
-from src.services.llm import LLMCallError, LLMConfigError
+from src.services.llm import LLMCallError, LLMConfigError, run_budget
 from src.services.store import get_store
 
 logger = logging.getLogger(__name__)
@@ -105,6 +105,13 @@ def _config(run_id: str) -> dict:
 
 def _stream(run_id: str, payload: object, on_event: EventCallback | None) -> str:
     """Chạy graph tới điểm dừng kế tiếp; trả về thông báo lỗi (rỗng nếu không lỗi)."""
+    used = sum(u.get("input_tokens", 0) + u.get("output_tokens", 0) for u in get_values(run_id).get("llm_usage", []))
+    with run_budget(get_settings().run_token_budget, used):  # trần token mỗi lần chạy (kể cả các lượt chạy tiếp)
+        return _consume(run_id, payload, on_event)
+
+
+def _consume(run_id: str, payload: object, on_event: EventCallback | None) -> str:
+    """Chạy graph và phát sự kiện từng bước (tách khỏi `_stream` để bọc trần token)."""
     last = time.perf_counter()
     try:
         for mode, chunk in get_graph().stream(payload, _config(run_id), stream_mode=["updates", "tasks"]):

@@ -19,6 +19,7 @@ Chụp ở chế độ mô phỏng (`LLM_PROVIDER=mock`), dữ liệu giả lậ
 DE mất nhiều giờ viết lặp staging, mart, test, DAG; dữ liệu bẩn (đơn trùng, ngày lẫn định dạng, tiền `1.075.000`) làm sai số; trợ lý sinh code thường không chạy thử mà vẫn báo "xong".
 Nguyên tắc **J-E-V**: người **phán đoán** (J), agent **thực thi** (E), code thuần **kiểm chứng** (V, 0 token).
 
+- **Cửa kiểm tra đầu vào (0 token):** yêu cầu rỗng, vô nghĩa, tấn công prompt hoặc lạc đề bị chặn trước Planner, kèm ví dụ hợp lệ lấy từ danh mục thật; có trần token mỗi lần chạy, số vòng hỏi làm rõ và số lần chạy mỗi ngày.
 - **Hỏi trước khi làm:** Planner hỏi trắc nghiệm khi còn điểm chưa rõ, rồi trình kế hoạch có giải thích để DE duyệt.
 - **Sinh đầy đủ:** model dbt, DAG Airflow, test đối soát do một agent khác viết **không nhìn code**.
 - **Kiểm chứng bằng code:** sqlglot chặn lệnh nguy hiểm và tên bảng/cột bịa; `dbt build` trong DuckDB có giới hạn thời gian và bộ nhớ.

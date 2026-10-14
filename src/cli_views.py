@@ -26,7 +26,15 @@ STATUS_TEXT = {
     "waiting_review": "chờ Reviewer duyệt",
     "approved": "đã duyệt",
     "failed": "dừng do lỗi",
+    "rejected_input": "bị chặn ở cửa kiểm tra đầu vào",
 }
+
+
+def print_rejection(message: str) -> None:
+    """Yêu cầu bị chặn ở cửa kiểm tra đầu vào: thông điệp lịch sự + ví dụ hợp lệ."""
+    from rich.panel import Panel
+
+    console.print(Panel(message, title="Yêu cầu chưa dùng được", border_style="yellow"))
 
 
 def simulated_banner() -> None:

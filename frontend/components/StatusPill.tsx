@@ -14,6 +14,7 @@ const STATUS_ICON: Record<Exclude<RunStatus, "running">, IconName> = {
   waiting_review: "awaitingReview",
   approved: "success",
   failed: "failure",
+  rejected_input: "warning",
 };
 
 export function StatusPill({ status }: { status: RunStatus }) {

@@ -1,6 +1,6 @@
 """Graph LangGraph của luồng P-113 (khớp sơ đồ kiến trúc):
 
-NL → E1 planner ⇄ J1 clarify → V0 spec_check → J1b plan_review (DE duyệt kế hoạch) → E0 ingest → P profiler → Vs schema_guard (so cấu trúc với bản đã duyệt;
+NL → G0 input_gate (chặn vô nghĩa/lạc đề, 0 token) → E1 planner ⇄ J1 clarify → V0 spec_check → J1b plan_review (DE duyệt kế hoạch) → E0 ingest → P profiler → Vs schema_guard (so cấu trúc với bản đã duyệt;
 xóa/đổi tên cột → Engineer xác nhận) → E2 mock_data → E3 codegen → E3b testgen
 → V1 safety → V2 sandbox_run (≤3 lần sửa, lỗi lặp → cứu hộ) → E4 optimizer ⇄ V3 compare → package → J2 review.
 """
@@ -14,6 +14,7 @@ from src.agents.nodes.clarify import clarify_node
 from src.agents.nodes.codegen import codegen_node
 from src.agents.nodes.compare import compare_node
 from src.agents.nodes.ingest import ingest_node
+from src.agents.nodes.input_gate import input_gate_node
 from src.agents.nodes.mock_data import mock_data_node
 from src.agents.nodes.optimizer import optimizer_node
 from src.agents.nodes.package import package_node
@@ -30,6 +31,7 @@ from src.agents.nodes.testgen import testgen_node
 from src.agents.state import PipelineState
 
 NODES = {
+    "input_gate": input_gate_node,
     "planner": planner_node,
     "clarify": clarify_node,
     "spec_check": spec_check_node,
@@ -51,6 +53,7 @@ NODES = {
     "fail": fail_node,
 }
 CONDITIONAL = {
+    "input_gate": routing.after_input_gate,
     "planner": routing.after_planner,
     "spec_check": routing.after_spec_check,
     "plan_review": routing.after_plan_review,
@@ -64,7 +67,7 @@ CONDITIONAL = {
     "review": routing.after_review,
 }
 EDGES = [
-    (START, "planner"),
+    (START, "input_gate"),
     ("clarify", "planner"),
     ("profiler", "schema_guard"),
     ("mock_data", "codegen"),

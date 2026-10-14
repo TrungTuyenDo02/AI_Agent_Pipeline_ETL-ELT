@@ -24,6 +24,7 @@ from src.cli_views import (
     print_errors,
     print_event,
     print_optimization,
+    print_rejection,
     print_review_package,
     print_run,
     print_runs,
@@ -35,6 +36,7 @@ from src.models.evidence import ReviewDecision
 from src.services import auth
 from src.services.doctor import run_checks
 from src.services.error_memory import get_error_memory
+from src.services.input_gate import precheck
 from src.services.llm import LLMCallError, LLMConfigError
 from src.services.schema_watch import SchemaReport
 from src.services.seed import SeedConfig, generate_sources
@@ -129,6 +131,10 @@ def cmd_run(args: argparse.Namespace) -> int:
     """Chạy luồng từ đầu, hỏi J1 ngay trong terminal."""
     if args.role != "engineer":
         console.print("[red]Chỉ vai trò Engineer tạo yêu cầu (--as engineer).[/]")
+        return 2
+    gate = precheck(args.request)  # cửa kiểm tra đầu vào: bị chặn thì không tạo lần chạy
+    if gate.status != "ok":
+        print_rejection(gate.message)
         return 2
     if get_settings().is_mock:
         simulated_banner()

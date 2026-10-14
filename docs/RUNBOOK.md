@@ -64,6 +64,13 @@ Trạng thái: chờ Reviewer duyệt (run_id: 8ff0c55055)
 Xem bằng chứng và duyệt: python -m src.cli review 8ff0c55055
 ```
 
+#### Cửa kiểm tra đầu vào (G0)
+
+Yêu cầu qua cửa trước khi tạo lần chạy: luật cố định (rỗng, quá ngắn/dài, lặp ký tự, gõ bừa, mẫu tấn công prompt) rồi đối chiếu danh mục nghiệp vụ (tên bảng/cột có bỏ dấu và đồng nghĩa).
+Bị chặn: web/API trả `422` kèm 2–3 ví dụ hợp lệ lấy từ danh mục thật; CLI in khung "Yêu cầu chưa dùng được" và thoát mã 2; không tạo lần chạy, không tốn token, không tính hạn mức.
+Cập nhật mẫu chặn: sửa [config/input_gate.yaml](../config/input_gate.yaml). Đo lại: `python eval/run_input_gate.py` (ghi `eval/results/input_gate.md`).
+Trần chi phí: `MAX_CLARIFY_ROUNDS`, `RUN_TOKEN_BUDGET`, `USER_DAILY_RUN_LIMIT` (xem [CONFIG](CONFIG.md)); chạm trần thì lần chạy dừng với thông báo tiếng Việt nêu đúng tên biến.
+
 ### 2.3 Duyệt (bước con người J2)
 
 ```powershell

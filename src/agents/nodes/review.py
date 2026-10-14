@@ -60,7 +60,18 @@ def finalize_node(state: PipelineState) -> dict:
     return {"status": RunStatus.APPROVED.value}
 
 
+def _round_limit_reason(state: PipelineState) -> str:
+    """Lý do dừng khi không có lỗi cụ thể: quá số vòng hỏi làm rõ thì chuyển cho người xử lý."""
+    limit = get_settings().max_clarify_rounds
+    if state.get("clarify_rounds", 0) >= limit and (state.get("spec") or {}).get("questions"):
+        return (
+            f"Đã hỏi làm rõ {limit} vòng nhưng yêu cầu vẫn chưa đủ rõ. Hãy viết lại yêu cầu cụ thể hơn "
+            "(nguồn, bảng đích, cột, điều kiện lọc) hoặc nhờ kỹ sư dữ liệu hỗ trợ trực tiếp."
+        )
+    return "Vượt quá số vòng cho phép (lập kế hoạch / sửa lỗi / duyệt)."
+
+
 def fail_node(state: PipelineState) -> dict:
     """Dừng hẳn với lý do rõ ràng."""
-    reason = state.get("error") or "Vượt quá số vòng cho phép (lập kế hoạch / sửa lỗi / duyệt)."
+    reason = state.get("error") or _round_limit_reason(state)
     return {"status": RunStatus.FAILED.value, "error": reason}

@@ -28,6 +28,7 @@ from src.models.spec import ClarifyQuestion
 from src.services import auth
 from src.services.cost import usage_breakdown
 from src.services.export import export_zip
+from src.services.input_gate import precheck
 from src.services.jobs import JobLimitError, get_jobs
 from src.services.store import get_store
 
@@ -46,6 +47,11 @@ async def list_runs(limit: int = Query(default=20, ge=1, le=100)) -> list[RunRec
 @router.post("", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
 def create_run(body: CreateRunBody, user: Engineer, request: Request) -> Accepted:
     """Tạo yêu cầu mới; agent chạy nền tới điểm dừng đầu tiên (câu hỏi làm rõ hoặc bản duyệt)."""
+    gate = precheck(
+        body.request_text
+    )  # cửa kiểm tra đầu vào (0 token): bị chặn thì không tạo lần chạy, không tính hạn mức
+    if gate.status != "ok":
+        raise HTTPException(status_code=422, detail=gate.message)
     _check_limits(user.name)  # trước khi tạo: bị chặn thì không để lại lần chạy treo
     run_id = runner.create_run(body.request_text.strip(), user.name)
     auth.audit("run.create", user.name, target=run_id, ip=client_ip(request))

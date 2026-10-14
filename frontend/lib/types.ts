@@ -8,7 +8,8 @@ export type RunStatus =
   | "waiting_rescue"
   | "waiting_review"
   | "approved"
-  | "failed";
+  | "failed"
+  | "rejected_input";
 
 export interface RunSummary {
   target?: string | null;

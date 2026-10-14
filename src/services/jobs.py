@@ -40,9 +40,20 @@ class JobLimitError(Exception):
     """Vượt giới hạn theo người (số lần chạy cùng lúc hoặc trần chi phí LLM trong ngày); thông báo tiếng Việt."""
 
 
-def check_limits(owner: str, active: int) -> None:
-    """CLAUDE.md mục 14.2-14.3: chặn TRƯỚC khi tạo/chạy tiếp lần chạy của `owner` (người tạo yêu cầu)."""
+def check_limits(owner: str, active: int, new_run: bool = False) -> None:
+    """CLAUDE.md mục 14.2-14.3: chặn TRƯỚC khi tạo/chạy tiếp lần chạy của `owner` (người tạo yêu cầu).
+
+    `new_run`: đang tạo lần chạy mới (chạy tiếp/chạy lại một lần chạy đã có không tính vào số lần chạy trong ngày).
+    """
     settings = get_settings()
+    daily = settings.user_daily_run_limit
+    if new_run and daily:
+        done = get_store().runs_today(owner)
+        if done >= daily:
+            raise JobLimitError(
+                f"Hôm nay bạn đã tạo {done} lần chạy, chạm giới hạn {daily} lần/người/ngày. Mai gửi tiếp "
+                "hoặc liên hệ quản trị viên."
+            )
     if active >= settings.max_active_runs_per_user:
         raise JobLimitError(
             f"Bạn đang có {active} lần chạy đang chờ hoặc đang chạy (tối đa {settings.max_active_runs_per_user}). "
@@ -144,7 +155,7 @@ class JobQueue:
         """Ném JobLimitError nếu `owner` đã đủ số lần chạy cùng lúc hoặc chạm trần chi phí hôm nay."""
         with self._lock:
             active = self._active(owner, exclude=run_id)
-        check_limits(owner, active)
+        check_limits(owner, active, new_run=not run_id)
 
     def submit(self, run_id: str, job: Job, actor: str = "", owner: str = "") -> None:
         """Đánh dấu đang chạy rồi đưa vào hàng đợi (`actor` = người khởi động, để ghi nhật ký kiểm toán;

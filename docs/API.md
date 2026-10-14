@@ -26,7 +26,7 @@ Tiền tố `/api/v1`, riêng `/health` không có tiền tố.
 | PATCH | `/api/v1/admin/users/{user_id}` | admin | Đổi vai trò, khóa/mở, đặt lại mật khẩu (không tự khóa mình) |
 | GET | `/api/v1/admin/audit` | admin | Nhật ký kiểm toán, mới nhất trước (`limit` ≤ 200) |
 | GET | `/api/v1/runs` | đăng nhập | Danh sách lần chạy (`limit` 1–100) |
-| POST | `/api/v1/runs` | engineer | Tạo yêu cầu (`request_text` 5–4000 ký tự) → `202` + `run_id` |
+| POST | `/api/v1/runs` | engineer | Tạo yêu cầu (`request_text` tối đa 4000 ký tự) → `202` + `run_id`. Qua cửa kiểm tra đầu vào trước: rỗng, quá ngắn/dài, vô nghĩa, tấn công prompt hoặc lạc đề → `422` + `detail` tiếng Việt kèm ví dụ hợp lệ, không tạo lần chạy. Quá giới hạn lần chạy/ngày → `429` |
 | GET | `/api/v1/runs/{run_id}` | đăng nhập | Trạng thái, câu hỏi đang chờ, tiến trình từng bước, đặc tả, bằng chứng, báo cáo tối ưu |
 | GET | `/api/v1/runs/{run_id}/files` | đăng nhập | Code + test hiện tại và bản vòng trước (để xem diff) |
 | GET | `/api/v1/runs/{run_id}/download` | đăng nhập | Gói `.zip` code dbt + test + DAG (không kèm dữ liệu sandbox) |

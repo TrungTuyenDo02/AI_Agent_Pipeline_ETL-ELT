@@ -11,6 +11,7 @@ export const STATUS_LABELS: Record<RunStatus, string> = {
   waiting_review: "Chờ duyệt",
   approved: "Đã duyệt",
   failed: "Đã dừng",
+  rejected_input: "Bị chặn ở cửa kiểm tra",
 };
 
 export const STATUS_TONES: Record<RunStatus, string> = {
@@ -22,6 +23,7 @@ export const STATUS_TONES: Record<RunStatus, string> = {
   waiting_review: "warn",
   approved: "ok",
   failed: "danger",
+  rejected_input: "warn",
 };
 
 export const LAYER_LABELS: Record<Layer, string> = {

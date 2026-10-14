@@ -10,7 +10,7 @@ from src.models.schemas import RunRecord
 class CreateRunBody(BaseModel):
     """Yêu cầu nghiệp vụ bằng lời."""
 
-    request_text: str = Field(min_length=5, max_length=4000, examples=["Gộp đơn hàng 3 nguồn, tính doanh thu ngày"])
+    request_text: str = Field(max_length=4000, examples=["Gộp đơn hàng 3 nguồn, tính doanh thu ngày"])
 
 
 class AnswerBody(BaseModel):
