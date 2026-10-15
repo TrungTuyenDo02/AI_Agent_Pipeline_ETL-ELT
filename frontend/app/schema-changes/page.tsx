@@ -1,17 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useApp } from "@/components/AppContext";
 import { AdvicePanel } from "@/components/drift/AdvicePanel";
+import { PatchPanel } from "@/components/drift/PatchPanel";
 import { SchemaDiff } from "@/components/drift/SchemaDiff";
 import { useToast } from "@/components/Toast";
 import { Card, Empty, ErrorBox, Loading } from "@/components/ui";
 import { apiPost, messageOf } from "@/lib/api";
 import { CHANGE_LABELS, SEVERITY_LABELS } from "@/lib/drift";
-import type { Accepted, SchemaChange } from "@/lib/types";
+import type { SchemaChange } from "@/lib/types";
 import { notifyDriftChanged } from "@/lib/useDriftAlerts";
 import { usePoll } from "@/lib/usePoll";
 
@@ -30,8 +30,8 @@ function ChangeCard({
   onDone: () => Promise<void>;
 }) {
   const toast = useToast();
-  const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [patching, setPatching] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [showDiff, setShowDiff] = useState(change.severity === "breaking" && change.status === "open");
   const open = change.status === "open";
@@ -49,19 +49,6 @@ function ChangeCard({
     } catch (exc) {
       setError(messageOf(exc));
     } finally {
-      setBusy(false);
-    }
-  }
-
-  async function propose(runId: string) {
-    setBusy(true);
-    setError("");
-    try {
-      const accepted = await apiPost<Accepted>(`/runs/${runId}/patch`, {});
-      toast("Đã tạo lần chạy bản vá.");
-      router.push(`/runs/${accepted.run_id}`);
-    } catch (exc) {
-      setError(messageOf(exc));
       setBusy(false);
     }
   }
@@ -98,11 +85,17 @@ function ChangeCard({
                     {p.run_id}
                   </Link>
                   {open && canAct && (
-                    <button type="button" className="btn small" disabled={busy} onClick={() => propose(p.run_id)}>
+                    <button
+                      type="button"
+                      className="btn small"
+                      aria-expanded={patching === p.run_id}
+                      onClick={() => setPatching(patching === p.run_id ? null : p.run_id)}
+                    >
                       Đề xuất bản vá
                     </button>
                   )}
                 </div>
+                {patching === p.run_id && <PatchPanel runId={p.run_id} onClose={() => setPatching(null)} />}
                 {canAct && <AdvicePanel changeId={change.id} runId={p.run_id} />}
               </li>
             ))}

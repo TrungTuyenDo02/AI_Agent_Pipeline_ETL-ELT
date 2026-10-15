@@ -102,6 +102,7 @@ class RunDetail(BaseModel):
     value_filters: list[dict] = []  # mục 9: điều kiện cứng theo giá trị (tô sáng ở màn duyệt)
     reconciliation: list[dict] = []  # mục 9: số dòng vào → ra từng model staging
     retryable: bool = False  # lần chạy lỗi nhưng còn checkpoint: có nút "Chạy lại từ bước lỗi"
+    patch: dict = {}  # run vá: {parent, plan, applied, llm_files, regression}; rỗng với run thường
     drift: dict = {}  # cảnh báo cấu trúc nguồn: {warnings (lúc bắt đầu), recheck: {blocked, breaking, warnings} (ngay trước J2)}
 
 

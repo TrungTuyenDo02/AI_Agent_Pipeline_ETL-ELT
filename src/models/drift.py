@@ -130,3 +130,59 @@ class Advice(BaseModel):
     actions: list[AdviceAction] = Field(default_factory=list)
     ai_text: str = ""
     ai_source: Literal["", "gemini", "mock", "unavailable"] = ""
+
+
+# ---------- Bản vá nhanh (patch fast-path) ----------
+
+PatchAction = Literal["none", "code", "llm", "ask", "blocked"]
+
+
+class FixStep(BaseModel):
+    """Một bước sửa tất định trên SQL: đổi tên cột tham chiếu, hoặc ép kiểu về kiểu cũ ở lớp staging."""
+
+    kind: Literal["rename", "cast"]
+    old: str = ""  # rename: tên cột cũ
+    new: str = ""  # rename: tên cột mới
+    column: str = ""  # cast: cột cần ép
+    sql_type: str = ""  # cast: kiểu SQL đích (kiểu cũ của cột)
+
+
+class PatchOption(BaseModel):
+    value: str
+    label: str
+
+
+class PatchQuestion(BaseModel):
+    """Câu hỏi trắc nghiệm cho phần chỉ người mới biết (cột nào thay cột bị xóa?). Chỉ tên cột và kiểu."""
+
+    id: str
+    text: str
+    options: list[PatchOption]
+
+
+class PatchItem(BaseModel):
+    """Cách xử lý một thay đổi cấu trúc trong bản vá: không cần sửa / sửa bằng code / cần AI / cần người chọn / không vá được."""
+
+    change_id: int
+    source_id: int
+    change_type: str
+    table: str
+    column: str = ""
+    action: PatchAction
+    summary: str
+    files: list[str] = Field(default_factory=list)  # file SQL sẽ bị sửa (staging + test đọc đúng bảng đó)
+    steps: list[FixStep] = Field(default_factory=list)
+    question: PatchQuestion | None = None
+
+
+class PatchPlan(BaseModel):
+    """Kế hoạch bản vá dựng bằng code (0 token) TRƯỚC khi tạo run: người xem được cái gì tự sửa, cái gì cần AI, cái gì cần họ chọn."""
+
+    run_id: str
+    items: list[PatchItem] = Field(default_factory=list)
+    ready: bool = True  # không còn câu hỏi chưa trả lời, không có thay đổi không vá được
+    code_fixes: int = 0
+    llm_items: int = 0
+    questions: int = 0  # câu hỏi chưa trả lời
+    blocked: int = 0
+    estimate: str = ""

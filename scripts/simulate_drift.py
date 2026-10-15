@@ -118,8 +118,12 @@ def build_baseline(work: Path = WORK) -> dict:
         "requester": "eval",
         "answers": {Q_STATUS: STATUS_OPTIONS[0], Q_DUPLICATES: DUPLICATE_OPTIONS[0]},
     }
+    usage: list[dict] = []
     for node in (planner_node, ingest_node, profiler_node, mock_data_node, codegen_node, testgen_node):
-        state.update(node(state))
+        out = node(state)
+        usage += out.get("llm_usage", [])  # state.update ghi đè `llm_usage` từng node, nên cộng dồn riêng để biết một run đầy đủ tốn bao nhiêu
+        state.update(out)
+    state["_usage"] = usage
     if issues := safety_node(state)["safety"]["issues"]:
         raise RuntimeError(f"Pipeline gốc không qua V1: {issues[0]}")
     sandbox = sandbox_run_node(state)["sandbox"]

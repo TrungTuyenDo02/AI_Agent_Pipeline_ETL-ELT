@@ -7,6 +7,7 @@ Xem: mọi người đã đăng nhập. Tạo yêu cầu, trả lời, duyệt k
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response, status
+from pydantic import BaseModel, Field
 
 from src.agents import runner
 from src.agents.nodes.clarify import valid_answers
@@ -34,9 +35,10 @@ from src.api.requests import (
     RunFiles,
     SchemaBody,
 )
+from src.models.drift import PatchPlan, SchemaChangeView
 from src.models.schemas import RunRecord
 from src.models.spec import ClarifyQuestion
-from src.services import auth, schema_drift
+from src.services import auth, drift_advice, patch_plan, schema_drift
 from src.services.cost import usage_breakdown
 from src.services.export import export_zip
 from src.services.input_gate import precheck
@@ -128,6 +130,7 @@ def get_run(run_id: str, user: LoggedIn) -> RunDetail:
         value_filters=values.get("value_filters", []),
         reconciliation=values.get("reconciliation", []),
         retryable=not busy and str(record.status) == "failed" and not runner.retry_problem(run_id),
+        patch={k: v for k, v in (values.get("patch") or {}).items() if k != "parent_workspace"},
         drift=_drift_view(run_id, values, pending),
     )
 
@@ -197,10 +200,14 @@ def retry(run_id: str, user: Engineer, request: Request) -> Accepted:
     return Accepted(run_id=run_id, status="running", message="Đã nhận, agent chạy lại từ bước lỗi.")
 
 
-@router.post("/{run_id}/patch", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
-def propose_patch(run_id: str, user: Engineer, request: Request) -> Accepted:
-    """ "Đề xuất bản vá": tạo lần chạy MỚI từ đặc tả cũ + các thay đổi cấu trúc đang mở (chỉ cấu trúc, không có dữ liệu), đi qua luồng
-    chuẩn (kiểm cấu trúc → sandbox → test → duyệt J2). Chỉ người bấm nút mới tạo bản vá; hệ thống không bao giờ tự làm."""
+class PatchBody(BaseModel):
+    """Câu trả lời cho các câu hỏi của kế hoạch vá: mã thay đổi (chuỗi) → lựa chọn (`use:<cột>` hoặc `drop`)."""
+
+    answers: dict[str, str] = Field(default_factory=dict, max_length=50)
+
+
+def _patch_inputs(run_id: str, user: CurrentUser) -> tuple[RunRecord, dict, list[SchemaChangeView]]:
+    """Lần chạy gốc, state của nó và các thay đổi cấu trúc đang mở ảnh hưởng tới nó (lỗi 409 nếu chưa vá được)."""
     record = run_for_user(run_id, user)
     values = runner.get_values(run_id)
     spec = values.get("spec") or {}
@@ -219,20 +226,50 @@ def propose_patch(run_id: str, user: Engineer, request: Request) -> Accepted:
         raise HTTPException(
             status_code=409, detail="Không có thay đổi cấu trúc nào đang mở ảnh hưởng tới lần chạy này."
         )
+    return record, values, changes
+
+
+@router.post("/{run_id}/patch-plan", response_model=PatchPlan)
+def preview_patch(run_id: str, user: Engineer, body: PatchBody | None = None) -> PatchPlan:
+    """Kế hoạch bản vá dựng bằng code (0 token, không tạo run): thay đổi nào tự sửa bằng code, nào cần AI, nào cần bạn chọn cột thay thế."""
+    _, values, changes = _patch_inputs(run_id, user)
+    return patch_plan.build_plan(
+        run_id, values, changes, (body or PatchBody()).answers, drift_advice.columns_before_after
+    )
+
+
+@router.post("/{run_id}/patch", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
+def propose_patch(run_id: str, user: Engineer, request: Request, body: PatchBody | None = None) -> Accepted:
+    """ "Đề xuất bản vá": tạo lần chạy MỚI nhưng KHÔNG lập kế hoạch lại: run vá mang đặc tả, câu trả lời và code của lần chạy gốc, sửa phần bị
+    ảnh hưởng (bằng code nếu được, AI nếu buộc phải), rồi qua V1 → V2 → so với lần chạy gốc → duyệt J2. Chỉ người bấm nút mới tạo bản vá."""
+    record, values, changes = _patch_inputs(run_id, user)
+    answers = (body or PatchBody()).answers
+    plan = patch_plan.build_plan(run_id, values, changes, answers, drift_advice.columns_before_after)
+    if not plan.ready:
+        stuck = next(i for i in plan.items if i.action in ("ask", "blocked"))
+        raise HTTPException(status_code=409, detail=stuck.summary)
     _check_limits(user.name)
-    patch_id = runner.create_run(schema_drift.patch_request_text(record.request_text, spec, changes), user.name)
+    patch_id = runner.create_run(
+        schema_drift.patch_request_text(record.request_text, values.get("spec") or {}, changes), user.name
+    )
+    seed = patch_plan.seed_state(run_id, values, plan, user.name)
     auth.audit(
         "run.patch",
         user.name,
         target=patch_id,
         ip=client_ip(request),
-        detail={"from": run_id, "changes": [c.id for c in changes]},
+        detail={
+            "from": run_id,
+            "changes": [c.id for c in changes],
+            "code_fixes": plan.code_fixes,
+            "llm_items": plan.llm_items,
+        },
     )
-    get_jobs().submit(patch_id, lambda sink: runner.run_created(patch_id, sink), actor=user.name, owner=user.name)
+    get_jobs().submit(patch_id, lambda sink: runner.run_patch(patch_id, seed, sink), actor=user.name, owner=user.name)
     return Accepted(
         run_id=patch_id,
         status="running",
-        message="Đã tạo lần chạy bản vá; bản vá đi qua luồng chuẩn và bạn vẫn duyệt ở J2.",
+        message=f"Đã tạo lần chạy bản vá ({plan.estimate}). Bản vá không lập kế hoạch lại; bạn vẫn duyệt ở J2.",
     )
 
 

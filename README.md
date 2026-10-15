@@ -21,7 +21,7 @@ Nguyên tắc **J-E-V**: người **phán đoán** (J), agent **thực thi** (E)
 
 - **Cửa kiểm tra đầu vào (0 token):** yêu cầu rỗng, vô nghĩa, tấn công prompt hoặc lạc đề bị chặn trước Planner, kèm ví dụ hợp lệ lấy từ danh mục thật; có trần token mỗi lần chạy, số vòng hỏi làm rõ và số lần chạy mỗi ngày.
 - **Sổ nguồn + phân quyền theo phòng ban:** Admin đăng ký nguồn, người dùng chỉ thấy nguồn phòng mình; AI chỉ thấy đúng mức dữ liệu của nguồn (`schema_only` < `profile` < `masked_sample`), không bao giờ thấy dòng thật chưa che, mật khẩu hay chuỗi kết nối; lỗi từ dbt/DuckDB/Postgres được che giá trị trước khi vào prompt.
-- **Phát hiện thay đổi cấu trúc nguồn:** backend đổi kiểu, đổi tên, xóa cột mà không báo thì run bị chặn trước Planner (thay đổi `breaking`) cho tới khi Engineer xác nhận; kiểm lại trước khi Reviewer duyệt; kiểm định kỳ; "Đề xuất bản vá" chỉ chạy khi người bấm. Pipeline sinh ra tự phòng thủ: khai báo nguồn dbt, preflight `check_source_schema` là task đầu của DAG, không `SELECT *`, test đếm dòng không ép được kiểu.
+- **Phát hiện thay đổi cấu trúc nguồn:** backend đổi kiểu, đổi tên, xóa cột mà không báo thì run bị chặn trước Planner (thay đổi `breaking`) cho tới khi Engineer xác nhận; kiểm lại trước khi Reviewer duyệt; kiểm định kỳ; "Đề xuất bản vá" chỉ chạy khi người bấm và **không lập kế hoạch lại**: run vá dùng lại đặc tả, câu trả lời và code đã duyệt, sửa bằng code những gì cơ học được (đổi tên cột, đổi kiểu; 0 token), chỉ hỏi người đúng câu "cột nào thay cột đã mất", chỉ gọi AI cho phần đổi nghĩa ([ADR 0012](docs/adr/0012-ban-va-nhanh-khi-nguon-doi-cau-truc.md)). Pipeline sinh ra tự phòng thủ: khai báo nguồn dbt, preflight `check_source_schema` là task đầu của DAG, không `SELECT *`, test đếm dòng không ép được kiểu.
 - **Từ điển nghiệp vụ:** Admin định nghĩa "doanh thu", "đơn hoàn tất", "trùng đơn"...; Planner nhận vài thuật ngữ khớp yêu cầu (hiện ở màn Duyệt kế hoạch), cửa kiểm tra tầng 1 dùng làm từ khóa. Agent chỉ đọc.
 - **Hỏi trước khi làm:** Planner hỏi trắc nghiệm khi còn điểm chưa rõ, rồi trình kế hoạch có giải thích để DE duyệt.
 - **Sinh đầy đủ:** model dbt, DAG Airflow, test đối soát do một agent khác viết **không nhìn code**.
@@ -42,10 +42,10 @@ Nguyên tắc **J-E-V**: người **phán đoán** (J), agent **thực thi** (E)
 |---|---|
 | Lần chạy (J1, J1b, cứu hộ, duyệt J2) | Trả lời câu hỏi, duyệt kế hoạch (kèm thuật ngữ đã dùng, cảnh báo cấu trúc), duyệt code, xác nhận khi nguồn đổi cấu trúc |
 | **Nguồn dữ liệu** | Nguồn, phòng ban, độ nhạy cảm, mức AI được xem, nút "Kiểm tra lại cấu trúc"; tab **Từ điển nghiệp vụ** (Admin sửa) |
-| **Thay đổi cấu trúc** | Thay đổi đã phát hiện, pipeline bị ảnh hưởng, "Tôi đã biết, dùng cấu trúc mới", "Đề xuất bản vá" |
+| **Thay đổi cấu trúc** | Số đỏ ở chuông và tab, hình so sánh trước/sau, pipeline bị ảnh hưởng, "Tôi đã biết, dùng cấu trúc mới", kế hoạch bản vá (cái gì tự sửa, cái gì cần AI, cái gì cần bạn chọn) |
 | Sổ lỗi, tối ưu, hồ sơ dữ liệu, quản trị | Như trước |
 
-Danh sách endpoint (gồm `/sources`, `/schema-changes`, `/glossary`, `/runs/{id}/drift`, `/runs/{id}/patch`): [docs/API.md](docs/API.md).
+Danh sách endpoint (gồm `/sources`, `/schema-changes`, `/glossary`, `/runs/{id}/drift`, `/runs/{id}/patch-plan`, `/runs/{id}/patch`): [docs/API.md](docs/API.md).
 
 ## Kiến trúc
 
@@ -97,6 +97,7 @@ Chi tiết và điều kiện đo: [eval/results/report.md](eval/results/report.
 | Golden 12 ca: agent đúng | LLM thật, model cũ gpt-5.6-luna/terra, 1 lần, 2026-10-08. **Chưa đo lại** với gpt-6-luna hiện dùng, mức `profile`, cửa kiểm tra, từ điển | **12/12**, ~46 giây và ~0,0045 USD mỗi ca |
 | Mutation: bắt lỗi giả | code, 0 token, 2026-10-16 (thêm 3 lỗi phòng thủ: bỏ preflight, `SELECT *`, bỏ test ép kiểu) | **14/15** (93,3%), báo nhầm 0/1 |
 | Schema drift: 6 kịch bản "backend đổi không báo" | mô phỏng trên sandbox DuckDB, 0 token, 2026-10-16 | 4 chặn/fail sớm, 1 vô hại, 1 chỉ cảnh báo thống kê (đổi đơn vị); **0 sai âm thầm**, 0 báo nhầm • [drift.md](eval/results/drift.md) |
+| Bản vá nhanh khi nguồn đổi cấu trúc | mô phỏng sandbox; phần cần AI chạy LLM thật (`gpt-6-luna`), 2026-10-16 | 5/6 kịch bản xong không cần AI, **0 token**, bảng đích giống hệt lần chạy gốc (3 sửa bằng code, 1 pipeline đã tự phòng thủ sẵn, 1 chỉ thêm cột); 1/6 cần AI: 8.327 token ≈ 0,0027 USD, bảng đích khác (mất cột) và được đưa lên màn duyệt. Cách cũ (lập kế hoạch lại): trung bình 6.918 token ≈ 0,0045 USD mỗi run, chưa kể câu hỏi lại • [patch.md](eval/results/patch.md), [patch_llm.md](eval/results/patch_llm.md) |
 | Từ điển nghiệp vụ | code, 0 token; **độ đúng chưa đo bằng LLM thật** | thuật ngữ cần thiết tới Planner 6/6 (5 ca mới), token prompt Planner +13,5% • [glossary.md](eval/results/glossary.md) |
 | TPC-H sf=0,1: query chậm được tối ưu | `mock`, 2026-10-02 | **11/13**, nhanh hơn 51%–94,7%, 10/11 không tốn token |
 | ELT-Bench-Verified: khớp bảng đúng | LLM thật, 34 bảng, 1 lần, chấm lại 2026-10-07 | **11/34** (gồm 2 model lỗi của benchmark) |

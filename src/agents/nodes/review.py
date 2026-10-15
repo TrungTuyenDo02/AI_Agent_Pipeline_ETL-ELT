@@ -14,6 +14,7 @@ from src.agents.state import PipelineState
 from src.config import get_settings
 from src.models.evidence import ReviewDecision
 from src.models.schemas import RunStatus
+from src.services import schema_drift
 
 logger = logging.getLogger(__name__)
 
@@ -52,12 +53,22 @@ def finalize_node(state: PipelineState) -> dict:
     """
     if get_settings().database_url:
         try:
-            promote_snapshot(state, (state.get("review") or {}).get("reviewer", ""))
+            reviewer = (state.get("review") or {}).get("reviewer", "")
+            promote_snapshot(state, reviewer)
+            close_patched_changes(state, reviewer)
         except Exception as exc:  # noqa: BLE001 — lỗi CSDL không được làm mất quyết định duyệt; log để xử lý
             logger.error(
                 "schema baseline save failed", extra={"run_id": state.get("run_id"), "error": type(exc).__name__}
             )
     return {"status": RunStatus.APPROVED.value}
+
+
+def close_patched_changes(state: PipelineState, reviewer: str) -> int:
+    """Reviewer duyệt bản vá → các thay đổi cấu trúc mà bản vá đã xử lý thành `acknowledged` và cấu trúc mới thành bản chuẩn (số đỏ giảm)."""
+    done = 0
+    for change in {(c["source_id"], c["id"]) for c in (state.get("patch") or {}).get("changes", [])}:
+        done += schema_drift.acknowledge(change[0], reviewer or "reviewer", change_id=change[1])
+    return done
 
 
 def _round_limit_reason(state: PipelineState) -> str:

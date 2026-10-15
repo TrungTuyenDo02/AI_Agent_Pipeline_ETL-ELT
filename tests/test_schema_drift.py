@@ -363,14 +363,47 @@ async def test_review_blocked_when_structure_changes_after_codegen_then_patch(wo
     assert changes and run_id in [p["run_id"] for p in changes[0]["affected_pipelines"]]
     assert len(get_store().list_runs(limit=500)) == runs_before
     assert (await reviewer.post(f"{API}/sources/{world['source'].id}/check-drift")).status_code == 403
-    # chỉ người bấm "Đề xuất bản vá" mới tạo run mới, và run đó đi qua luồng chuẩn (bắt đầu từ cửa G1)
+    # chỉ người bấm "Đề xuất bản vá" mới tạo run mới; run vá KHÔNG lập kế hoạch lại và không hỏi lại điều đã trả lời
     assert (await reviewer.post(f"{API}/runs/{run_id}/patch")).status_code == 403
-    patch = await engineer.post(f"{API}/runs/{run_id}/patch")
+    assert (await reviewer.post(f"{API}/runs/{run_id}/patch-plan", json={})).status_code == 403
+    runs_n = len(get_store().list_runs(limit=500))
+    ask = await engineer.post(f"{API}/runs/{run_id}/patch")  # chưa chọn cột thay thế → chưa tạo run
+    assert ask.status_code == 409 and "Cần bạn chọn" in ask.json()["detail"]
+    assert len(get_store().list_runs(limit=500)) == runs_n
+    plan = (await engineer.post(f"{API}/runs/{run_id}/patch-plan", json={})).json()
+    question = plan["items"][0]["question"]
+    assert plan["ready"] is False and question["options"][0]["value"] == "use:ordered_at"
+    answers = {question["id"]: "use:ordered_at"}
+    plan = (await engineer.post(f"{API}/runs/{run_id}/patch-plan", json={"answers": answers})).json()
+    assert plan["ready"] and plan["code_fixes"] == 1 and "0 token" in plan["estimate"]
+    patch = await engineer.post(f"{API}/runs/{run_id}/patch", json={"answers": answers})
     assert patch.status_code == 202
     patch_id = patch.json()["run_id"]
     get_jobs().wait(patch_id)
     assert patch_id != run_id
-    assert (await engineer.get(f"{API}/runs/{patch_id}")).json()["record"]["status"] == "waiting_drift"
+    detail = (await engineer.get(f"{API}/runs/{patch_id}")).json()
+    assert detail["record"]["status"] == "waiting_review", detail[
+        "record"
+    ]  # thẳng tới duyệt J2, không qua G1/Planner/J1/J1b
+    assert detail["record"]["summary"]["tokens"] == 0 and detail["record"]["summary"]["llm_calls"] == 0
+    assert any(a["file"] == "models/staging/stg_shopee_orders.sql" for a in detail["patch"]["applied"])
+    assert detail["patch"]["regression"]["same"] is True  # đổi tên thuần: bảng đích giống hệt lần chạy gốc
+    measured = [m["check"] for m in detail["evidence"]["measured"]]
+    assert "Thay đổi nguồn đã xử lý" in measured and "So với lần chạy gốc" in measured
+    nodes = {e["node"] for e in detail["events"]}
+    assert {"patch_start", "patch_apply", "patch_verify"} <= nodes and not nodes & {
+        "planner",
+        "clarify",
+        "plan_review",
+        "optimizer",
+    }
+    # Reviewer duyệt bản vá → thay đổi đã vá thành "đã xác nhận" (số đỏ ở chuông giảm), cấu trúc mới thành bản chuẩn
+    assert schema_drift.list_changes([world["source"].id], status="open")
+    approved = await reviewer.post(f"{API}/runs/{patch_id}/review", json={"decision": "approve"})
+    assert approved.status_code == 202, approved.text
+    get_jobs().wait(patch_id)
+    assert (await engineer.get(f"{API}/runs/{patch_id}")).json()["record"]["status"] == "approved"
+    assert schema_drift.list_changes([world["source"].id], status="open") == []
     await engineer.aclose()
     await reviewer.aclose()
 

@@ -35,3 +35,5 @@ phát hiện sớm, hỏng to và rõ, chỉ ra pipeline bị ảnh hưởng và
 - Kịch bản "đổi đơn vị ×1000" không đổi cấu trúc nên chỉ cảnh báo thống kê; cần người phán đoán (ghi trong README, mục hạn chế).
 - Đo bằng `scripts/simulate_drift.py` (kết quả ở `eval/results/drift.md`): mô phỏng trên sandbox, không phải trên cơ sở dữ liệu production.
 - Nguồn CSDL ngoài chỉ đo hồ sơ thống kê khi kiểm định kỳ/nút kiểm tra (không đo trước mỗi run) để G1 nhanh và không tải thêm lên nguồn.
+
+> Cập nhật 2026-10-16: bản vá không còn đi lại từ cửa kiểm tra và Planner nữa mà dùng lại đặc tả đã duyệt; xem [ADR 0012](0012-ban-va-nhanh-khi-nguon-doi-cau-truc.md).

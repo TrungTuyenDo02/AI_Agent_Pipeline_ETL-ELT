@@ -95,6 +95,14 @@ def build_rows(before: dict[str, dict], after: dict[str, dict], view: SchemaChan
     return rows
 
 
+def columns_before_after(view: SchemaChangeView) -> tuple[dict[str, dict], dict[str, dict]]:
+    """Cột của bảng ở phiên bản trước và sau thay đổi (từ hai ảnh chụp đã lưu); bảng bị xóa thì bên "sau" rỗng."""
+    with Session(get_engine()) as db:
+        before = _columns(db, view.source_id, view.table, view.from_version)
+        after = {} if view.change_type == "table_removed" else _columns(db, view.source_id, view.table, view.to_version)
+    return before, after
+
+
 def change_diff(change_id: int) -> ChangeDiff | None:
     """Hình so sánh cột trước/sau của một thay đổi; thay đổi thống kê (không đổi cấu trúc) trả danh sách dòng rỗng."""
     view = schema_drift.get_change(change_id)
@@ -103,12 +111,7 @@ def change_diff(change_id: int) -> ChangeDiff | None:
     column = schema_drift._column_of_view(view)  # noqa: SLF001
     rows: list[DiffRow] = []
     if not view.change_type.startswith("stat_"):
-        with Session(get_engine()) as db:
-            before = _columns(db, view.source_id, view.table, view.from_version)
-            after = (
-                {} if view.change_type == "table_removed" else _columns(db, view.source_id, view.table, view.to_version)
-            )
-        rows = build_rows(before, after, view)
+        rows = build_rows(*columns_before_after(view), view)
     return ChangeDiff(
         change_id=view.id, source_name=view.source_name, table=view.table, column=column, change_type=view.change_type,
         severity=view.severity, before_version=view.from_version, after_version=view.to_version, rows=rows,

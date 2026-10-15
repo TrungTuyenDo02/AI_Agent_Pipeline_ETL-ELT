@@ -118,6 +118,9 @@
 | TrungTuyenDo02 | Giai đoạn 6: từ điển nghiệp vụ, Planner nhận thuật ngữ, 5 ca golden mới | ✅ Done | Thuật ngữ cần thiết 6/6; token Planner +13,5%; độ đúng chưa đo LLM thật | — |
 | TrungTuyenDo02 | Giao diện thay đổi cấu trúc: nút đỏ ở chuông, so sánh trước/sau, đề xuất sửa pipeline | ✅ Done | Thêm ca type_narrowed, nullable_tightened; Gemini chỉ diễn giải khi bấm; mock only | — |
 | TrungTuyenDo02 | Chạy make eval phần kiểm bằng code, cập nhật report.md và README | ✅ Done | 1078 test đạt, độ phủ 91,55%; golden reference 16/16; mutation 14/15 (chạy lại trên DB test vì DB dev chưa migrate); không chạy LLM thật theo yêu cầu | — |
+| TrungTuyenDo02 | Số đỏ trên tab điều hướng; script demo/seed_drift.py tạo thay đổi giả để xem giao diện | ✅ Done | Hook useDriftAlerts dùng chung cho chuông, tab và trang; số đỏ giảm ngay sau khi xác nhận (sự kiện drift:refresh) | — |
+| TrungTuyenDo02 | Bản vá nhanh khi nguồn đổi cấu trúc (ADR 0012): run vá dùng lại đặc tả đã duyệt, sửa SQL bằng sqlglot, chỉ gọi AI cho phần đổi nghĩa | ✅ Done | Nguyên nhân: bản vá cũ đi lại từ G0/Planner/J1/J1b nên hỏi lại và tốn token. Mới: patch_start → ingest → profiler → patch_apply → testgen → V1 → V2 → patch_verify → J2. Đo: 5/6 kịch bản 0 token, bảng đích giống hệt; 1/6 cần AI chạy thật gpt-6-luna 8.327 token ≈ 0,0027 USD (eval/results/patch.md, patch_llm.md). Gọi Gemini thật 1 lần (drift_advice) xác nhận hoạt động | — |
+| TrungTuyenDo02 | Trang đăng nhập: canvas ít chữ hơn (luồng làm việc theo màu agent/code/người, công cụ, 4 số đo được), bỏ khung lệnh chạy và dữ liệu mẫu | ✅ Done | Giải thích dài chuyển vào tooltip; hoạt ảnh tắt khi giảm chuyển động; tương phản đạt | — |
 
 ---
 

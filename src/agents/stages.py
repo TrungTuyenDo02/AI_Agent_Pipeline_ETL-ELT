@@ -11,6 +11,7 @@ from pydantic import BaseModel
 STAGES: list[tuple[str, str, str, str, tuple[str, ...], bool]] = [
     ("input_gate", "G0", "Kiểm tra đầu vào", "V", ("input_gate", "input_info"), True),
     ("drift_gate", "G1", "Kiểm tra cấu trúc nguồn", "V", ("drift_gate",), True),
+    ("patch", "P", "Vá theo thay đổi nguồn", "E", ("patch_start", "patch_apply", "patch_verify"), True),
     ("planner", "E1", "Lập kế hoạch", "E", ("planner",), False),
     ("clarify", "J1", "Hỏi làm rõ", "J", ("clarify",), True),
     ("spec_check", "V0", "Soát đặc tả", "V", ("spec_check",), False),
@@ -35,6 +36,11 @@ PENDING_STAGE = {
     "rescue": "rescue",
     "review": "review",
 }
+REUSED_IN_PATCH = {
+    "planner",
+    "spec_check",
+    "plan_review",
+}  # run vá mang sẵn đặc tả đã duyệt: các bước này không chạy lại
 FIX_LOOP = {"safety", "sandbox"}  # V1/V2 lỗi → quay về E3 sửa
 
 
@@ -56,6 +62,7 @@ def _from_values(stage_id: str, values: dict, status: str) -> tuple[str, str] | 
     checks: dict[str, tuple[str, str] | None] = {
         "input_gate": ("passed", "") if (values.get("input_gate") or {}).get("status") == "ok" else None,
         "drift_gate": ("passed", "") if (values.get("drift") or {}).get("checked") else None,
+        "patch": ("passed", "") if (values.get("patch") or {}).get("applied") is not None else None,
         "planner": ("passed", "") if values.get("spec") else None,
         "clarify": ("passed", f"{len(values['answered'])} câu đã trả lời") if values.get("answered") else None,
         "spec_check": ("passed", "") if values.get("plan_review") or values.get("workspace") else None,
@@ -95,7 +102,7 @@ def _running_stage(events: list[dict], ids: list[str], current_node: str | None 
         return found
     if not events:
         return next(
-            s for s in ids if s not in ("input_gate", "drift_gate")
+            s for s in ids if s not in ("input_gate", "drift_gate", "patch")
         )  # hai cửa chỉ hiện khi đã chạy (nút tùy chọn)
     stage = stage_of(str(events[-1].get("node")))
     if stage is None:
@@ -119,6 +126,8 @@ def pipeline_stages(
     for stage_id, code, label, kind, nodes, optional in STAGES:
         found = _from_events(nodes, events) or _from_values(stage_id, values, status)
         state, detail = found or ("waiting", "")
+        if values.get("patch_of") and stage_id in REUSED_IN_PATCH:
+            state, detail = "passed", "dùng lại từ lần chạy gốc"
         if stage_id == human:
             state, detail = "human", "chờ bạn"
         elif stage_id == running:

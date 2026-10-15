@@ -576,3 +576,29 @@ export interface Advice {
   ai_text: string;
   ai_source: "" | "gemini" | "mock" | "unavailable";
 }
+
+export type PatchAction = "none" | "code" | "llm" | "ask" | "blocked";
+
+export interface PatchItem {
+  change_id: number;
+  source_id: number;
+  change_type: string;
+  table: string;
+  column: string;
+  action: PatchAction;
+  summary: string;
+  files: string[];
+  question: { id: string; text: string; options: { value: string; label: string }[] } | null;
+}
+
+/** Kế hoạch bản vá dựng bằng code trước khi tạo run: cái gì tự sửa, cái gì cần AI, cái gì cần người chọn. */
+export interface PatchPlan {
+  run_id: string;
+  items: PatchItem[];
+  ready: boolean;
+  code_fixes: number;
+  llm_items: number;
+  questions: number;
+  blocked: number;
+  estimate: string;
+}

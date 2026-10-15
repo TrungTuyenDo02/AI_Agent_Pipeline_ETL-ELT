@@ -209,6 +209,21 @@ def run_created(run_id: str, on_event: EventCallback | None = None) -> RunOutcom
     return _finish(run_id, _stream(run_id, payload, on_event))
 
 
+def run_patch(run_id: str, seed: dict, on_event: EventCallback | None = None) -> RunOutcome:
+    """Chạy run vá: trạng thái khởi đầu (`seed`) mang đặc tả, câu trả lời và code của lần chạy gốc nên graph vào thẳng `patch_start`."""
+    record = get_store().get_run(run_id)
+    if record is None:
+        raise RunStateError(f"Không tìm thấy lần chạy {run_id}.")
+    payload = {
+        "run_id": run_id,
+        "request_text": record.request_text,
+        "requester": record.requester,
+        "llm_usage": [],
+        **seed,
+    }
+    return _finish(run_id, _stream(run_id, payload, on_event))
+
+
 def start_run(request_text: str, requester: str, on_event: EventCallback | None = None) -> RunOutcome:
     """Tạo lần chạy mới và chạy tới điểm dừng đầu tiên."""
     return run_created(create_run(request_text, requester), on_event)

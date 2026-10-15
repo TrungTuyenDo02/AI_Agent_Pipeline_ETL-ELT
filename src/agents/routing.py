@@ -6,6 +6,26 @@ from src.agents.state import PipelineState
 from src.config import get_settings
 
 
+def start_route(state: PipelineState) -> str:
+    """Điểm vào: run vá (có `patch_of`) bỏ qua cửa kiểm tra, Planner và các bước hỏi; run thường vào cửa G0."""
+    return "patch_start" if state.get("patch_of") else "input_gate"
+
+
+def after_patch_start(state: PipelineState) -> str:
+    """Chụp cấu trúc xong → nạp nguồn mới vào sandbox."""
+    return "fail" if state.get("error") else "ingest"
+
+
+def after_profiler(state: PipelineState) -> str:
+    """Run vá không qua Vs (chính bản vá là sự xác nhận cấu trúc mới); run thường soát cấu trúc so với bản đã duyệt."""
+    return "patch_apply" if state.get("patch_of") else "schema_guard"
+
+
+def after_patch_apply(state: PipelineState) -> str:
+    """Còn phần cần AI (đổi tên không chắc, bỏ cột...) → Codegen có giới hạn file; sửa xong bằng code → thẳng Testgen."""
+    return "codegen" if (state.get("patch") or {}).get("llm_items") else "testgen"
+
+
 def after_input_gate(state: PipelineState) -> str:
     """G0: bị chặn → kết thúc luồng; cần bổ sung thông tin → hỏi người dùng; đạt → Planner."""
     status = state.get("input_gate", {}).get("status")
@@ -73,9 +93,11 @@ def after_safety(state: PipelineState) -> str:
 
 
 def after_sandbox(state: PipelineState) -> str:
-    """V2 đạt → tối ưu (nếu chưa) hoặc đóng gói; không đạt → vòng sửa."""
+    """V2 đạt → tối ưu (nếu chưa) hoặc đóng gói; không đạt → vòng sửa. Run vá không tối ưu lại: so với lần chạy gốc rồi đóng gói."""
     if not state.get("sandbox", {}).get("passed"):
         return fix_route(state)
+    if state.get("patch_of"):
+        return "patch_verify"
     return "package" if state.get("optimization") else "optimizer"
 
 

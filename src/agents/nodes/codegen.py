@@ -63,7 +63,8 @@ def previous_code(state: PipelineState) -> str:
     """Code vòng trước, chỉ gửi khi cần sửa; có lỗi nêu tên file thì chỉ gửi file liên quan."""
     if not needs_fix(state):
         return "(chưa có)"
-    return to_json(related_files(state["code_files"], code_error(state)))
+    patch_files = " ".join((state.get("patch") or {}).get("llm_files", []))  # run vá: chỉ các file cần AI sửa
+    return to_json(related_files(state["code_files"], code_error(state) or patch_files))
 
 
 def error_hints(error: str) -> list[dict]:

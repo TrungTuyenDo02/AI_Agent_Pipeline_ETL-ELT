@@ -21,6 +21,10 @@ class PipelineState(TypedDict, total=False):
         dict  # G1: {checked, warnings (thay đổi info/warning), tables (cấu trúc nguồn lúc bắt đầu, để kiểm lại ở J2)}
     )
 
+    # Bản vá nhanh khi nguồn đổi cấu trúc (src/services/patch_plan.py): run vá mang theo đặc tả/code của lần chạy gốc
+    patch_of: str  # id lần chạy gốc; có giá trị = run vá, đi đường patch_start thay vì input_gate
+    patch: dict  # {parent, plan (PatchPlan), changes, parent_workspace, applied, llm_items, llm_files, regression}
+
     # E1 Planner ⇄ J1, V0
     source_catalog: list[
         dict

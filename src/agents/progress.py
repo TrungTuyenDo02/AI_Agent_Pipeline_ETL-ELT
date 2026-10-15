@@ -11,6 +11,9 @@ NODE_LABELS = {
     "input_gate": "G0 Kiểm tra đầu vào",
     "input_info": "G0 Bổ sung yêu cầu",
     "drift_gate": "G1 Kiểm tra cấu trúc nguồn",
+    "patch_start": "P0 Chuẩn bị bản vá",
+    "patch_apply": "P1 Sửa theo thay đổi nguồn",
+    "patch_verify": "P2 So với lần chạy gốc",
     "planner": "E1 Lập kế hoạch",
     "clarify": "J1 Hỏi làm rõ",
     "plan_review": "J1b Duyệt kế hoạch",
@@ -106,6 +109,22 @@ DETAILS = {
 }
 
 
+def _detail_patch_apply(update: dict) -> str:
+    patch = update.get("patch") or {}
+    return f"{len(patch.get('applied', []))} file sửa bằng code, {len(patch.get('llm_files', []))} file cần AI"
+
+
+def _detail_patch_verify(update: dict) -> str:
+    result = (update.get("patch") or {}).get("regression") or {}
+    if not result.get("compared"):
+        return str(result.get("note", "chưa so sánh"))
+    return (
+        "bảng đích giống hệt lần chạy gốc"
+        if result.get("same")
+        else f"bảng đích khác {result.get('differing_rows', 0)} dòng"
+    )
+
+
 def _detail_default(node: str, update: dict) -> tuple[bool, str]:
     if update.get("error"):
         return False, update["error"][:120]
@@ -115,6 +134,9 @@ def _detail_default(node: str, update: dict) -> tuple[bool, str]:
             if (u.get("drift") or {}).get("checked")
             else "chưa kiểm (không có cơ sở dữ liệu)"
         ),
+        "patch_start": lambda u: "dùng lại đặc tả, câu trả lời và code của lần chạy gốc",
+        "patch_apply": _detail_patch_apply,
+        "patch_verify": _detail_patch_verify,
         "input_gate": lambda u: "đạt" if (u.get("input_gate") or {}).get("status") == "ok" else "bị chặn",
         "ingest": lambda u: ", ".join(f"{k}: {v} dòng" for k, v in u.get("row_counts", {}).items()),
         "profiler": lambda u: f"{len(u.get('profile', {}))} bảng",
