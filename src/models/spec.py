@@ -111,6 +111,13 @@ class PipelineOptions(BaseModel):
     connections: list[SourceConnection] = Field(default_factory=list)
 
 
+class GlossaryUse(BaseModel):
+    """Thuật ngữ nghiệp vụ Planner được cung cấp cho yêu cầu này (code chọn, hiện ở J1b để DE biết kế hoạch dựa vào định nghĩa nào)."""
+
+    term: str
+    definition: str = ""
+
+
 class PipelineSpec(BaseModel):
     """Đặc tả pipeline do Planner lập; V0 soát trước khi sinh code."""
 
@@ -132,6 +139,9 @@ class PipelineSpec(BaseModel):
     plan: list[PlanStep] = Field(default_factory=list, description="Các bước sẽ làm, có giải thích (DE duyệt ở J1b)")
     options: PipelineOptions = Field(
         default_factory=PipelineOptions, description="Lựa chọn pipeline (nạp, lịch, kết nối)"
+    )
+    glossary_used: list[GlossaryUse] = Field(
+        default_factory=list, description="Thuật ngữ từ điển nghiệp vụ đã cung cấp"
     )
 
 

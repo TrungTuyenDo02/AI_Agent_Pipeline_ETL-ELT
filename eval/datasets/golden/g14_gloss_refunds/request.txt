@@ -1,0 +1,1 @@
+Đếm số đơn hoàn tiền và tổng tiền hoàn theo ngày từ website_orders. Bảng đích fct_daily_refunds, các cột: order_date (DATE, ngày đặt đơn), refund_count (số đơn hoàn tiền), refund_vnd (tổng tiền VND, số nguyên).

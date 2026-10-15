@@ -32,6 +32,9 @@ Tiền tố `/api/v1`, riêng `/health` không có tiền tố.
 | GET/POST | `/api/v1/sources/{id}/grants` | admin | Xem / cấp thêm quyền xem cho một người hoặc một phòng ban |
 | DELETE | `/api/v1/sources/grants/{grant_id}` | admin | Thu hồi quyền xem thêm |
 | GET/POST | `/api/v1/departments` | admin | Xem / tạo phòng ban |
+| GET | `/api/v1/glossary` | đăng nhập | Thuật ngữ bạn được dùng: dùng chung + của phòng ban mình (Admin: tất cả) |
+| POST | `/api/v1/glossary` | admin | Thêm thuật ngữ (`term`, `synonyms`, `definition`, `maps_to`, `department_id` trống = dùng chung). Trùng tên → `422` |
+| PATCH | `/api/v1/glossary/{id}` | admin | Sửa thuật ngữ (`department_id=0` = chuyển thành dùng chung). Agent chỉ đọc, không tự ghi |
 | GET | `/api/v1/schema-changes` | đăng nhập | Thay đổi cấu trúc của nguồn bạn được thấy (lọc `status`, `severity`, `source_id`), kèm pipeline bị ảnh hưởng |
 | POST | `/api/v1/schema-changes/{id}/acknowledge` | admin, engineer | "Tôi đã biết, dùng cấu trúc mới": cấu trúc hiện tại thành bản chuẩn (ghi AuditLog) |
 | POST | `/api/v1/sources/{id}/check-drift` | admin, engineer | Nút "Kiểm tra lại cấu trúc" của một nguồn; trả `DriftReport` (thay đổi mới, thay đổi chặn đang mở, cảnh báo) |

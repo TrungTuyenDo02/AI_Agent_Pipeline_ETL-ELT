@@ -21,6 +21,8 @@ Nguyên tắc **J-E-V**: người **phán đoán** (J), agent **thực thi** (E)
 
 - **Cửa kiểm tra đầu vào (0 token):** yêu cầu rỗng, vô nghĩa, tấn công prompt hoặc lạc đề bị chặn trước Planner, kèm ví dụ hợp lệ lấy từ danh mục thật; có trần token mỗi lần chạy, số vòng hỏi làm rõ và số lần chạy mỗi ngày.
 - **Sổ nguồn + phân quyền theo phòng ban:** Admin đăng ký nguồn, người dùng chỉ thấy nguồn phòng mình; AI chỉ thấy đúng mức dữ liệu của nguồn (`schema_only` < `profile` < `masked_sample`), không bao giờ thấy dòng thật chưa che, mật khẩu hay chuỗi kết nối; lỗi từ dbt/DuckDB/Postgres được che giá trị trước khi vào prompt.
+- **Phát hiện thay đổi cấu trúc nguồn:** backend đổi kiểu, đổi tên, xóa cột mà không báo thì run bị chặn trước Planner (thay đổi `breaking`) cho tới khi Engineer xác nhận; kiểm lại trước khi Reviewer duyệt; kiểm định kỳ; "Đề xuất bản vá" chỉ chạy khi người bấm. Pipeline sinh ra tự phòng thủ: khai báo nguồn dbt, preflight `check_source_schema` là task đầu của DAG, không `SELECT *`, test đếm dòng không ép được kiểu.
+- **Từ điển nghiệp vụ:** Admin định nghĩa "doanh thu", "đơn hoàn tất", "trùng đơn"...; Planner nhận vài thuật ngữ khớp yêu cầu (hiện ở màn Duyệt kế hoạch), cửa kiểm tra tầng 1 dùng làm từ khóa. Agent chỉ đọc.
 - **Hỏi trước khi làm:** Planner hỏi trắc nghiệm khi còn điểm chưa rõ, rồi trình kế hoạch có giải thích để DE duyệt.
 - **Sinh đầy đủ:** model dbt, DAG Airflow, test đối soát do một agent khác viết **không nhìn code**.
 - **Kiểm chứng bằng code:** sqlglot chặn lệnh nguy hiểm và tên bảng/cột bịa; `dbt build` trong DuckDB có giới hạn thời gian và bộ nhớ.
@@ -33,6 +35,17 @@ Nguyên tắc **J-E-V**: người **phán đoán** (J), agent **thực thi** (E)
 1. **Code đọc dữ liệu thật chỉ để nạp sandbox.** Bộ nạp nguồn (`src/services/connectors/`: tệp, DuckDB, PostgreSQL chỉ đọc) lấy một tập con có hạt giống cố định vào DuckDB cục bộ của lần chạy; cột nhạy cảm của nguồn độ nhạy cảm cao được băm có muối (JOIN vẫn đúng). Kết quả mẫu chỉ hiện cho người có quyền xem nguồn đó.
 2. **LLM chỉ thấy đúng mức của nguồn**, qua một hàm duy nhất `build_llm_context`: cấu trúc (`schema_only`), thêm thống kê và dạng giá trị (`profile`, mặc định), hoặc thêm vài dòng đã che (`masked_sample`, chỉ nguồn độ nhạy cảm thấp). LLM không bao giờ thấy mật khẩu, khóa API, chuỗi kết nối; lỗi từ dbt/DuckDB/Postgres được che giá trị trước khi vào prompt.
 3. **Khi công ty chạy pipeline thật**, bước Extract do pipeline đã duyệt thực hiện bằng tài khoản của chính họ, ngoài hệ thống này; hệ thống chỉ chạy thử trong sandbox.
+
+## Màn hình web
+
+| Màn hình | Việc |
+|---|---|
+| Lần chạy (J1, J1b, cứu hộ, duyệt J2) | Trả lời câu hỏi, duyệt kế hoạch (kèm thuật ngữ đã dùng, cảnh báo cấu trúc), duyệt code, xác nhận khi nguồn đổi cấu trúc |
+| **Nguồn dữ liệu** | Nguồn, phòng ban, độ nhạy cảm, mức AI được xem, nút "Kiểm tra lại cấu trúc"; tab **Từ điển nghiệp vụ** (Admin sửa) |
+| **Thay đổi cấu trúc** | Thay đổi đã phát hiện, pipeline bị ảnh hưởng, "Tôi đã biết, dùng cấu trúc mới", "Đề xuất bản vá" |
+| Sổ lỗi, tối ưu, hồ sơ dữ liệu, quản trị | Như trước |
+
+Danh sách endpoint (gồm `/sources`, `/schema-changes`, `/glossary`, `/runs/{id}/drift`, `/runs/{id}/patch`): [docs/API.md](docs/API.md).
 
 ## Kiến trúc
 
@@ -81,8 +94,10 @@ Chi tiết và điều kiện đo: [eval/results/report.md](eval/results/report.
 
 | Chỉ số | Điều kiện đo | Kết quả |
 |---|---|---|
-| Golden 12 ca: agent đúng | LLM thật (gpt-5.6-luna/terra), 1 lần, 2026-10-08 | **12/12**, ~46 giây và ~0,0045 USD mỗi ca |
-| Mutation: bắt lỗi giả | code, 0 token | **11/12** (91,7%), báo nhầm 0/1 |
+| Golden 12 ca: agent đúng | LLM thật, model cũ gpt-5.6-luna/terra, 1 lần, 2026-10-08. **Chưa đo lại** với gpt-6-luna hiện dùng, mức `profile`, cửa kiểm tra, từ điển | **12/12**, ~46 giây và ~0,0045 USD mỗi ca |
+| Mutation: bắt lỗi giả | code, 0 token, 2026-10-16 (thêm 3 lỗi phòng thủ: bỏ preflight, `SELECT *`, bỏ test ép kiểu) | **14/15** (93,3%), báo nhầm 0/1 |
+| Schema drift: 6 kịch bản "backend đổi không báo" | mô phỏng trên sandbox DuckDB, 0 token, 2026-10-16 | 4 chặn/fail sớm, 1 vô hại, 1 chỉ cảnh báo thống kê (đổi đơn vị); **0 sai âm thầm**, 0 báo nhầm • [drift.md](eval/results/drift.md) |
+| Từ điển nghiệp vụ | code, 0 token; **độ đúng chưa đo bằng LLM thật** | thuật ngữ cần thiết tới Planner 6/6 (5 ca mới), token prompt Planner +13,5% • [glossary.md](eval/results/glossary.md) |
 | TPC-H sf=0,1: query chậm được tối ưu | `mock`, 2026-10-02 | **11/13**, nhanh hơn 51%–94,7%, 10/11 không tốn token |
 | ELT-Bench-Verified: khớp bảng đúng | LLM thật, 34 bảng, 1 lần, chấm lại 2026-10-07 | **11/34** (gồm 2 model lỗi của benchmark) |
 | Optimizer: model LLM nào tốt hơn | LLM thật, chỉ ứng viên do LLM viết, 13 query, 1 lần, 2026-10-14 | Claude Haiku 4.5 **11/13** (áp dụng 8/13), 0,083 USD; **Haiku 5.5 9/13** (áp dụng 7/13), 0,025 USD (đang dùng); gpt-5.6-terra 5/13, 0,24 USD; Claude Opus 5.5 3/13, 0,96 USD • [ab_optimizer.md](eval/results/ab_optimizer.md) |
@@ -103,6 +118,11 @@ Chi tiết và điều kiện đo: [eval/results/report.md](eval/results/report.
 | [WORKLOG](WORKLOG.md) • [JOURNAL](JOURNAL.md) • [CONTRIBUTING](CONTRIBUTING.md) | Nhật ký công việc, bài học, quy tắc đóng góp và ghi log AI |
 
 ## Hạn chế thật
+
+- **Phát hiện thay đổi cấu trúc nhưng không ngăn được:** backend vẫn đổi được mà không báo; hệ thống chỉ phát hiện sớm, làm pipeline hỏng to và rõ, chỉ ra pipeline bị ảnh hưởng. Đổi nghĩa dữ liệu không đổi cấu trúc (vd tiền từ đồng sang nghìn đồng) chỉ được cảnh báo thống kê. Cần **hợp đồng dữ liệu giữa các đội** (việc của tổ chức).
+- **Ngoài phạm vi đợt này:** API đối tác, OAuth, phân quyền theo từng dòng, theo dõi thay đổi dữ liệu (CDC), schema registry, Kafka, BigQuery, MCP, tự chạy/tự merge bản vá khi nguồn đổi, thông báo email/webhook.
+- **Chưa đo bằng LLM thật** ở đợt này (chỉ `mock`): độ đúng agent ở mức `profile` so với `schema_only` ([llm_access.md](eval/results/llm_access.md)), độ đúng khi có từ điển, cửa tầng 2. Lệnh đo và chi phí ước tính nằm trong từng báo cáo.
+- PostgreSQL chỉ đọc kiểm thử trên Neon (`RUN_PG_TESTS=1`), chưa chạy bằng Docker `dev-sources` trên máy này; nạp phần mới (incremental) chỉ ghi `config`, chưa có khối `is_incremental()`; một số thống kê đã che (`categories`) còn trong checkpoint; CLI tin `--user` do chạy trên máy chủ.
 
 - Chạy trên **kho dữ liệu giả lập** "P113 Retail" ([docs/data-catalog.md](docs/data-catalog.md)), chưa thử với dữ liệu công ty thật.
 - **Chưa có DE làm tay** để so thời gian ([quy trình](eval/baseline/PROTOCOL.md)); mỗi phép đo chạy 1 lần; nhãn kiểm thử do tác giả gán.

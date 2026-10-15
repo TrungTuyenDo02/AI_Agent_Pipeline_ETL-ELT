@@ -1,0 +1,90 @@
+# Từ điển nghiệp vụ mẫu cho "P113 Retail" (Shopee CSV, Tiki JSON, website SQLite). Dùng làm:
+#  - dữ liệu seed của migration 0007 (department_id trống = dùng chung mọi phòng ban);
+#  - từ điển chỉ đọc khi không có cơ sở dữ liệu ứng dụng (CLI demo, eval chạy offline).
+# Admin sửa/thêm trên web (trang "Nguồn dữ liệu" → tab "Từ điển nghiệp vụ"); agent chỉ đọc, không tự ghi.
+# Mỗi thuật ngữ: term, synonyms, definition (ngắn, rõ, không chứa giá trị dữ liệu thật), maps_to (bảng/cột hoặc biểu thức).
+terms:
+  - term: doanh thu
+    synonyms: [doanh thu thuần, revenue, net revenue]
+    definition: "Tổng tiền VND của các đơn đã hoàn tất; không tính đơn hủy, đơn hoàn tiền và đơn đang xử lý."
+    maps_to: "SUM(tiền đơn) với đơn hoàn tất; shopee_orders.total_amount, tiki_orders.grand_total, website_orders.amount_vnd"
+
+  - term: đơn hoàn tất
+    synonyms: [đơn thành công, đơn đã giao, đơn đã thanh toán, completed order]
+    definition: "Đơn đã giao hoặc đã thanh toán xong. Shopee COMPLETED, Tiki delivered, website paid."
+    maps_to: "shopee_orders.status = COMPLETED; tiki_orders.state = delivered; website_orders.status = paid"
+
+  - term: đơn hủy
+    synonyms: [đơn bị hủy, đơn huỷ, cancelled order, canceled order]
+    definition: "Đơn bị hủy trước khi hoàn tất. Shopee CANCELLED, Tiki canceled, website cancelled."
+    maps_to: "shopee_orders.status = CANCELLED; tiki_orders.state = canceled; website_orders.status = cancelled"
+
+  - term: hoàn tiền
+    synonyms: [đơn hoàn tiền, trả hàng, đơn trả hàng, refund]
+    definition: "Đơn đã giao nhưng khách trả hàng và được hoàn tiền. Shopee RETURNED, Tiki refunded, website refunded."
+    maps_to: "shopee_orders.status = RETURNED; tiki_orders.state = refunded; website_orders.status = refunded"
+
+  - term: trùng đơn
+    synonyms: [đơn trùng, đơn lặp, dòng lặp, dòng trùng, duplicate order]
+    definition: "Cùng một mã đơn xuất hiện nhiều dòng trong một nguồn; mỗi (nguồn, mã đơn) chỉ tính một lần."
+    maps_to: "shopee_orders.order_id, tiki_orders.id, website_orders.order_id"
+
+  - term: mã đơn
+    synonyms: [order id, mã đơn hàng, order_id]
+    definition: "Khóa của đơn trong từng nguồn; hai nguồn khác nhau có thể dùng cùng một mã cho hai đơn khác nhau."
+    maps_to: "shopee_orders.order_id, tiki_orders.id, website_orders.order_id"
+
+  - term: ngày đặt đơn
+    synonyms: [ngày đơn, ngày đặt hàng, order date]
+    definition: "Ngày khách đặt đơn, lấy theo ngày lưu trong dữ liệu (không đổi múi giờ)."
+    maps_to: "shopee_orders.order_date, tiki_orders.created_at, website_orders.created_ts"
+
+  - term: số đơn
+    synonyms: [số lượng đơn, tổng số đơn, order count]
+    definition: "Số đơn hợp lệ theo điều kiện lọc của yêu cầu, mỗi đơn đếm một lần."
+    maps_to: "COUNT(đơn) sau khi bỏ trùng"
+
+  - term: giá trị đơn trung bình
+    synonyms: [giá trị trung bình mỗi đơn, AOV, average order value]
+    definition: "Doanh thu chia số đơn hoàn tất trong cùng kỳ."
+    maps_to: "SUM(tiền đơn) / COUNT(đơn) với đơn hoàn tất"
+
+  - term: tỷ lệ hoàn tiền
+    synonyms: [tỉ lệ hoàn tiền, tỷ lệ trả hàng, refund rate]
+    definition: "Số đơn hoàn tiền chia tổng số đơn đã giao hoặc đã hoàn tiền, sau khi bỏ trùng."
+    maps_to: "COUNT(đơn hoàn tiền) / COUNT(đơn hoàn tất + đơn hoàn tiền)"
+
+  - term: kênh bán
+    synonyms: [kênh, nguồn bán, sàn, channel]
+    definition: "Nơi phát sinh đơn: shopee, tiki hoặc website; mỗi bảng nguồn là một kênh."
+    maps_to: "shopee_orders, tiki_orders, website_orders"
+
+  - term: tiền VND
+    synonyms: [số tiền, đơn vị tiền, đồng, vnd]
+    definition: "Mọi số tiền tính bằng đồng Việt Nam, số nguyên. Shopee ghi chuỗi có dấu chấm ngăn nghìn, Tiki ghi số thực."
+    maps_to: "shopee_orders.total_amount (chuỗi), tiki_orders.grand_total (số thực), website_orders.amount_vnd (số nguyên)"
+
+  - term: doanh thu theo ngày
+    synonyms: [doanh thu hằng ngày, daily revenue]
+    definition: "Doanh thu gộp theo ngày đặt đơn; mỗi ngày một dòng."
+    maps_to: "GROUP BY ngày đặt đơn"
+
+  - term: doanh thu theo tháng
+    synonyms: [doanh thu hằng tháng, monthly revenue]
+    definition: "Doanh thu gộp theo tháng dương lịch của ngày đặt đơn; cột tháng là ngày đầu tháng."
+    maps_to: "GROUP BY date_trunc('month', ngày đặt đơn)"
+
+  - term: đơn đang xử lý
+    synonyms: [đơn chờ, đơn chưa hoàn tất, pending order]
+    definition: "Đơn chưa hoàn tất, chưa hủy và chưa hoàn tiền (mọi trạng thái còn lại). Không tính vào doanh thu."
+    maps_to: "trạng thái khác hoàn tất, hủy, hoàn tiền"
+
+  - term: khách hàng
+    synonyms: [khách, người mua, customer]
+    definition: "Người mua hàng, nhận diện bằng email trong bảng khách hàng; một khách có thể có nhiều đơn."
+    maps_to: "customers.email, customers.customer_id"
+
+  - term: đơn thiếu số tiền
+    synonyms: [đơn rỗng tiền, đơn không có số tiền]
+    definition: "Đơn có ô số tiền rỗng; vẫn đếm vào số đơn nhưng doanh thu của đơn đó là 0."
+    maps_to: "tiền đơn IS NULL"

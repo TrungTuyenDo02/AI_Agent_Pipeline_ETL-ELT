@@ -1,5 +1,6 @@
 """E1 Planner: yêu cầu NL + danh mục nguồn thật → PipelineSpec (LLM rút thông tin, code quyết định mode)."""
 
+import json
 import logging
 import re
 
@@ -11,7 +12,7 @@ from src.agents.tools.source_stats import column_values, source_stats
 from src.config import get_settings
 from src.models.schemas import RunStatus
 from src.models.sources import DataSource
-from src.models.spec import ModeSignals, PipelineSpec, decide_mode, decide_options, signals_from_sources
+from src.models.spec import GlossaryUse, ModeSignals, PipelineSpec, decide_mode, decide_options, signals_from_sources
 from src.services import secrets, source_registry
 from src.services.connectors import ConnectorError, get_connector
 from src.services.llm import LLMOutputError, call_llm, parse_json_output, to_json
@@ -99,9 +100,11 @@ def with_value_options(spec: PipelineSpec, catalog: list[dict]) -> PipelineSpec:
 def planner_variables(state: PipelineState, context: LLMContext, last_round: bool) -> dict[str, str]:
     """Biến điền vào prompt planner."""
     answers = state.get("answers", {})
+    glossary = context.glossary_for(state["request_text"])  # cửa duy nhất; tối đa N thuật ngữ khớp yêu cầu
     return {
         "request_text": state["request_text"],
         "source_catalog": to_json(context.planner_catalog()),  # cửa duy nhất: mức truy cập theo từng nguồn
+        "glossary": to_json(glossary) if glossary else "(không có)",
         "answers": to_json(answers) if answers else "(chưa có)",  # không có trong prompt; LLM mock đọc
         "answered_questions": to_json(state.get("answered", [])) if state.get("answered") else "(chưa có)",
         "spec_errors": to_json(state.get("spec_errors", [])),
@@ -111,10 +114,18 @@ def planner_variables(state: PipelineState, context: LLMContext, last_round: boo
     }
 
 
+def used_terms(variables: dict[str, str]) -> list[GlossaryUse]:
+    """Thuật ngữ đã đưa vào prompt (code ghi lại, không nhờ LLM kể) để hiện ở màn Duyệt kế hoạch."""
+    raw = variables.get("glossary", "")
+    if not raw.startswith("["):
+        return []
+    return [GlossaryUse(term=item["term"], definition=item.get("definition", "")) for item in json.loads(raw)]
+
+
 def planner_node(state: PipelineState) -> dict:
     """Gọi LLM lập đặc tả; lỗi định dạng được trả về `spec_errors` để V0 cho làm lại."""
     context = context_for_state(
-        state, audit=not state.get("source_catalog")
+        state, audit=not state.get("source_catalog"), glossary=True
     )  # lần đầu: ghi AuditLog nguồn nào, mức nào
     catalog = context.catalog
     rounds = state.get("plan_rounds", 0) + 1
@@ -125,12 +136,14 @@ def planner_node(state: PipelineState) -> dict:
         }
     answers = state.get("answers", {})
     last_round = rounds >= get_settings().max_plan_rounds
-    response = call_llm("planner", planner_variables(state, context, last_round))
+    variables = planner_variables(state, context, last_round)
+    response = call_llm("planner", variables)
     base = {"source_catalog": catalog, "plan_rounds": rounds, "llm_usage": usage_of(response)}
     try:
         data = fill_sources(drop_answered(parse_json_output(response.text), state.get("answered", [])), catalog)
         spec = with_value_options(build_spec(data, state["request_text"], answers), catalog)
         spec = with_pipeline_options(spec, catalog, state.get("plan_options", {}))
+        spec = spec.model_copy(update={"glossary_used": used_terms(variables)})
     except (LLMOutputError, ValidationError) as exc:
         logger.warning("planner output invalid", extra={"error": str(exc)[:300]})
         return {**base, "spec": {}, "spec_errors": [f"Planner trả về đặc tả sai định dạng: {str(exc)[:200]}"]}

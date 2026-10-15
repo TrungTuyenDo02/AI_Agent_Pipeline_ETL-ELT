@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends
 
-from src.api import auth, catalog, drift, error_book, memory, reviews, runs, sources
+from src.api import auth, catalog, drift, error_book, glossary, memory, reviews, runs, sources
 from src.api.deps import current_user
 from src.config import APP_VERSION, get_settings
 from src.services.circuit_breaker import breaker_snapshots
@@ -21,6 +21,7 @@ protected.include_router(memory.router)
 protected.include_router(catalog.router)
 protected.include_router(sources.router)
 protected.include_router(drift.router)
+protected.include_router(glossary.router)
 
 
 @protected.get("/status")

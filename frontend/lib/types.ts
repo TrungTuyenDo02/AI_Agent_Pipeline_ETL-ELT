@@ -122,6 +122,7 @@ export interface Spec {
   plan_summary?: string;
   plan?: PlanStep[];
   options?: PipelineOptions;
+  glossary_used?: { term: string; definition: string }[];
 }
 
 /** Lựa chọn pipeline do code đề xuất kèm lý do; DE chọn hoặc chấp nhận mặc định ở J1b. */
@@ -525,4 +526,14 @@ export interface DriftReport {
   new_changes: SchemaChange[];
   open_breaking: SchemaChange[];
   warnings: SchemaChange[];
+}
+
+/** Thuật ngữ trong từ điển nghiệp vụ (department_id trống = dùng chung). */
+export interface GlossaryTerm {
+  id: number;
+  term: string;
+  synonyms: string[];
+  definition: string;
+  maps_to: string;
+  department_id: number | null;
 }

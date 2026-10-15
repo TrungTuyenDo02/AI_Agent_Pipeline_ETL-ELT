@@ -1,0 +1,6 @@
+id: g15_gloss_cancelled
+expect_questions: false
+score: result
+trap: thuật ngữ 'đơn hủy' (CANCELLED) và tiền dạng chuỗi có dấu chấm
+expected_mode: ELT
+glossary: [đơn hủy]

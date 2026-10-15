@@ -1,0 +1,1 @@
+Tính giá trị đơn trung bình theo ngày từ website_orders. Bảng đích fct_daily_aov, các cột: order_date (DATE, ngày đặt đơn), aov_vnd (giá trị đơn trung bình, VND, số nguyên).

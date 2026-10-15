@@ -1,0 +1,1 @@
+Đếm số đơn hủy và tổng tiền của đơn hủy theo ngày từ shopee_orders. Bảng đích fct_daily_cancelled, các cột: order_date (DATE, ngày đặt đơn), cancelled_count (số đơn hủy), cancelled_vnd (tổng tiền VND, số nguyên).

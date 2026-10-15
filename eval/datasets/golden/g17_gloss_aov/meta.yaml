@@ -1,0 +1,6 @@
+id: g17_gloss_aov
+expect_questions: false
+score: result
+trap: thuật ngữ 'giá trị đơn trung bình' = doanh thu / số đơn hoàn tất
+expected_mode: ELT
+glossary: [giá trị đơn trung bình]

@@ -1,6 +1,6 @@
 {
- "provider": "mock",
- "model": "mock",
+ "provider": "openai",
+ "model": "planner=gpt-6-luna, codegen=gpt-6-luna, testgen=gpt-6-luna, optimizer=claude-haiku-5-5",
  "rows": [
   {
    "case": "g01_three_sources",
@@ -54,6 +54,31 @@
   },
   {
    "case": "g12_pii_etl",
+   "ok": true,
+   "detail": "Khớp 2 dòng"
+  },
+  {
+   "case": "g13_gloss_revenue",
+   "ok": true,
+   "detail": "Khớp 2 dòng"
+  },
+  {
+   "case": "g14_gloss_refunds",
+   "ok": true,
+   "detail": "Khớp 2 dòng"
+  },
+  {
+   "case": "g15_gloss_cancelled",
+   "ok": true,
+   "detail": "Khớp 1 dòng"
+  },
+  {
+   "case": "g16_gloss_duplicates",
+   "ok": true,
+   "detail": "Khớp 2 dòng"
+  },
+  {
+   "case": "g17_gloss_aov",
    "ok": true,
    "detail": "Khớp 2 dòng"
   }

@@ -20,6 +20,7 @@ from src.agents.tools.input_checks import (
     check_input,
     decide_tier2,
     load_rules,
+    normalize,
     request_hash,
     suggest_examples,
     terms_from_catalog,
@@ -27,7 +28,7 @@ from src.agents.tools.input_checks import (
 )
 from src.config import GATE_TASK, get_settings
 from src.models.llm_outputs import GateOutput
-from src.services import llm, source_registry
+from src.services import glossary, llm, source_registry
 
 logger = logging.getLogger(__name__)
 MAX_TABLES_SENT = 60  # chỉ gửi TÊN bảng, tối đa chừng này để prompt không phình
@@ -91,12 +92,28 @@ def catalog_fingerprint(keywords: frozenset[str]) -> str:
     return hashlib.sha1("|".join(sorted(keywords)).encode("utf-8")).hexdigest()[:16]  # noqa: S324 — không phải bảo mật
 
 
-def static_check(text: str, catalog: list[dict]) -> GateResult:
-    """Tầng 0 + tầng 1 (có bộ nhớ đệm), kèm thông điệp và ví dụ lấy từ danh mục thật khi bị chặn/chưa rõ."""
+MIN_GLOSSARY_WORD = 5  # từ đơn ngắn ("kênh", "đồng", "sàn") quá thường ngày: chỉ nhận cụm nhiều chữ hoặc từ đơn đủ dài
+
+
+def glossary_keywords(phrases: list[str], ruleset: GateRules) -> frozenset[str]:
+    """Từ khóa nhận diện từ từ điển nghiệp vụ: cả cụm (không tách từng chữ như tên cột) để không làm lọt câu lạc đề."""
+    found = set()
+    for phrase in phrases:
+        key = normalize(phrase)
+        if " " in key or (len(key) >= MIN_GLOSSARY_WORD and key not in ruleset.generic):
+            found.add(key)
+    return frozenset(found)
+
+
+def static_check(text: str, catalog: list[dict], glossary_terms: list[str] | None = None) -> GateResult:
+    """Tầng 0 + tầng 1 (có bộ nhớ đệm), kèm thông điệp và ví dụ lấy từ danh mục thật khi bị chặn/chưa rõ.
+
+    `glossary_terms`: thuật ngữ + từ đồng nghĩa của từ điển nghiệp vụ, cũng là từ khóa nhận diện (giai đoạn 6).
+    """
     settings = get_settings()
     ruleset = rules()
     terms, labels = terms_from_catalog(catalog)
-    keywords = business_keywords(terms, ruleset, labels)
+    keywords = business_keywords(terms, ruleset, labels) | glossary_keywords(glossary_terms or [], ruleset)
     key = (request_hash(text), catalog_fingerprint(keywords))
     cache = result_cache()
     if hit := cache.get(key):
@@ -112,7 +129,7 @@ def precheck(text: str, catalog: list[dict] | None = None, requester: str = "") 
 
     `rejected` thì chặn ngay; `ok` và `unclear` đều cho tạo lần chạy (`unclear` sẽ qua tầng 2 ở node `input_gate`).
     """
-    return static_check(text, gate_catalog(catalog, requester))
+    return static_check(text, gate_catalog(catalog, requester), glossary.keyword_terms(requester))
 
 
 def tier2(text: str, catalog: list[dict]) -> tuple[GateResult, list[dict]]:
@@ -142,11 +159,12 @@ def evaluate(text: str, catalog: list[dict] | None = None, requester: str = "") 
     Kết quả tầng 2 cũng nhớ theo (băm câu, dấu vân tay danh mục): câu giống hệt không tốn thêm token.
     """
     items = gate_catalog(catalog, requester)
-    static = static_check(text, items)
+    extra = glossary.keyword_terms(requester)
+    static = static_check(text, items, extra)
     if static.status != "unclear":
         return static, []
     terms, labels = terms_from_catalog(items)
-    keywords = business_keywords(terms, rules(), labels)
+    keywords = business_keywords(terms, rules(), labels) | glossary_keywords(extra, rules())
     key = (f"t2:{request_hash(text)}", catalog_fingerprint(keywords))
     cache = result_cache()
     if hit := cache.get(key):

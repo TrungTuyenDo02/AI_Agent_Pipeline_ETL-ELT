@@ -21,7 +21,9 @@ from pydantic import BaseModel, Field
 
 from src.agents.nodes.profiler import DATE_NAME_RE, MONEY_NAME_RE
 from src.config import get_settings
+from src.models.glossary import GlossaryTerm
 from src.models.sources import DataSource, LLMAccess, UserContext, cap_access
+from src.services import glossary as glossary_service
 from src.services import secrets, source_registry
 from src.services.connectors import ConnectorError, SourceConnector, get_connector
 from src.services.profiling import cached_table_profile, masked_sample
@@ -56,6 +58,9 @@ class LLMContext(BaseModel):
         default_factory=list
     )  # CHO CODE (có path, mức truy cập): lưu vào state, không đưa vào prompt
     downgraded: list[str] = Field(default_factory=list)  # tên bảng đã bị hạ mức
+    glossary: list[GlossaryTerm] = Field(
+        default_factory=list
+    )  # từ điển nghiệp vụ người dùng được dùng (chỉ khi yêu cầu)
 
     def level_of(self, table: str) -> LLMAccess:
         """Mức truy cập của một bảng; bảng lạ → schema_only."""
@@ -73,6 +78,13 @@ class LLMContext(BaseModel):
                 entry["stats"] = _planner_stats(t.profile)
             out.append(entry)
         return compact_catalog(out)
+
+    def glossary_for(self, request_text: str, limit: int | None = None) -> list[dict]:
+        """Thuật ngữ nghiệp vụ liên quan tới yêu cầu cho Planner: khớp từ khóa, tối đa `GLOSSARY_MAX_TERMS` mục, định nghĩa cắt gọn,
+        ánh xạ chỉ nhắc bảng người dùng được thấy. Chỉ định nghĩa do Admin viết; không có dữ liệu thật."""
+        cap = get_settings().glossary_max_terms if limit is None else limit
+        chosen = glossary_service.relevant_terms(request_text, self.glossary, cap)
+        return glossary_service.entries_for_prompt(chosen, {t.name for t in self.tables})
 
     def build_profile(self, profile: dict) -> dict:
         """Hồ sơ dữ liệu cho Codegen/Testgen từ kết quả bước P, cắt theo mức của từng bảng.
@@ -168,6 +180,7 @@ def build_llm_context(
     catalog: list[dict] | None = None,
     run_id: str = "",
     audit: bool = False,
+    glossary: bool = False,
 ) -> LLMContext:
     """Dựng ngữ cảnh dữ liệu cho prompt của `user`.
 
@@ -224,10 +237,13 @@ def build_llm_context(
     if audit and items:
         levels = sorted({t.access for t in out})
         source_registry.audit_access(who(), "llm.context", _source_ids(items), run_id, levels=levels, tables=len(out))
-    return LLMContext(tables=out, catalog=code_items, downgraded=downgraded)
+    terms = glossary_service.list_terms(who()) if glossary else []
+    return LLMContext(tables=out, catalog=code_items, downgraded=downgraded, glossary=terms)
 
 
-def context_for_state(state: dict, tables: list[str] | None = None, *, audit: bool = False) -> LLMContext:
+def context_for_state(
+    state: dict, tables: list[str] | None = None, *, audit: bool = False, glossary: bool = False
+) -> LLMContext:
     """Ngữ cảnh cho một node của graph: danh mục trong state (đã lọc quyền khi Planner chạy) hoặc, nếu chưa có, danh mục mà người
     tạo lần chạy được thấy trong sổ nguồn."""
     return build_llm_context(
@@ -236,6 +252,7 @@ def context_for_state(state: dict, tables: list[str] | None = None, *, audit: bo
         tables=tables,
         run_id=state.get("run_id", ""),
         audit=audit,
+        glossary=glossary,
     )
 
 

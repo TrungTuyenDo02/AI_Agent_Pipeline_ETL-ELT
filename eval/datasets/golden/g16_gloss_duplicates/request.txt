@@ -1,0 +1,1 @@
+Tính doanh thu theo ngày từ shopee_orders, loại trùng đơn. Bảng đích fct_daily_revenue, các cột: order_date (DATE, ngày đặt đơn), order_count (số đơn được tính), revenue_vnd (tổng tiền VND, số nguyên).

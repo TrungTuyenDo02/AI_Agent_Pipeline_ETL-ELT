@@ -22,6 +22,7 @@ CODEGEN_MAX_TEMPERATURE = 0.2
 MODELS_FILE = Path(__file__).resolve().parent.parent / "config" / "models.yaml"
 INPUT_GATE_FILE = Path(__file__).resolve().parent.parent / "config" / "input_gate.yaml"
 DRIFT_RULES_FILE = Path(__file__).resolve().parent.parent / "config" / "drift_rules.yaml"
+GLOSSARY_SEED_FILE = Path(__file__).resolve().parent.parent / "config" / "glossary_seed.yaml"
 TASKS = ("planner", "codegen", "testgen", "optimizer")
 GATE_TASK = "input_gate"  # bộ phân loại tầng 2 của cửa kiểm tra đầu vào: model riêng, rẻ nhất, không dùng model của planner/optimizer
 
@@ -169,6 +170,9 @@ class Settings(BaseSettings):
     )
 
     # Giám sát thay đổi cấu trúc nguồn (giai đoạn 5)
+    glossary_max_terms: int = Field(
+        default=3, ge=0, le=20
+    )  # số thuật ngữ nghiệp vụ tối đa đưa vào prompt Planner (chọn theo khớp từ khóa)
     drift_gate_enabled: bool = True  # tắt = bỏ bước G1 (chỉ dùng cho test/demo; bản chuẩn luôn bật)
     drift_check_token: str = ""  # khóa nội bộ cho POST /sources/check-drift (lịch GitHub Actions); trống = tắt endpoint
     drift_null_pct_delta: float = Field(

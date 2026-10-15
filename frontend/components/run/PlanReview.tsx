@@ -47,6 +47,20 @@ function SpecGlance({ spec, sources }: { spec: Spec; sources: string[] }) {
       <dd>
         {spec.mode} — {spec.mode_reason}
       </dd>
+      {!!spec.glossary_used?.length && (
+        <>
+          <dt>Thuật ngữ đã dùng</dt>
+          <dd>
+            <ul className="plain">
+              {spec.glossary_used.map((g) => (
+                <li key={g.term}>
+                  <strong>{g.term}</strong>: {g.definition}
+                </li>
+              ))}
+            </ul>
+          </dd>
+        </>
+      )}
       <dt>Giả định</dt>
       <dd>
         {spec.assumptions?.length ? (

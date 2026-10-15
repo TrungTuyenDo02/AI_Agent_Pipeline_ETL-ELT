@@ -115,6 +115,7 @@
 | TrungTuyenDo02 | Giai đoạn 3: sổ nguồn, phân quyền phòng ban, build_llm_context, scrub_error, tách người duyệt | ✅ Done | Migration 0005; 3 mức truy cập; kiểm rò rỉ 0 giá trị thật; đo độ đúng LLM thật chưa làm | — |
 | TrungTuyenDo02 | Giai đoạn 4: khung Extract, 3 bộ nạp (tệp, DuckDB, PostgreSQL chỉ đọc), lựa chọn pipeline ở J1b | ✅ Done | 128 test mới; PostgreSQL thật qua Neon (RUN_PG_TESTS=1) đạt; luồng qua DuckDB/PG khớp luồng tệp; golden 11/11, mutation 11/12 giữ nguyên | — |
 | TrungTuyenDo02 | Giai đoạn 5: phát hiện thay đổi cấu trúc nguồn, pipeline tự phòng thủ, mô phỏng 6 kịch bản | ✅ Done | 6 kịch bản: 4 chặn/fail sớm, 1 vô hại, 1 cảnh báo; 0 sai âm thầm; mutation 14/15; chỉ mock | — |
+| TrungTuyenDo02 | Giai đoạn 6: từ điển nghiệp vụ, Planner nhận thuật ngữ, 5 ca golden mới | ✅ Done | Thuật ngữ cần thiết 6/6; token Planner +13,5%; độ đúng chưa đo LLM thật | — |
 
 ---
 

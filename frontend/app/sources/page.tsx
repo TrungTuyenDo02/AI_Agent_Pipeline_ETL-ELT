@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 
 import { useApp } from "@/components/AppContext";
+import { GlossaryPanel } from "@/components/GlossaryPanel";
 import { useToast } from "@/components/Toast";
 import { Card, Empty, ErrorBox, Loading } from "@/components/ui";
 import { apiPatch, apiPost, messageOf } from "@/lib/api";
@@ -325,7 +326,7 @@ function Departments({ onDone }: { onDone: () => Promise<void> }) {
   );
 }
 
-export default function SourcesPage() {
+function SourcesTab() {
   const { user } = useApp();
   const isAdmin = user?.role === "admin";
   const { data, error, loading, refresh } = usePoll<SourceView[]>("/sources", null);
@@ -333,14 +334,6 @@ export default function SourcesPage() {
 
   return (
     <div className="stack">
-      <header className="page-head">
-        <h1>Nguồn dữ liệu</h1>
-        <p className="muted">
-          Nguồn đã đăng ký và mức dữ liệu AI được xem.{" "}
-          {isAdmin ? "Bạn thấy mọi nguồn." : "Bạn chỉ thấy nguồn của phòng ban mình."} AI không bao giờ thấy mật khẩu,
-          khóa hay chuỗi kết nối.
-        </p>
-      </header>
       {isAdmin && departments.data && <RegisterForm departments={departments.data} onDone={refresh} />}
       <Card title="Nguồn đã đăng ký">
         {loading && !data ? (
@@ -372,6 +365,33 @@ export default function SourcesPage() {
         )}
       </Card>
       {isAdmin && <Departments onDone={departments.refresh} />}
+    </div>
+  );
+}
+
+export default function SourcesPage() {
+  const { user } = useApp();
+  const isAdmin = user?.role === "admin";
+  const [tab, setTab] = useState<"sources" | "glossary">("sources");
+  return (
+    <div className="stack">
+      <header className="page-head">
+        <h1>Nguồn dữ liệu</h1>
+        <p className="muted">
+          Nguồn đã đăng ký, mức dữ liệu AI được xem và từ điển nghiệp vụ.{" "}
+          {isAdmin ? "Bạn thấy mọi nguồn." : "Bạn chỉ thấy nguồn của phòng ban mình."} AI không bao giờ thấy mật khẩu,
+          khóa hay chuỗi kết nối.
+        </p>
+        <div className="segmented" role="group" aria-label="Chọn mục">
+          <button type="button" aria-pressed={tab === "sources"} onClick={() => setTab("sources")}>
+            Nguồn
+          </button>
+          <button type="button" aria-pressed={tab === "glossary"} onClick={() => setTab("glossary")}>
+            Từ điển nghiệp vụ
+          </button>
+        </div>
+      </header>
+      {tab === "sources" ? <SourcesTab /> : <GlossaryPanel />}
     </div>
   );
 }

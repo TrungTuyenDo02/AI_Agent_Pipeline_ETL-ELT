@@ -94,6 +94,14 @@ Trần chi phí: `MAX_CLARIFY_ROUNDS`, `RUN_TOKEN_BUDGET`, `USER_DAILY_RUN_LIMIT
 4. Bộ nạp đọc bằng phiên `BEGIN READ ONLY`, kiểm mọi câu lệnh bằng sqlglot trước khi chạy (chỉ một câu SELECT, chỉ bảng được phép), có `statement_timeout` và giới hạn số dòng; dữ liệu chỉ vào sandbox DuckDB của lần chạy (tập con có hạt giống cố định, cột nhạy cảm của nguồn `high` đã băm).
 5. Kiểm thử với PostgreSQL thật (CI mặc định bỏ qua): `RUN_PG_TESTS=1 PG_SOURCE_DSN=postgresql://postgres:<mật khẩu>@127.0.0.1:5434/p113_retail python -m pytest tests/test_connectors.py` (không có `PG_SOURCE_DSN` thì dùng `TEST_DATABASE_URL`; tài khoản không được tạo schema thì tạm dùng bảng `customers`/`orders` trong `public` rồi xóa).
 
+#### Từ điển nghiệp vụ (giai đoạn 6)
+
+- **Cập nhật cơ sở dữ liệu:** `alembic upgrade head` (migration `0007_glossary` tạo bảng và seed 17 thuật ngữ P113 Retail từ `config/glossary_seed.yaml`, dùng chung mọi phòng ban).
+- **Quản lý:** Admin thêm/sửa ở web "Nguồn dữ liệu" → tab "Từ điển nghiệp vụ" (hoặc `POST/PATCH /api/v1/glossary`). Người khác chỉ đọc. Thuật ngữ gắn phòng ban chỉ người của phòng đó thấy.
+- **Viết định nghĩa:** ngắn, rõ, nói điều kiện lọc cụ thể (vd "doanh thu = đơn hoàn tất, không tính đơn hủy/hoàn tiền"). Không ghi giá trị dữ liệu thật. Nếu phần "ứng với" nhắc một bảng người dùng không được thấy thì phần đó bị ẩn (định nghĩa chữ vẫn giữ).
+- **Cách dùng:** (1) cửa kiểm tra đầu vào tầng 1 nhận thuật ngữ và từ đồng nghĩa (cụm nhiều chữ hoặc từ đơn ≥ 5 ký tự) làm từ khóa; (2) Planner nhận tối đa `GLOSSARY_MAX_TERMS` thuật ngữ khớp yêu cầu, màn Duyệt kế hoạch (J1b) hiện "Thuật ngữ đã dùng". Tắt: `GLOSSARY_MAX_TERMS=0`.
+- **Đo:** `python eval/run_glossary.py` (0 token) ghi `eval/results/glossary.md`: thuật ngữ cần thiết tới được Planner ở 5 ca golden mới (g13–g17), mức tăng token prompt. Độ đúng trước/sau cần LLM thật nên chưa đo; lệnh ở cuối báo cáo.
+
 #### Giám sát thay đổi cấu trúc nguồn (giai đoạn 5)
 
 Hệ thống **phát hiện** khi backend đổi kiểu dữ liệu, đổi tên cột, xóa cột mà không báo; nó **không ngăn được** việc đổi và không tự sửa. Thỏa thuận hợp đồng dữ liệu giữa các đội vẫn là việc của tổ chức.

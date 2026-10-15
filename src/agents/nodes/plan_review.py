@@ -12,6 +12,7 @@ from src.models.spec import LOAD_LABELS, SCHEDULE_LABELS, PipelineOptions, apply
 
 PLAN_SPEC_FIELDS = (
     "target", "mode", "mode_reason", "grain", "output_columns", "metrics", "filters", "assumptions", "options",
+    "glossary_used",
 )  # fmt: skip
 OPTION_KEYS = ("load_mode", "schedule", "incremental_column")
 NEXT_STEPS = (

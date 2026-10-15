@@ -113,6 +113,14 @@ Luật cố định (mẫu tấn công prompt, động từ nghiệp vụ, bản
 | `OPT_BENCH_RUNS` | Số lần đo tốc độ (lấy trung vị) | `5` | không |
 | `COMPARE_ABS_TOL` | Sai số tuyệt đối khi so kết quả hai query | `1e-6` | không |
 
+## Từ điển nghiệp vụ
+
+| Biến | Ý nghĩa | Mặc định | Bí mật |
+|---|---|---|---|
+| `GLOSSARY_MAX_TERMS` | Số thuật ngữ tối đa đưa vào prompt Planner (chọn theo khớp từ khóa với yêu cầu); `0` = tắt | `3` | không |
+
+Từ điển mẫu cho P113 Retail nằm ở `config/glossary_seed.yaml` (seed của migration 0007; cũng là từ điển chỉ đọc khi không có `DATABASE_URL`).
+
 ## Giám sát thay đổi cấu trúc nguồn
 
 | Biến | Ý nghĩa | Mặc định | Bí mật |
