@@ -355,12 +355,21 @@ def mock_input_gate(variables: dict[str, str]) -> dict:
     return {"label": "unclear", "confidence": 0.3, "missing": []}
 
 
+def mock_drift_advice(variables: dict[str, str]) -> dict:
+    """Lời diễn giải cố định cho CI/demo (không đọc ngữ cảnh)."""
+    return {
+        "summary": "Nguồn đã đổi cấu trúc; sửa các file được liệt kê rồi chạy lại sandbox và test trước khi duyệt.",
+        "extra_steps": ["Hỏi đội phụ trách nguồn xem thay đổi có chủ ý không."],
+    }
+
+
 HANDLERS: dict[str, Callable[[dict[str, str]], dict]] = {
     "planner": mock_planner,
     "codegen": mock_codegen,
     "testgen": mock_testgen,
     "optimizer": mock_optimizer,
     "input_gate": mock_input_gate,
+    "drift_advice": mock_drift_advice,
 }
 
 

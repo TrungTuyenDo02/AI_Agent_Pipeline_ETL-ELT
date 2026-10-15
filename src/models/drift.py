@@ -8,9 +8,11 @@ from pydantic import BaseModel, Field
 ChangeType = Literal[
     "column_added",
     "type_widened",
+    "type_narrowed",
     "type_incompatible",
     "column_removed",
     "nullable_changed",
+    "nullable_tightened",
     "table_removed",
     "possible_rename",
     "stat_null_increase",
@@ -76,3 +78,55 @@ class DriftReport(BaseModel):
     @property
     def blocked(self) -> bool:
         return bool(self.open_breaking)
+
+
+class DiffRow(BaseModel):
+    """Một dòng của hình so sánh trước/sau: một cột và trạng thái của nó."""
+
+    name: str
+    before_type: str = ""
+    after_type: str = ""
+    status: Literal["same", "added", "removed", "changed", "renamed_from", "renamed_to"] = "same"
+    note: str = ""
+
+
+class ChangeDiff(BaseModel):
+    """Hình trực quan một thay đổi: bảng nào, cột nào đổi gì. Chỉ cấu trúc (tên cột, kiểu), không có dữ liệu."""
+
+    change_id: int
+    source_name: str = ""
+    table: str
+    column: str = ""
+    change_type: ChangeType
+    severity: Severity
+    before_version: int = 0
+    after_version: int = 0
+    rows: list[DiffRow] = Field(default_factory=list)
+
+
+class AdviceFile(BaseModel):
+    """Một file của pipeline bị ảnh hưởng."""
+
+    path: str
+    role: Literal["staging", "mart", "sources", "test", "dag"]
+    impact: Literal["direct", "indirect"]
+
+
+class AdviceAction(BaseModel):
+    """Một việc cần làm: ở đâu, làm gì."""
+
+    where: str
+    what: str
+
+
+class Advice(BaseModel):
+    """Đề xuất sửa pipeline cho một thay đổi cấu trúc. Phần chắc chắn do CODE dựng; `ai_text` (Gemini) chỉ diễn giải thêm, tùy chọn."""
+
+    change_id: int
+    needs_pipeline_change: bool
+    headline: str
+    run_id: str = ""
+    files: list[AdviceFile] = Field(default_factory=list)
+    actions: list[AdviceAction] = Field(default_factory=list)
+    ai_text: str = ""
+    ai_source: Literal["", "gemini", "mock", "unavailable"] = ""

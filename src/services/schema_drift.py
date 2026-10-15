@@ -282,13 +282,21 @@ def diff(
 def _column_changes(table: str, column: str, before: dict, after: dict, rules: dict) -> list[ChangeDraft]:
     out: list[ChangeDraft] = []
     if before["type"] != after["type"]:
-        safe = (before["type"], after["type"]) in rules["safe"]
+        pair = (before["type"], after["type"])
+        safe = pair in rules["safe"]
+        narrowed = (pair[1], pair[0]) in rules["safe"]  # chiều ngược của mở rộng an toàn: có thể mất độ chính xác
+        kind = "type_widened" if safe else "type_narrowed" if narrowed else "type_incompatible"
+        note = (
+            " (mở rộng an toàn)."
+            if safe
+            else " (thu hẹp, có thể mất độ chính xác)."
+            if narrowed
+            else " (không tương thích)."
+        )
         out.append(
             ChangeDraft(
-                table=table, column=column,
-                change_type="type_widened" if safe else "type_incompatible", severity="warning" if safe else "breaking",
-                detail=f"Cột {table}.{column} đổi kiểu {before['type']} → {after['type']}"
-                + (" (mở rộng an toàn)." if safe else " (không tương thích)."),
+                table=table, column=column, change_type=kind, severity="warning" if safe else "breaking",
+                detail=f"Cột {table}.{column} đổi kiểu {before['type']} → {after['type']}{note}",
             )
         )  # fmt: skip
     if before.get("nullable") is False and after.get("nullable", True):
@@ -296,6 +304,13 @@ def _column_changes(table: str, column: str, before: dict, after: dict, rules: d
             ChangeDraft(
                 table=table, column=column, change_type="nullable_changed", severity="warning",
                 detail=f"Cột {table}.{column} từ NOT NULL thành cho phép rỗng.",
+            )
+        )  # fmt: skip
+    if before.get("nullable", True) and after.get("nullable", True) is False:
+        out.append(
+            ChangeDraft(
+                table=table, column=column, change_type="nullable_tightened", severity="info",
+                detail=f"Cột {table}.{column} từ cho phép rỗng thành NOT NULL.",
             )
         )  # fmt: skip
     return out
@@ -594,7 +609,17 @@ def get_change(change_id: int) -> SchemaChangeView | None:
     names = {s.id: s.name for s in registry.list_sources()}
     with Session(get_engine()) as db:
         row = db.get(SchemaChangeRow, change_id)
-        return _view(row, names) if row else None
+        if row is None:
+            return None
+        view = _view(row, names)
+        view.affected_pipelines = _affected(db, row)
+        return view
+
+
+def _column_of_view(view: SchemaChangeView) -> str:
+    """Cột mà một thay đổi nói tới (rỗng nếu thay đổi cấp bảng)."""
+    match = re.search(rf"\b{re.escape(view.table)}\.(\w+)", view.detail)
+    return match.group(1) if match else ""
 
 
 # ---------- Phụ thuộc của pipeline ----------

@@ -89,12 +89,20 @@ class GateOutput(_Strict):
     missing: list[Literal["source", "metric", "grain", "filter", "target"]]
 
 
+class AdviceOutput(_Strict):
+    """Lời diễn giải ngắn cho đề xuất sửa pipeline (src/prompts/drift_advice.md)."""
+
+    summary: str = Field(description="1-2 short sentences in Vietnamese")
+    extra_steps: list[str] = Field(description="0-3 short extra checks in Vietnamese")
+
+
 OUTPUT_MODELS: dict[str, type[BaseModel]] = {
     "planner": PlannerOutput,
     "codegen": CodegenOutput,
     "testgen": TestgenOutput,
     "optimizer": OptimizerOutput,
     "input_gate": GateOutput,
+    "drift_advice": AdviceOutput,
 }
 
 

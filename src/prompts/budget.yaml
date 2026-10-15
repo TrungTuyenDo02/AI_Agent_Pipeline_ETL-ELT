@@ -8,4 +8,5 @@ static_tokens:
   codegen: 880 # đo 863 ở v7 (2026-10-16, +quy tắc phòng thủ: không SELECT *, DAG có preflight); 786 ở v6 (2026-10-15, +quy tắc options: lịch DAG, nạp phần mới); 671 ở v4 (2026-10-12, +câu chống injection); 647 ở v3; 607 ở v2
   testgen: 480 # đo 452 ở v3 (2026-10-12); 428 ở v2
   input_gate: 320 # đo 291 ở v1 (2026-10-15): bộ phân loại tầng 2 của cửa kiểm tra đầu vào
+  drift_advice: 260 # đo ở v1 (2026-10-16): diễn giải đề xuất sửa pipeline khi nguồn đổi cấu trúc
   optimizer: 330 # đo 320 ở v3 (2026-10-12); 295 ở v2

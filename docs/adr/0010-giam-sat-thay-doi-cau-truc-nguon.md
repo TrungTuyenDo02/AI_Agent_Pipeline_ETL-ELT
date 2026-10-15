@@ -26,6 +26,10 @@ phát hiện sớm, hỏng to và rõ, chỉ ra pipeline bị ảnh hưởng và
   buộc khai báo mọi cột bằng kiểu nguyên văn của adapter (dễ lệch với đặc tả). Thay bằng kiểm tra của V2 (`sandbox_run.type_mismatches`): kiểu
   cột bảng đích phải cùng nhóm kiểu chuẩn hóa với `output_columns` của đặc tả.
 
+- **Hình trước/sau và đề xuất sửa pipeline:** `GET /schema-changes/{id}/diff` dựng từ hai phiên bản ảnh chụp; `POST /schema-changes/{id}/suggest` tìm file của pipeline đã sinh
+  đọc bảng/cột bị đổi (sqlglot/regex trên SQL, `ref` cho mart) và ghép việc cần làm theo loại thay đổi bằng luật cố định. LLM (`drift_advice`, Gemini flash-lite)
+  chỉ diễn giải thêm, chỉ khi người bấm, chỉ nhận cấu trúc; lỗi thì bỏ qua. Thêm ca `type_narrowed` (breaking) và `nullable_tightened` (info).
+
 ## Hệ quả
 
 - Kịch bản "đổi đơn vị ×1000" không đổi cấu trúc nên chỉ cảnh báo thống kê; cần người phán đoán (ghi trong README, mục hạn chế).

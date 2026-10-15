@@ -9,13 +9,14 @@ import logging
 from typing import Literal
 
 from fastapi import APIRouter, Header, HTTPException, Query, Request
+from pydantic import BaseModel
 
 from src.api.deps import CurrentUser, LoggedIn, client_ip
 from src.api.sources import user_context
 from src.config import get_settings
-from src.models.drift import DriftReport, SchemaChangeView
+from src.models.drift import Advice, ChangeDiff, DriftReport, SchemaChangeView
 from src.models.sources import DataSource
-from src.services import auth, schema_drift
+from src.services import auth, drift_advice, schema_drift
 from src.services import source_registry as registry
 
 logger = logging.getLogger(__name__)
@@ -70,6 +71,41 @@ def acknowledge_change(change_id: int, user: LoggedIn, request: Request) -> dict
         "schema.acknowledge", user.name, target=f"change:{change_id}", ip=client_ip(request), detail={"changes": done}
     )
     return {"acknowledged": done}
+
+
+class SuggestBody(BaseModel):
+    """`run_id`: pipeline cần đề xuất (mặc định lần chạy đầu tiên dùng bảng đó); `use_ai`: nhờ Gemini diễn giải thêm (tốn một lượt nhỏ)."""
+
+    run_id: str = ""
+    use_ai: bool = False
+
+
+def _visible_change(change_id: int, user: CurrentUser) -> SchemaChangeView:
+    change = schema_drift.get_change(change_id)
+    if change is None or change.source_id not in _visible(user):
+        raise HTTPException(status_code=404, detail=NO_CHANGE)
+    return change
+
+
+@router.get("/schema-changes/{change_id}/diff", response_model=ChangeDiff)
+def change_diff(change_id: int, user: LoggedIn) -> ChangeDiff:
+    """Hình trước/sau của thay đổi: bảng nào, cột nào, đổi gì (chỉ cấu trúc)."""
+    _need_database()
+    _visible_change(change_id, user)
+    diff = drift_advice.change_diff(change_id)
+    if diff is None:
+        raise HTTPException(status_code=404, detail=NO_CHANGE)
+    return diff
+
+
+@router.post("/schema-changes/{change_id}/suggest", response_model=Advice)
+def suggest_fix(change_id: int, body: SuggestBody, user: LoggedIn) -> Advice:
+    """Đề xuất sửa pipeline: file nào cần sửa và sửa gì (code dựng, 0 token). `use_ai=true` thêm lời diễn giải của Gemini.
+    Chỉ đề xuất; không tạo run (tạo bản vá là nút "Đề xuất bản vá")."""
+    _need_database()
+    _may_act(user)
+    change = _visible_change(change_id, user)
+    return drift_advice.suggest(change, body.run_id, body.use_ai)
 
 
 @router.post("/sources/{source_id}/check-drift", response_model=DriftReport)

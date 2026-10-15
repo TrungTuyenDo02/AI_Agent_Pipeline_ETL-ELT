@@ -36,6 +36,8 @@ Tiền tố `/api/v1`, riêng `/health` không có tiền tố.
 | POST | `/api/v1/glossary` | admin | Thêm thuật ngữ (`term`, `synonyms`, `definition`, `maps_to`, `department_id` trống = dùng chung). Trùng tên → `422` |
 | PATCH | `/api/v1/glossary/{id}` | admin | Sửa thuật ngữ (`department_id=0` = chuyển thành dùng chung). Agent chỉ đọc, không tự ghi |
 | GET | `/api/v1/schema-changes` | đăng nhập | Thay đổi cấu trúc của nguồn bạn được thấy (lọc `status`, `severity`, `source_id`), kèm pipeline bị ảnh hưởng |
+| GET | `/api/v1/schema-changes/{id}/diff` | đăng nhập | Hình trước/sau: các cột của bảng bị đổi với trạng thái `same/added/removed/changed/renamed_*` (chỉ cấu trúc) |
+| POST | `/api/v1/schema-changes/{id}/suggest` | admin, engineer | Đề xuất sửa pipeline: file nào, sửa gì (code dựng, 0 token). `use_ai=true` thêm lời diễn giải của Gemini (`drift_advice` ở `config/models.yaml`); lỗi gọi AI vẫn trả phần của code. Không tạo run |
 | POST | `/api/v1/schema-changes/{id}/acknowledge` | admin, engineer | "Tôi đã biết, dùng cấu trúc mới": cấu trúc hiện tại thành bản chuẩn (ghi AuditLog) |
 | POST | `/api/v1/sources/{id}/check-drift` | admin, engineer | Nút "Kiểm tra lại cấu trúc" của một nguồn; trả `DriftReport` (thay đổi mới, thay đổi chặn đang mở, cảnh báo) |
 | POST | `/api/v1/sources/check-drift` | khóa nội bộ | Kiểm tra định kỳ mọi nguồn đang bật; header `X-Drift-Token` = `DRIFT_CHECK_TOKEN`. `503` nếu chưa cấu hình, `403` nếu sai khóa |

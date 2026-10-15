@@ -27,5 +27,8 @@ models:
   # KHÔNG dùng model của planner/optimizer. Thay cho biến MODEL_GATE vì dự án cấm tên model ở biến môi trường.
   input_gate: { provider: anthropic, name: claude-haiku-5-5 }
 
+  # Diễn giải đề xuất sửa pipeline khi nguồn đổi cấu trúc: Gemini rẻ nhất, chỉ gọi khi người bấm "Hỏi AI".
+  drift_advice: { provider: google, name: gemini-3.1-flash-lite }
+
 # Dự phòng khi gọi model chính THẤT BẠI (mạng, hạn mức, từ chối); tắt bằng LLM_FALLBACK=none.
 fallback: { provider: google, name: gemini-3.1-flash-lite }

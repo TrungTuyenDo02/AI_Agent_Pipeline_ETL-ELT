@@ -537,3 +537,42 @@ export interface GlossaryTerm {
   maps_to: string;
   department_id: number | null;
 }
+
+export interface DiffRow {
+  name: string;
+  before_type: string;
+  after_type: string;
+  status: "same" | "added" | "removed" | "changed" | "renamed_from" | "renamed_to";
+  note: string;
+}
+
+/** Hình trước/sau của một thay đổi cấu trúc (chỉ tên cột và kiểu). */
+export interface ChangeDiff {
+  change_id: number;
+  source_name: string;
+  table: string;
+  column: string;
+  change_type: string;
+  severity: DriftSeverity;
+  before_version: number;
+  after_version: number;
+  rows: DiffRow[];
+}
+
+export interface AdviceFile {
+  path: string;
+  role: "staging" | "mart" | "sources" | "test" | "dag";
+  impact: "direct" | "indirect";
+}
+
+/** Đề xuất sửa pipeline: file nào, sửa gì; `ai_text` là lời diễn giải tùy chọn của Gemini. */
+export interface Advice {
+  change_id: number;
+  needs_pipeline_change: boolean;
+  headline: string;
+  run_id: string;
+  files: AdviceFile[];
+  actions: { where: string; what: string }[];
+  ai_text: string;
+  ai_source: "" | "gemini" | "mock" | "unavailable";
+}

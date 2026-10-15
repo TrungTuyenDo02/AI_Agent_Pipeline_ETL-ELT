@@ -6200,3 +6200,188 @@ body:has(.login-page)::after {
 .memory-row p {
   margin: 0;
 }
+
+/* ----- Thay đổi cấu trúc nguồn: nút đỏ, thẻ, hình so sánh trước/sau, đề xuất sửa pipeline ----- */
+
+.bell-count.danger {
+  background: var(--fail);
+  color: #fff;
+}
+
+.count-oval {
+  display: inline-block;
+  min-width: 26px;
+  margin-left: 10px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: var(--fail);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 26px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.count-oval.small {
+  min-width: 20px;
+  margin-left: 0;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.drift-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--muted);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.drift-card.breaking {
+  border-left-color: var(--fail);
+}
+
+.drift-card.warning {
+  border-left-color: var(--warn);
+}
+
+.drift-card.info {
+  border-left-color: var(--primary);
+}
+
+.drift-card[data-inactive] {
+  opacity: 0.7;
+}
+
+.drift-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.drift-status {
+  margin-left: auto;
+}
+
+.diff {
+  display: grid;
+  gap: 4px;
+  max-width: 640px;
+}
+
+.diff-head,
+.diff-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.diff-head {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.diff-cell {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.diff-cell.empty {
+  border-style: dashed;
+  background: transparent;
+}
+
+.diff-name {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.diff-type {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.diff-mark {
+  font-weight: 800;
+}
+
+.diff-cell.removed,
+.diff-cell.renamed_from {
+  border-color: var(--fail);
+  background: var(--fail-soft);
+}
+
+.diff-cell.added,
+.diff-cell.renamed_to {
+  border-color: var(--ok);
+  background: var(--ok-soft);
+}
+
+.diff-cell.changed {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.diff-cell.removed .diff-name,
+.diff-cell.renamed_from .diff-name {
+  text-decoration: line-through;
+}
+
+.diff-note {
+  grid-column: 1 / -1;
+  margin: -2px 0 2px 4px;
+}
+
+.advice {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.advice.needs {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.advice.fine {
+  background: var(--ok-soft);
+  border-color: var(--ok);
+}
+
+.advice-files,
+.advice-actions {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.advice-files {
+  list-style: none;
+  padding-left: 0;
+}
+
+.advice-files li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.advice-ai p {
+  margin: 4px 0 0;
+}

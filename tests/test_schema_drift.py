@@ -411,3 +411,91 @@ async def test_schema_changes_hidden_from_other_departments(world, login):
     insider = await client_for("engineer", world["dept"].id)
     assert len((await insider.get(f"{API}/schema-changes?source_id={world['source'].id}")).json()) == 1
     await insider.aclose()
+
+
+# ---------- Thêm nhiều ca, hình trước/sau, đề xuất sửa pipeline ----------
+
+
+def test_narrowing_and_tightening_cases():
+    narrowed = schema_drift.diff({"t": {"x": col("float", 0)}}, {"t": {"x": col("decimal", 0)}}, set())
+    assert [(d.change_type, d.severity) for d in narrowed] == [("type_narrowed", "breaking")]
+    tightened = schema_drift.diff({"t": {"x": col("string", 0, True)}}, {"t": {"x": col("string", 0, False)}}, set())
+    assert [(d.change_type, d.severity) for d in tightened] == [("nullable_tightened", "info")]
+
+
+def _view(change_type: str, detail: str, hint: str = "", table: str = "shopee_orders"):
+    return schema_drift.SchemaChangeView(
+        id=1, source_id=1, source_name="S", table=table, from_version=1, to_version=2, change_type=change_type,
+        severity="breaking", detail=detail, hint=hint, detected_at=schema_drift._now(), status="open",
+    )  # fmt: skip
+
+
+def test_diff_rows_pair_rename_and_mark_changes():
+    from src.services import drift_advice
+
+    before = {"order_id": col("string", 0), "order_date": col("string", 1), "amount": col("string", 2)}
+    after = {"order_id": col("string", 0), "ordered_at": col("string", 1), "amount": col("integer", 2)}
+    view = _view("possible_rename", "x", "possible_rename: order_date → ordered_at")
+    rows = {r.name: r for r in drift_advice.build_rows(before, after, view)}
+    assert rows["order_id"].status == "same"
+    assert rows["order_date"].status == "renamed_from" and rows["ordered_at"].status == "renamed_to"
+    assert rows["amount"].status == "changed" and "string → integer" in rows["amount"].note
+
+
+CODE = {
+    "models/staging/stg_shopee_orders.sql": "select cast(order_id as varchar) as order_id, order_date from {{ source('raw', 'shopee_orders') }}",
+    "models/staging/stg_tiki_orders.sql": "select id from {{ source('raw', 'tiki_orders') }}",
+    "models/marts/fct.sql": "select order_date from {{ ref('stg_shopee_orders') }}",
+}
+
+
+def test_advice_points_to_files_and_actions_without_llm():
+    from src.services import drift_advice
+
+    view = _view("possible_rename", "Cột shopee_orders.order_date biến mất", "possible_rename: order_date → ordered_at")
+    files = drift_advice.affected_files(CODE, {}, view, "order_date")
+    assert [(f.path, f.impact) for f in files if f.role in ("staging", "mart")] == [
+        ("models/staging/stg_shopee_orders.sql", "direct"),
+        ("models/marts/fct.sql", "indirect"),
+    ]  # tiki không bị ảnh hưởng
+    actions = drift_advice.build_actions(view, "order_date", files)
+    assert any("ordered_at" in a.what and a.where.endswith("stg_shopee_orders.sql") for a in actions)
+    nothing = drift_advice.affected_files(CODE, {}, _view("column_removed", "x", table="website_orders"), "x")
+    assert nothing == []
+
+
+def test_added_column_needs_no_pipeline_change():
+    from src.services import drift_advice
+
+    view = _view("column_added", "Cột mới shopee_orders.channel (string).")
+    files = drift_advice.affected_files(CODE, {}, view, "channel")
+    assert files == [] and "không cần sửa" in drift_advice._headline(view, files, False)  # noqa: SLF001
+
+
+def test_ai_explanation_is_optional_and_falls_back(monkeypatch: pytest.MonkeyPatch):
+    from src.services import drift_advice, llm
+
+    view = _view("column_removed", "Cột shopee_orders.order_date đã bị xóa")
+    files = drift_advice.affected_files(CODE, {}, view, "order_date")
+    actions = drift_advice.build_actions(view, "order_date", files)
+    text, source = drift_advice.ai_explain(view, "order_date", files, actions)
+    assert source == "mock" and text  # LLM_PROVIDER=mock trong test
+    monkeypatch.setattr(llm, "call_llm", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("không có khóa")))
+    assert drift_advice.ai_explain(view, "order_date", files, actions) == ("", "unavailable")
+
+
+async def test_diff_and_suggest_endpoints(world, drift_on):
+    engineer = await client_for("engineer", world["dept"].id)
+    schema_drift.check_source(world["source"])
+    rename_header(world["dir"] / "shopee_orders.csv", "order_date", "ordered_at")
+    created, _ = schema_drift.check_source(world["source"])
+    diff = (await engineer.get(f"{API}/schema-changes/{created[0].id}/diff")).json()
+    statuses = {r["name"]: r["status"] for r in diff["rows"]}
+    assert statuses["order_date"] == "renamed_from" and statuses["ordered_at"] == "renamed_to"
+    advice = await engineer.post(f"{API}/schema-changes/{created[0].id}/suggest", json={"use_ai": True})
+    assert advice.status_code == 200 and advice.json()["files"] == []  # chưa có pipeline nào dùng
+    reviewer = await client_for("reviewer", world["dept"].id)
+    assert (await reviewer.post(f"{API}/schema-changes/{created[0].id}/suggest", json={})).status_code == 403
+    assert (await engineer.get(f"{API}/schema-changes/999999999/diff")).status_code == 404
+    await engineer.aclose()
+    await reviewer.aclose()
