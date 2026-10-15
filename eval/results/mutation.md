@@ -1,6 +1,6 @@
 # Mutation test — bộ kiểm chứng có bắt được lỗi giả không?
 
-- Ngày chạy: 2026-10-14 • mock (pipeline gốc tất định; không dùng LLM để chấm)
+- Ngày chạy: 2026-10-16 • mock (pipeline gốc tất định; không dùng LLM để chấm)
 - Pipeline gốc: gộp 3 nguồn, doanh thu ngày (dữ liệu giả lập, seed 42). Kiểm chứng: V1 An toàn + V2 dbt build/test.
 
 **Bắt được 14/15 lỗi giả (93.3%)**; báo động nhầm ở đột biến đối chứng: 0/1.

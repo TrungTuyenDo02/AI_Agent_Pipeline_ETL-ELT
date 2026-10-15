@@ -1,6 +1,6 @@
 # Bộ golden — chế độ `reference`
 
-- Ngày chạy: 2026-10-15 • provider/model: openai/planner=gpt-6-luna, codegen=gpt-6-luna, testgen=gpt-6-luna, optimizer=claude-haiku-5-5
+- Ngày chạy: 2026-10-16 • provider/model: openai/planner=gpt-6-luna, codegen=gpt-6-luna, testgen=gpt-6-luna, optimizer=claude-haiku-5-5
 - 17 ca trong eval/datasets/golden (dữ liệu nhỏ, kết quả đúng tính tay + kiểm bằng SQL chuẩn).
 
 **Đạt: 16/16 ca**

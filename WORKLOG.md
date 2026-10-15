@@ -117,6 +117,7 @@
 | TrungTuyenDo02 | Giai đoạn 5: phát hiện thay đổi cấu trúc nguồn, pipeline tự phòng thủ, mô phỏng 6 kịch bản | ✅ Done | 6 kịch bản: 4 chặn/fail sớm, 1 vô hại, 1 cảnh báo; 0 sai âm thầm; mutation 14/15; chỉ mock | — |
 | TrungTuyenDo02 | Giai đoạn 6: từ điển nghiệp vụ, Planner nhận thuật ngữ, 5 ca golden mới | ✅ Done | Thuật ngữ cần thiết 6/6; token Planner +13,5%; độ đúng chưa đo LLM thật | — |
 | TrungTuyenDo02 | Giao diện thay đổi cấu trúc: nút đỏ ở chuông, so sánh trước/sau, đề xuất sửa pipeline | ✅ Done | Thêm ca type_narrowed, nullable_tightened; Gemini chỉ diễn giải khi bấm; mock only | — |
+| TrungTuyenDo02 | Chạy make eval phần kiểm bằng code, cập nhật report.md và README | ✅ Done | 1078 test đạt, độ phủ 91,55%; golden reference 16/16; mutation 14/15 (chạy lại trên DB test vì DB dev chưa migrate); không chạy LLM thật theo yêu cầu | — |
 
 ---
 
