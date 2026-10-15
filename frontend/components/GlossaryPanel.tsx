@@ -178,8 +178,8 @@ export function GlossaryPanel() {
       )}
       <Card title="Từ điển nghiệp vụ">
         <p className="muted small">
-          Khi yêu cầu của bạn dùng một thuật ngữ ở đây, AI nhận định nghĩa của nó (tối đa vài mục liên quan) để hiểu
-          đúng ý công ty. Định nghĩa là chữ do quản trị viên viết; AI chỉ đọc, không tự thêm hay sửa.
+          Khi yêu cầu dùng một thuật ngữ ở đây, AI nhận định nghĩa của nó để hiểu đúng ý công ty. Chỉ quản trị viên được
+          thêm hoặc sửa.
         </p>
         {loading && !data ? (
           <Loading text="Đang tải từ điển…" />

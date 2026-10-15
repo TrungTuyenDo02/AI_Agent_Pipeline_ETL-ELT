@@ -65,7 +65,7 @@ export const LOGIN_TEXT: Record<Lang, LoginText> = {
     heroTitle: "Từ một câu yêu cầu đến pipeline đã chạy thử.",
     heroSub:
       "P-113 lập kế hoạch, sinh model dbt và DAG Airflow, chạy thử trong sandbox DuckDB, tìm query chậm và đề xuất tối ưu. Người duyệt xem bằng chứng rồi mới merge.",
-    quote: "“Agent chỉ thấy cấu trúc bảng, không bao giờ thấy dữ liệu thật.”",
+    quote: "“Agent chỉ thấy cấu trúc và thống kê, không bao giờ thấy dòng dữ liệu thật.”",
     tabsLabel: "Thông tin dự án",
     tabs: { about: "Giới thiệu", run: "Chạy thử", data: "Dữ liệu mẫu" },
     about: [
@@ -93,7 +93,7 @@ export const LOGIN_TEXT: Record<Lang, LoginText> = {
       { name: "TPC-H (sf 0,1)", detail: "Bộ chuẩn để đo query chậm và hiệu quả tối ưu." },
       { name: "ELT-Bench-Verified (một phần)", detail: "10 task, 34 bảng để đo độ đúng của pipeline sinh ra." },
     ],
-    dataNote: "Giao diện chỉ hiển thị cấu trúc bảng, không hiển thị dữ liệu thật.",
+    dataNote: "Dữ liệu nhạy cảm luôn được che trước khi hiển thị.",
     copy: "Sao chép",
     copied: "Đã chép",
     footer: "© 2026 P-113 Agent Studio · Phần mềm nội bộ, tài khoản do quản trị viên cấp.",
@@ -122,7 +122,7 @@ export const LOGIN_TEXT: Record<Lang, LoginText> = {
     heroTitle: "From one sentence to a pipeline that already ran.",
     heroSub:
       "P-113 plans the work, generates dbt models and Airflow DAGs, runs them in a DuckDB sandbox, finds slow queries and suggests optimisations. A reviewer checks the evidence before anything is merged.",
-    quote: "“The agent only sees table structure, never the real data.”",
+    quote: "“The agent sees structure and statistics, never real data rows.”",
     tabsLabel: "Project information",
     tabs: { about: "About", run: "Try it", data: "Sample data" },
     about: [
@@ -150,7 +150,7 @@ export const LOGIN_TEXT: Record<Lang, LoginText> = {
       { name: "TPC-H (sf 0.1)", detail: "Standard benchmark for slow queries and optimiser gains." },
       { name: "ELT-Bench-Verified (subset)", detail: "10 tasks, 34 tables to measure pipeline correctness." },
     ],
-    dataNote: "The UI shows table structure only, never real data.",
+    dataNote: "Sensitive data is always masked before it is shown.",
     copy: "Copy",
     copied: "Copied",
     footer: "© 2026 P-113 Agent Studio · Internal software, accounts issued by an administrator.",

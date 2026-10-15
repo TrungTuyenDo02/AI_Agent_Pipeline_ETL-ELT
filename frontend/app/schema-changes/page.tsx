@@ -123,9 +123,8 @@ export default function SchemaChangesPage() {
       <header className="page-head">
         <h1>Thay đổi cấu trúc</h1>
         <p className="muted">
-          Backend có thể đổi kiểu dữ liệu, đổi tên hay xóa cột mà không báo. Hệ thống phát hiện sớm và chỉ ra pipeline
-          nào bị ảnh hưởng; nó không thể ngăn việc đổi, và không tự sửa. Thay đổi mức &quot;Chặn&quot; sẽ dừng lần chạy
-          mới cho tới khi bạn xác nhận hoặc nguồn được sửa lại.
+          Phát hiện khi nguồn đổi kiểu, đổi tên hoặc xóa cột, và chỉ ra pipeline bị ảnh hưởng. Hệ thống không ngăn được
+          việc đổi và không tự sửa. Thay đổi mức &quot;Chặn&quot; dừng lần chạy mới cho tới khi bạn xác nhận.
         </p>
       </header>
       <Card
