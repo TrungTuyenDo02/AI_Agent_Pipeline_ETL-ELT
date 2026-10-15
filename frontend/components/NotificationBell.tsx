@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { CHANGE_LABELS } from "@/lib/drift";
 import { STATUS_LABELS } from "@/lib/format";
-import type { CurrentUser, RunRecord, RunStatus, SchemaChange } from "@/lib/types";
-import { usePoll } from "@/lib/usePoll";
+import type { CurrentUser, RunRecord, RunStatus } from "@/lib/types";
+import { useDriftAlerts } from "@/lib/useDriftAlerts";
 
 import { useApp } from "./AppContext";
 import { BellIcon } from "./icons";
@@ -62,8 +62,7 @@ export function NotificationBell() {
   const box = useDismiss(open, () => setOpen(false));
   const waiting = waitingFor(user, runs);
   // Thay đổi cấu trúc nguồn mức "Chặn" đang mở: hiện bằng hình oval đỏ có số
-  const changes = usePoll<SchemaChange[]>("/schema-changes?status=open&severity=breaking", 30000);
-  const breaking = changes.data ?? [];
+  const { breaking } = useDriftAlerts();
   const total = breaking.length + waiting.length;
 
   return (

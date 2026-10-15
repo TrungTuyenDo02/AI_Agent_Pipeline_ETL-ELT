@@ -12,6 +12,7 @@ import { Card, Empty, ErrorBox, Loading } from "@/components/ui";
 import { apiPost, messageOf } from "@/lib/api";
 import { CHANGE_LABELS, SEVERITY_LABELS } from "@/lib/drift";
 import type { Accepted, SchemaChange } from "@/lib/types";
+import { notifyDriftChanged } from "@/lib/useDriftAlerts";
 import { usePoll } from "@/lib/usePoll";
 
 // Thay đổi cấu trúc nguồn (giai đoạn 5). Hệ thống chỉ phát hiện và báo: không tự tạo run, tự chạy hay tự merge. "Đề xuất bản vá"
@@ -43,6 +44,7 @@ function ChangeCard({
     try {
       await apiPost(`/schema-changes/${change.id}/acknowledge`, {});
       toast("Đã dùng cấu trúc mới làm bản chuẩn.");
+      notifyDriftChanged();
       await onDone();
     } catch (exc) {
       setError(messageOf(exc));

@@ -22,6 +22,8 @@ export interface NavLinkItem {
   href: string;
   label: string;
   icon: IconName;
+  /** Số đỏ cạnh nhãn (ví dụ số thay đổi cấu trúc chặn đang mở); 0 hoặc trống = không hiện. */
+  badge?: number;
 }
 
 function DockLink({ href, label, icon, active }: NavLinkItem & { active: boolean }) {
@@ -119,7 +121,7 @@ export function BottomNav({ items, isActive }: { items: NavLinkItem[]; isActive:
   const all = engineer ? [...items.slice(0, middle), create, ...items.slice(middle)] : items;
   return (
     <nav className="bottom-nav" aria-label="Điều hướng chính (điện thoại)">
-      {all.map(({ href, label, icon }) => {
+      {all.map(({ href, label, icon, badge }) => {
         const active = href !== create.href && isActive(href);
         return (
           <Link
@@ -130,6 +132,11 @@ export function BottomNav({ items, isActive }: { items: NavLinkItem[]; isActive:
           >
             <Icon name={icon} size={href === create.href ? 26 : 22} weight={active ? "fill" : "regular"} />
             <span>{label}</span>
+            {badge ? (
+              <span className="nav-badge" role="status" aria-label={`${badge} cần xử lý`}>
+                {badge}
+              </span>
+            ) : null}
           </Link>
         );
       })}
