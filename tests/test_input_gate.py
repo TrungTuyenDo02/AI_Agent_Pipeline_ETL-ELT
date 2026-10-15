@@ -193,7 +193,7 @@ def test_node_rejects_without_touching_llm(monkeypatch: pytest.MonkeyPatch):
 def test_node_passes_valid_request():
     out = input_gate_node({"request_text": "Gộp shopee_orders với tiki_orders", "source_catalog": CATALOG})
     assert out["input_gate"]["status"] == "ok" and "status" not in out
-    assert routing.after_input_gate(out) == "planner"
+    assert routing.after_input_gate(out) == "drift_gate"
 
 
 def test_graph_rejects_nonsense_run_without_tokens(seeded_sources: Path, monkeypatch: pytest.MonkeyPatch):

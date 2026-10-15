@@ -56,9 +56,10 @@ cases:
       DBT_CMD = "cd {{ var.value.p113_dbt_project_dir }} && dbt"
 
       with DAG(dag_id="p113_x", start_date=datetime(2026, 1, 1), schedule="@daily", catchup=False) as dag:
+          preflight = BashOperator(task_id="check_source_schema", bash_command="dbt run-operation check_source_schema")
           run = BashOperator(task_id="dbt_run", bash_command=DBT_CMD + " run")
           test = BashOperator(task_id="dbt_test", bash_command=DBT_CMD + " test")
-          run >> test
+          preflight >> run >> test
   - id: dag_single_task_build
     kind: dag
     label: pass
@@ -67,7 +68,9 @@ cases:
       from airflow import DAG
       from airflow.operators.bash import BashOperator
       with DAG("p113_y") as dag:
-          BashOperator(task_id="dbt_build", bash_command="dbt build --select +fct_y")
+          preflight = BashOperator(task_id="check_source_schema", bash_command="dbt run-operation check_source_schema")
+          build = BashOperator(task_id="dbt_build", bash_command="dbt build --select +fct_y")
+          preflight >> build
   - id: dag_connection_from_env
     kind: dag
     label: pass
@@ -77,7 +80,9 @@ cases:
       from airflow.models import Variable
       from airflow.operators.bash import BashOperator
       with DAG("p113_z") as dag:
-          BashOperator(task_id="dbt_build", bash_command="dbt build", env={"DBT_TARGET": Variable.get("dbt_target")})
+          preflight = BashOperator(task_id="check_source_schema", bash_command="dbt run-operation check_source_schema")
+          build = BashOperator(task_id="dbt_build", bash_command="dbt build", env={"DBT_TARGET": Variable.get("dbt_target")})
+          preflight >> build
   - id: dag_os_environ_path
     kind: dag
     label: pass
@@ -89,9 +94,10 @@ cases:
       from airflow.operators.bash import BashOperator
       PROJECT = os.environ.get("DBT_PROJECT_DIR", os.path.join("/opt", "dbt"))
       with DAG("p113_env") as dag:
+          preflight = BashOperator(task_id="check_source_schema", bash_command="dbt run-operation check_source_schema")
           run = BashOperator(task_id="dbt_run", bash_command=f"cd {PROJECT} && dbt run")
           test = BashOperator(task_id="dbt_test", bash_command=f"cd {PROJECT} && dbt test --select +fct_x")
-          run >> test
+          preflight >> run >> test
   - id: hallucinated_duckdb_function_not_blocked_as_attack
     kind: sql
     label: pass
@@ -152,7 +158,9 @@ cases:
       from airflow import DAG
       from airflow.operators.bash import BashOperator
       with DAG("p113_doc") as dag:
-          BashOperator(task_id="dbt_build", bash_command="dbt build --select +fct_x")
+          preflight = BashOperator(task_id="check_source_schema", bash_command="dbt run-operation check_source_schema")
+          build = BashOperator(task_id="dbt_build", bash_command="dbt build --select +fct_x")
+          preflight >> build
   - id: dag_python_operator_pure
     kind: dag
     label: pass
@@ -168,6 +176,7 @@ cases:
 
 
       with DAG("p113_py") as dag:
+          preflight = BashOperator(task_id="check_source_schema", bash_command="dbt run-operation check_source_schema")
           build = BashOperator(task_id="dbt_build", bash_command="dbt build")
           done = PythonOperator(task_id="notify", python_callable=notify)
-          build >> done
+          preflight >> build >> done
