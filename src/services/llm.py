@@ -17,12 +17,14 @@ from string import Template
 from typing import Protocol
 
 from pydantic import BaseModel
+from sqlalchemy.exc import SQLAlchemyError
 
 from src.config import Settings, get_settings
 from src.models.llm_outputs import output_schema
 from src.models.schemas import LLMUsage
 from src.services.circuit_breaker import get_breaker
-from src.services.cost import estimate_cost_usd
+from src.services.cost import PRICES_PER_MILLION, estimate_cost_usd
+from src.services.cost_ledger import BudgetDeniedError, current_caller, get_ledger
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,9 @@ PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
 USER_MARKER = "<!-- USER -->"
 COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)  # đầu file prompt (version, nhật ký thay đổi): không gửi LLM
 DATA_TAG_RE = re.compile(r"<(\s*/?\s*data\b)", re.IGNORECASE)
+SDK_MAX_RETRIES = 2  # SDK tự gọi lại (mạng, 429, 5xx); dự toán giữ trước tính đủ số lần này
+# Mã lỗi máy chủ từ chối ngay, SDK không gọi lại và nhà cung cấp không tính tiền → hoàn khoản giữ trước
+NOT_BILLED_STATUS = frozenset({400, 401, 403, 404, 422})
 
 
 class LLMConfigError(RuntimeError):
@@ -37,11 +42,19 @@ class LLMConfigError(RuntimeError):
 
 
 class LLMCallError(RuntimeError):
-    """Gọi LLM thất bại (mạng, hết hạn mức, ...)."""
+    """Gọi LLM thất bại (mạng, hết hạn mức, ...).
+
+    `usage`: nhà cung cấp vẫn trả số token (bị cắt ở max_tokens, từ chối) → vẫn tính tiền.
+    `not_billed`: chắc chắn không tính tiền (máy chủ từ chối ngay bằng mã 4xx không được thử lại) → hoàn khoản giữ trước.
+    """
+
+    def __init__(self, message: str, usage: LLMUsage | None = None, not_billed: bool = False) -> None:
+        super().__init__(message)
+        self.usage, self.not_billed = usage, not_billed
 
 
 class LLMBudgetError(LLMCallError):
-    """Lần chạy đã dùng hết trần token (RUN_TOKEN_BUDGET): dừng và báo rõ, không âm thầm tiếp tục."""
+    """Hết trần token (RUN_TOKEN_BUDGET) hoặc không đủ ngân sách tiền để giữ trước: dừng và báo rõ, không gọi dự phòng."""
 
 
 class LLMOutputError(ValueError):
@@ -126,6 +139,25 @@ def _response(request: LLMRequest, message: object, info: UsageInfo) -> LLMRespo
     return LLMResponse(text=str(getattr(message, "text", "")), usage=_usage(request, info))
 
 
+def _not_billed(exc: BaseException) -> bool:
+    """Máy chủ đã trả lời bằng mã lỗi 4xx không được thử lại (OpenAI/Anthropic: `status_code`, Gemini: `code`)."""
+    return (getattr(exc, "status_code", None) or getattr(exc, "code", None)) in NOT_BILLED_STATUS
+
+
+def _openai_error_usage(request: LLMRequest, exc: BaseException, info: UsageInfo) -> LLMUsage | None:
+    """`LengthFinishReasonError` mang theo bản trả lời đã tính tiền (model dùng hết max_tokens): lấy usage của nó."""
+    usage = getattr(getattr(exc, "completion", None), "usage", None)
+    if usage is None:
+        return None
+    cached = getattr(getattr(usage, "prompt_tokens_details", None), "cached_tokens", 0) or 0
+    update = {
+        "input_tokens": usage.prompt_tokens or 0,
+        "output_tokens": usage.completion_tokens or 0,
+        "cached_tokens": cached,
+    }
+    return _usage(request, info.model_copy(update=update))
+
+
 def openai_response_format(settings: Settings, task: str) -> dict:
     """JSON Schema strict của tác vụ (structured output); tắt công tắc hoặc không có schema → json_object."""
     schema = output_schema(task) if settings.llm_structured_output else None
@@ -154,7 +186,7 @@ class OpenAIProvider:
             temperature=settings.temperature_for(task) if accepts_temperature else None,
             max_tokens=settings.max_tokens_for(task),
             timeout=settings.timeout_for(task),
-            max_retries=2,
+            max_retries=SDK_MAX_RETRIES,
         )
         self.client = client.bind(response_format=openai_response_format(settings, task))
 
@@ -168,7 +200,11 @@ class OpenAIProvider:
         try:
             message = self.client.invoke([("system", prompt[0]), ("human", prompt[1])])
         except openai.OpenAIError as exc:  # gồm cả LengthFinishReasonError (model suy luận dùng hết token)
-            raise LLMCallError(f"Gọi OpenAI thất bại ({type(exc).__name__}). Kiểm tra khóa, mạng và hạn mức.") from exc
+            raise LLMCallError(
+                f"Gọi OpenAI thất bại ({type(exc).__name__}). Kiểm tra khóa, mạng và hạn mức.",
+                usage=_openai_error_usage(request, exc, info),
+                not_billed=_not_billed(exc),
+            ) from exc
         return _response(request, message, info)
 
 
@@ -202,7 +238,7 @@ class AnthropicProvider:
         self.max_tokens = settings.max_tokens_for(task)
         self.output_config = anthropic_output_config(settings, task, choice.effort)
         self.client = anthropic.Anthropic(
-            api_key=settings.anthropic_api_key, timeout=settings.timeout_for(task), max_retries=2
+            api_key=settings.anthropic_api_key, timeout=settings.timeout_for(task), max_retries=SDK_MAX_RETRIES
         )
 
     def complete(self, request: LLMRequest, prompt: tuple[str, str]) -> LLMResponse:
@@ -222,10 +258,9 @@ class AnthropicProvider:
             )
         except anthropic.AnthropicError as exc:
             raise LLMCallError(
-                f"Gọi Anthropic thất bại ({type(exc).__name__}). Kiểm tra khóa, mạng và hạn mức."
+                f"Gọi Anthropic thất bại ({type(exc).__name__}). Kiểm tra khóa, mạng và hạn mức.",
+                not_billed=_not_billed(exc),
             ) from exc
-        if message.stop_reason in ("max_tokens", "refusal"):
-            raise LLMCallError(f"Anthropic dừng giữa chừng (stop_reason={message.stop_reason}), không có JSON đầy đủ.")
         usage = message.usage
         cached = usage.cache_read_input_tokens or 0
         info = UsageInfo(
@@ -237,6 +272,11 @@ class AnthropicProvider:
             cached_tokens=cached,
             started=started,
         )
+        if message.stop_reason in ("max_tokens", "refusal"):  # vẫn tính tiền: mang usage theo lỗi để sổ chi phí ghi đủ
+            raise LLMCallError(
+                f"Anthropic dừng giữa chừng (stop_reason={message.stop_reason}), không có JSON đầy đủ.",
+                usage=_usage(request, info),
+            )
         text = "".join(block.text for block in message.content if block.type == "text")
         return LLMResponse(text=text, usage=_usage(request, info))
 
@@ -260,7 +300,7 @@ class GoogleProvider:
             temperature=settings.temperature_for(task),
             max_tokens=settings.max_tokens_for(task),
             timeout=settings.timeout_for(task),
-            max_retries=2,
+            max_retries=SDK_MAX_RETRIES,
             response_mime_type="application/json",
             response_schema=schema,
         )
@@ -276,8 +316,107 @@ class GoogleProvider:
         try:
             message = self.client.invoke([("system", prompt[0]), ("human", prompt[1])])
         except (ChatGoogleGenerativeAIError, APIError) as exc:
-            raise LLMCallError(f"Gọi Gemini thất bại ({type(exc).__name__}). Kiểm tra khóa, mạng và hạn mức.") from exc
+            raise LLMCallError(
+                f"Gọi Gemini thất bại ({type(exc).__name__}). Kiểm tra khóa, mạng và hạn mức.",
+                not_billed=_not_billed(exc),
+            ) from exc
         return _response(request, message, info)
+
+
+def estimate_call_usd(settings: Settings, model: str, task: str, prompt: tuple[str, str]) -> float:
+    """Dự toán xấu nhất của một lượt gọi: đầu ra tối đa `max_tokens_for(task)`, nhân đủ số lần SDK tự gọi lại.
+
+    Token đầu vào ước bằng số ký tự / 2: luôn ≥ số thật với tiếng Việt, JSON, SQL (khoảng 3–4 ký tự/token), không cần tiktoken.
+    """
+    schema = output_schema(task) if settings.llm_structured_output else None
+    chars = len(prompt[0]) + len(prompt[1]) + (len(json.dumps(schema, ensure_ascii=False)) if schema else 0)
+    one = estimate_cost_usd(model, chars // 2 + 1, settings.max_tokens_for(task))
+    return one * (1 + SDK_MAX_RETRIES)
+
+
+def _provider_name(provider: object) -> str:
+    return next((name for name, cls in PROVIDERS.items() if isinstance(provider, cls)), type(provider).__name__)
+
+
+class CostMeter:
+    """Giữ trước ngân sách trước mỗi lượt gọi THẬT và quyết toán sau đó (sổ chi phí, ADR 0014). Bước V, 0 token.
+
+    Model chưa có giá → dừng (LLMConfigError), không tính 0 USD. Không đủ ngân sách → LLMBudgetError, không gọi dự phòng.
+    Quyết toán: có usage (kể cả lỗi bị cắt/từ chối) → tiền thật; lỗi chắc chắn không tính tiền → hoàn; còn lại → `unknown`.
+    """
+
+    def __init__(self, settings: Settings) -> None:
+        self.settings = settings
+
+    def begin(self, provider: object, request: LLMRequest, prompt: tuple[str, str]) -> str:
+        """Kiểm giá + giữ trước; trả mã lượt gọi trong sổ."""
+        model = str(getattr(provider, "model", ""))
+        if model not in PRICES_PER_MILLION:
+            raise LLMConfigError(
+                f"Model '{model}' (bước '{request.task}') chưa có giá trong src/services/cost.py nên không gọi thật: "
+                "không tính được chi phí thì hạn mức tiền mất tác dụng. Thêm giá (USD/1 triệu token) rồi chạy lại."
+            )
+        owner, run_id = current_caller()
+        ttl = self.settings.timeout_for(request.task) * (1 + SDK_MAX_RETRIES) + 60
+        try:
+            return get_ledger().reserve(
+                owner=owner, run_id=run_id, task=request.task, provider=_provider_name(provider), model=model,
+                estimate_usd=estimate_call_usd(self.settings, model, request.task, prompt), ttl_sec=ttl,
+            )  # fmt: skip
+        except BudgetDeniedError as exc:
+            raise LLMBudgetError(str(exc)) from exc
+        except SQLAlchemyError as exc:  # không ghi được sổ thì không kiểm được hạn mức: dừng, không gọi
+            raise LLMBudgetError(
+                f"Không mở được sổ chi phí ({type(exc).__name__}) nên không gọi LLM thật. Kiểm tra cơ sở dữ liệu."
+            ) from exc
+
+    def finish(self, call_id: str, response: LLMResponse | None = None, error: BaseException | None = None) -> None:
+        """Quyết toán một lần; lỗi ghi sổ chỉ ghi log (lượt gọi tự chuyển `unknown` khi quá hạn), không làm mất kết quả."""
+        usage = response.usage if response else getattr(error, "usage", None)
+        if usage is not None and error is not None:  # lượt thất bại vẫn tốn token: cộng vào trần token của lần chạy
+            _count_tokens(usage)
+        try:
+            ledger = get_ledger()
+            if usage is not None and usage.model not in PRICES_PER_MILLION:
+                # dự phòng phía máy chủ (Anthropic) trả lời bằng model chưa có giá: không tính 0, giữ khoản dự toán
+                ledger.mark_unknown(call_id, note=f"model trả lời chưa có giá: {usage.model}")
+            elif usage is not None:
+                ledger.settle(call_id, usage.cost_usd, usage.input_tokens, usage.output_tokens)
+            elif isinstance(error, LLMCallError) and error.not_billed:
+                ledger.release(call_id, note=f"không tính tiền: {type(error.__cause__ or error).__name__}")
+            else:
+                ledger.mark_unknown(call_id, note=f"không có usage: {type(error.__cause__ or error).__name__}")
+        except SQLAlchemyError as exc:
+            logger.error("cost ledger settle failed", extra={"call_id": call_id, "error": type(exc).__name__})
+
+    def release(self, call_id: str, note: str) -> None:
+        """Hoàn khoản giữ trước của lượt chắc chắn chưa gửi (ví dụ đang ngắt mạch)."""
+        try:
+            get_ledger().release(call_id, note=note)
+        except SQLAlchemyError as exc:
+            logger.error("cost ledger release failed", extra={"call_id": call_id, "error": type(exc).__name__})
+
+    def call(self, provider: LLMProvider, request: LLMRequest, prompt: tuple[str, str]) -> LLMResponse:
+        """Giữ trước → gọi → quyết toán."""
+        call_id = self.begin(provider, request, prompt)
+        try:
+            response = provider.complete(request, prompt)
+        except BaseException as exc:
+            self.finish(call_id, error=exc)
+            raise
+        self.finish(call_id, response=response)
+        return response
+
+
+class MeteredProvider:
+    """Bọc một nhà cung cấp thật bằng sổ chi phí (đường không có dự phòng, ví dụ LLM_PROVIDER=google)."""
+
+    def __init__(self, inner: LLMProvider, meter: CostMeter) -> None:
+        self.inner, self.meter = inner, meter
+        self.model = getattr(inner, "model", "")
+
+    def complete(self, request: LLMRequest, prompt: tuple[str, str]) -> LLMResponse:
+        return self.meter.call(self.inner, request, prompt)
 
 
 class FallbackProvider:
@@ -287,25 +426,42 @@ class FallbackProvider:
     không làm bộ ngắt đếm lỗi (các node đã tự xử lý). Bộ ngắt riêng cho từng cặp `nhà cung cấp/model` nên một nhà
     cung cấp hỏng không kéo nhà khác hỏng theo. Đang ngắt mạch → không chờ timeout, bên gọi nhận lỗi/dự phòng ngay.
     Dự phòng chỉ dựng khi cần; `use_fallback=False` thì chỉ có ngắt mạch, không có dự phòng.
+    `meter` (sổ chi phí): giữ trước TRƯỚC khi xin bộ ngắt (bị từ chối ngân sách thì không chiếm lượt thăm dò), giữ riêng
+    cho dự phòng lúc chuyển sang; thiếu ngân sách hay thiếu giá thì dừng, không chuyển dự phòng.
     """
 
-    def __init__(self, primary: LLMProvider, settings: Settings, key: str = "", use_fallback: bool = True) -> None:
-        self.primary, self.settings, self.use_fallback = primary, settings, use_fallback
+    def __init__(
+        self,
+        primary: LLMProvider,
+        settings: Settings,
+        key: str = "",
+        use_fallback: bool = True,
+        meter: CostMeter | None = None,
+    ) -> None:
+        self.primary, self.settings, self.use_fallback, self.meter = primary, settings, use_fallback, meter
         self.key = key or f"{type(primary).__name__}/{getattr(primary, 'model', '?')}"
 
     def complete(self, request: LLMRequest, prompt: tuple[str, str]) -> LLMResponse:
         """Gọi chính, lỗi hoặc ngắt mạch thì gọi Gemini; `usage.provider/model` ghi đúng bên đã trả lời."""
         breaker = get_breaker(self.key, self.settings)
+        call_id = self.meter.begin(self.primary, request, prompt) if self.meter else ""
         if breaker.allow():
             try:
                 response = self.primary.complete(request, prompt)
             except LLMCallError as exc:
+                self._finish(call_id, error=exc)
                 breaker.record_failure()
                 failure = exc
+            except BaseException as exc:
+                self._finish(call_id, error=exc)
+                raise
             else:
+                self._finish(call_id, response=response)
                 breaker.record_success()
                 return response
         else:
+            if self.meter and call_id:
+                self.meter.release(call_id, note="đang ngắt mạch, không gửi")
             failure = LLMCallError(
                 f"Nhà cung cấp {self.key} đang tạm ngắt vì nhiều lần lỗi liên tiếp; thử lại sau khoảng "
                 f"{breaker.retry_in()} giây."
@@ -317,22 +473,35 @@ class FallbackProvider:
             backup = GoogleProvider(self.settings, task=request.task)
         except LLMConfigError as config_exc:
             raise LLMCallError(f"{failure} Không dùng được dự phòng Gemini: {config_exc}") from failure
-        return backup.complete(request, prompt)
+        return self.meter.call(backup, request, prompt) if self.meter else backup.complete(request, prompt)
+
+    def _finish(self, call_id: str, response: LLMResponse | None = None, error: BaseException | None = None) -> None:
+        if self.meter and call_id:
+            self.meter.finish(call_id, response=response, error=error)
 
 
 PROVIDERS: dict[str, type] = {"openai": OpenAIProvider, "anthropic": AnthropicProvider, "google": GoogleProvider}
 
 
 def get_provider(settings: Settings | None = None, task: str = "") -> LLMProvider:
-    """Chọn nhà cung cấp + model của từng bước theo config/models.yaml; bọc dự phòng nếu LLM_FALLBACK=google."""
+    """Chọn nhà cung cấp + model của từng bước theo config/models.yaml; bọc dự phòng nếu LLM_FALLBACK=google.
+
+    Mọi đường gọi thật đều qua sổ chi phí (CostMeter); mock không tốn tiền nên không qua.
+    """
     settings = settings or get_settings()
     if settings.llm_provider == "google":
-        return GoogleProvider(settings, settings.model_for(task, "google"), task)
+        return MeteredProvider(GoogleProvider(settings, settings.model_for(task, "google"), task), CostMeter(settings))
     if settings.llm_provider == "openai":
         choice = settings.choice_for(task)
         primary = PROVIDERS[choice.provider](settings, choice.name, task)
         use_fallback = settings.llm_fallback == "google" and choice.provider != "google"
-        return FallbackProvider(primary, settings, key=f"{choice.provider}/{choice.name}", use_fallback=use_fallback)
+        return FallbackProvider(
+            primary,
+            settings,
+            key=f"{choice.provider}/{choice.name}",
+            use_fallback=use_fallback,
+            meter=CostMeter(settings),
+        )
     from src.services.llm_mock import MockProvider
 
     return MockProvider()
@@ -360,6 +529,13 @@ def run_budget(limit: int, used: int = 0) -> Iterator[RunBudget]:
         _BUDGET.reset(token)
 
 
+def _count_tokens(usage: LLMUsage) -> None:
+    """Cộng token của một lượt gọi vào trần token của lần chạy hiện tại (nếu có)."""
+    budget = _BUDGET.get()
+    if budget:
+        budget.used += usage.input_tokens + usage.output_tokens
+
+
 def call_llm(task: str, variables: dict[str, str]) -> LLMResponse:
     """Dựng prompt cho `task` và gọi nhà cung cấp hiện tại; vượt trần token của lần chạy thì từ chối gọi."""
     budget = _BUDGET.get()
@@ -370,8 +546,7 @@ def call_llm(task: str, variables: dict[str, str]) -> LLMResponse:
         )
     request = LLMRequest(task=task, variables=variables)
     response = get_provider(task=task).complete(request, render_prompt(request))
-    if budget:
-        budget.used += response.usage.input_tokens + response.usage.output_tokens
+    _count_tokens(response.usage)
     logger.info("llm call", extra=response.usage.model_dump())
     return response
 

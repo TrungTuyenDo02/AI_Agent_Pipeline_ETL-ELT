@@ -132,6 +132,7 @@ Chi tiết và điều kiện đo: [eval/results/report.md](eval/results/report.
 - **ELT-Bench chỉ 11/34 bảng** và có ca được duyệt nhưng sai; golden 12/12 chưa tách tập kiểm riêng; mutation test dùng bộ sinh test giả (`mock`); tối ưu TPC-H "viết tay → tối ưu" đo bằng luật cố định, phần LLM chỉ có phép đo A/B nhỏ ở trên (13 query, 1 lần mỗi model).
 - Chưa deploy thật; chưa có phản hồi người dùng thử; sandbox chỉ DuckDB, gợi ý partition cho kho khác không được thực thi.
 - Trình xem code Monaco tải từ CDN jsDelivr nên cần mạng.
+- **Trần tiền LLM là ước tính theo bảng giá nội bộ**, chưa đối soát tự động với hóa đơn. Lượt timeout/mất kết nối ghi `unknown`, tính bằng dự toán xấu nhất cho tới khi Reviewer đối soát tay (`python -m src.cli cost`). Dự phòng phía máy chủ của Anthropic có thể trả lời bằng model đắt hơn dự toán nên lượt đó có thể vượt trần một khoản nhỏ. Trần mỗi lần chạy và trần toàn hệ thống mặc định tắt, chờ chọn mức. Chi tiết: [ADR 0014](docs/adr/0014-so-chi-phi-va-giu-truoc-ngan-sach-llm.md).
 
 ## Deliverables
 

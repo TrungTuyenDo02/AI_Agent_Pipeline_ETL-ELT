@@ -26,6 +26,7 @@ from src.agents.runner import PermissionDeniedError, RunOutcome, RunStateError
 from src.config import get_settings
 from src.models.schemas import RunStatus
 from src.services import auth
+from src.services.cost_ledger import get_ledger
 from src.services.store import get_store
 
 logger = logging.getLogger(__name__)
@@ -61,7 +62,7 @@ def check_limits(owner: str, active: int, new_run: bool = False) -> None:
         )
     budget = settings.llm_daily_budget_usd
     if budget and settings.llm_provider != "mock":
-        spent = get_store().spent_today(owner)
+        spent = get_ledger().spent_today(owner)  # sổ chi phí: theo ngày gọi, gồm khoản đang giữ trước và `unknown`
         if spent >= budget:
             raise JobLimitError(
                 f"Đã dùng {spent:.2f} USD chi phí AI hôm nay, chạm trần {budget:.2f} USD/người/ngày. "

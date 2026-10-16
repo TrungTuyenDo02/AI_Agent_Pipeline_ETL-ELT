@@ -13,6 +13,7 @@ from sqlalchemy import text
 from src.config import Settings
 from src.models.schemas import RunStatus
 from src.services import doctor, jobs
+from src.services.cost_ledger import get_ledger
 from src.services.jobs import JobLimitError, JobQueue, check_limits
 from src.services.store import INTERRUPTED, Store, get_store
 
@@ -55,8 +56,12 @@ def _settings(monkeypatch: pytest.MonkeyPatch, **values) -> None:
 
 
 def test_budget_blocks_real_llm_but_not_mock(monkeypatch: pytest.MonkeyPatch):
-    run = get_store().create_run("x", "chi_tieu")
-    get_store().update_run(run.id, RunStatus.APPROVED, {"cost_usd": 1.2})
+    # hạn mức đọc sổ chi phí (theo ngày gọi): lượt giữ trước 0,1 USD nhưng quyết toán thật 1,2 USD
+    ledger = get_ledger()
+    call_id = ledger.reserve(
+        owner="chi_tieu", run_id="", task="codegen", provider="openai", model="gpt-6-luna", estimate_usd=0.1, ttl_sec=60
+    )
+    ledger.settle(call_id, 1.2)
     _settings(monkeypatch, llm_provider="openai")
     with pytest.raises(JobLimitError, match="chạm trần 1.00 USD"):
         check_limits("chi_tieu", active=0)

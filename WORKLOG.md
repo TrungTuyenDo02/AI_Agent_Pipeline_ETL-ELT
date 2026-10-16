@@ -124,6 +124,12 @@
 | TrungTuyenDo02 | Sửa xác thực trong hướng dẫn, đối chiếu bản vá và đồng bộ tài liệu | ✅ Done | CI: 1124 đạt, phủ 91.83%; frontend kiểm tra đạt; thêm 9 test hồi quy | — |
 | TrungTuyenDo02 | Thêm dataset và bộ chấm Extract độc lập, lọc nguồn trước khi đọc nội dung | ✅ Done | Eval 21/21; CI 1149 đạt, phủ 91.85%; chặn đọc ngoài quyền; 0 LLM | — |
 
+## 2026-10-17
+
+| Member | Task | Status | Output | Time |
+|--------|------|--------|--------|------|
+| TrungTuyenDo02 | Sổ chi phí LLM và giữ trước ngân sách (ADR 0014): mọi lượt gọi thật (pipeline, dự phòng, "Hỏi AI") giữ trước dự toán xấu nhất trên trần run/người/toàn hệ thống bằng UPDATE có điều kiện; quyết toán một lần (settled/released/unknown); chặn model thiếu giá; ghi tiền cả lượt bị cắt max_tokens/LengthFinishReason; trần ngày tính theo ngày gọi; CLI `cost` đối soát tay | ✅ Done | CI 1183 đạt, 20 bỏ qua, phủ 92.02%; 20 test mới (tranh chấp 20 luồng SQLite + 10 luồng PostgreSQL không vượt trần); 0 token | — |
+
 ---
 
 <!-- Format: copy khối trên cho mỗi ngày làm việc. Status: ✅ Done · 🔄 Doing · ⚠️ Chưa sửa · ⏳ Chưa làm -->

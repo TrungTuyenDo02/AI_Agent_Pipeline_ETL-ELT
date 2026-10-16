@@ -138,7 +138,11 @@ class Store:
         return len(rows)
 
     def spent_today(self, requester: str) -> float:
-        """Chi phí LLM thật (USD) của các lần chạy người này tạo hôm nay (giờ VN); bỏ lần chạy mô phỏng."""
+        """Chi phí LLM thật (USD) của các lần chạy người này tạo hôm nay (giờ VN); bỏ lần chạy mô phỏng.
+
+        Chỉ để thống kê theo lần chạy. Hạn mức tiền dùng sổ chi phí (`cost_ledger.spent_today`): tính theo ngày gọi, đủ cả
+        lượt thất bại và "Hỏi AI".
+        """
         start = datetime.now(VN_TZ).replace(hour=0, minute=0, second=0, microsecond=0).astimezone(UTC)
         with self.engine.connect() as conn:
             rows = conn.execute(
