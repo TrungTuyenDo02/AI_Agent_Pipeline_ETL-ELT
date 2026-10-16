@@ -1,4 +1,17 @@
 {
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.ai-log/**)",
+      "Read(./.kilo/**)",
+      "Read(./pipelines/workspaces/**)",
+      "Read(./frontend/node_modules/**)",
+      "Read(./frontend/.next/**)",
+      "Read(./presentation/**)",
+      "Read(./**/*.duckdb)",
+      "Read(./**/*.sqlite)"
+    ]
+  },
   "hooks": {
     "UserPromptSubmit": [
       {
