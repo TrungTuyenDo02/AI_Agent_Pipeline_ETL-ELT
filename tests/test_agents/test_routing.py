@@ -38,6 +38,7 @@ def test_after_spec_check(state: dict, expected: str):
         ({"plan_review": {"decision": "approve"}}, "ingest"),
         ({"plan_review": {"decision": "revise", "note": "x"}, "plan_reviews": 1}, "planner"),
         ({"plan_review": {"decision": "revise", "note": "x"}, "plan_reviews": 4}, "fail"),
+        ({"plan_review": {"decision": "revise", "note": "x"}, "plan_reviews": 3}, "fail"),  # cùng ngưỡng với J2 (>=)
         ({"plan_review": {"invalid": True}}, "plan_review"),
     ],
 )

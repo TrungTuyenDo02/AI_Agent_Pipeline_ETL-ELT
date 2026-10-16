@@ -33,7 +33,7 @@ from src.cli_views import (
 )
 from src.config import get_settings
 from src.models.evidence import ReviewDecision
-from src.services import auth
+from src.services import auth, schema_drift
 from src.services.doctor import run_checks
 from src.services.error_memory import get_error_memory
 from src.services.input_gate import precheck
@@ -195,6 +195,14 @@ def _resolve_run_id(run_id: str) -> str:
     return waiting[0].id if waiting else run_id
 
 
+def _review_drift_block(run_id: str) -> str:
+    """Giống API: ngay trước J2, nguồn đổi cấu trúc kiểu breaking sau lúc sinh code thì không cho duyệt (rỗng = được duyệt)."""
+    report = schema_drift.recheck_run(runner.get_values(run_id), run_id)
+    if not report.blocked:
+        return ""
+    return schema_drift.BLOCKED_REVIEW.format(what="; ".join(c.detail for c in report.open_breaking[:3]))
+
+
 def cmd_review(args: argparse.Namespace) -> int:
     """Hiện gói duyệt rồi approve/reject (`run_id` có thể là `latest`)."""
     args.run_id = _resolve_run_id(args.run_id)
@@ -209,6 +217,9 @@ def cmd_review(args: argparse.Namespace) -> int:
     decision, note = _review_choice(args)
     if decision == "skip":
         return 0
+    if decision == "approve" and (blocked := _review_drift_block(args.run_id)):
+        console.print(f"[red]{blocked}[/]")
+        return 1
     try:
         review = ReviewDecision(run_id=args.run_id, reviewer=args.user, decision=decision, note=note)
         auth.audit(f"review.{decision}", args.user, target=args.run_id, detail={"via": "cli"})

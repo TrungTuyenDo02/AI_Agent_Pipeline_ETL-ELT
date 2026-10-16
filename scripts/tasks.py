@@ -57,6 +57,7 @@ TASKS: dict[str, list[list[str]]] = {
         ],
     ],
     "eval": [[PY, "eval/run_eval.py"]],
+    "eval-extract": [[PY, "eval/run_extract.py"]],
     "eval-llm": [[PY, "eval/run_eval.py", "--with-llm"]],
     "smoke-llm": [[PY, "eval/smoke_llm.py"]],
     "eval-verifiers": [[PY, "eval/verifier_bench/run_bench.py"]],

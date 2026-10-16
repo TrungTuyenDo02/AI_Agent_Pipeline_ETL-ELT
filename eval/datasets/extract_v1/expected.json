@@ -1,0 +1,311 @@
+{
+  "sales_orders": {
+    "schema": [
+      [
+        "order_id",
+        "VARCHAR"
+      ],
+      [
+        "department_code",
+        "VARCHAR"
+      ],
+      [
+        "partner_code",
+        "VARCHAR"
+      ],
+      [
+        "amount",
+        "VARCHAR"
+      ],
+      [
+        "note",
+        "VARCHAR"
+      ]
+    ],
+    "rows": [
+      [
+        "S-001",
+        "SALES",
+        "PARTNER-A",
+        "125000",
+        "Giao, buổi sáng"
+      ],
+      [
+        "S-002",
+        "SALES",
+        "PARTNER-A",
+        "0",
+        null
+      ],
+      [
+        "S-003",
+        "SALES",
+        "PARTNER-B",
+        "-5000",
+        "Hàng trả"
+      ],
+      [
+        "S-003",
+        "SALES",
+        "PARTNER-B",
+        "-5000",
+        "Hàng trả"
+      ],
+      [
+        "S-004",
+        "SALES",
+        "PARTNER-B",
+        "00125.50",
+        "Giao sau\n18h"
+      ],
+      [
+        "S-005",
+        "SALES",
+        "PARTNER-A",
+        "999999",
+        "Khách nói \"đã nhận\""
+      ]
+    ]
+  },
+  "finance_orders": {
+    "schema": [
+      [
+        "order_id",
+        "VARCHAR"
+      ],
+      [
+        "department_code",
+        "VARCHAR"
+      ],
+      [
+        "partner_code",
+        "VARCHAR"
+      ],
+      [
+        "amount",
+        "VARCHAR"
+      ],
+      [
+        "note",
+        "VARCHAR"
+      ]
+    ],
+    "rows": [
+      [
+        "F-901",
+        "FINANCE",
+        "PARTNER-Z",
+        "99999999",
+        "Nguồn mồi"
+      ],
+      [
+        "F-902",
+        "FINANCE",
+        "PARTNER-Z",
+        "99999999",
+        "Nguồn mồi"
+      ],
+      [
+        "F-903",
+        "FINANCE",
+        "PARTNER-Z",
+        "99999999",
+        "Nguồn mồi"
+      ],
+      [
+        "F-904",
+        "FINANCE",
+        "PARTNER-Z",
+        "99999999",
+        "Nguồn mồi"
+      ],
+      [
+        "F-905",
+        "FINANCE",
+        "PARTNER-Z",
+        "99999999",
+        "Nguồn mồi"
+      ],
+      [
+        "F-906",
+        "FINANCE",
+        "PARTNER-Z",
+        "99999999",
+        "Nguồn mồi"
+      ]
+    ]
+  },
+  "contacts": {
+    "schema": [
+      [
+        "customer_id",
+        "BIGINT"
+      ],
+      [
+        "email",
+        "VARCHAR"
+      ],
+      [
+        "partner_code",
+        "VARCHAR"
+      ]
+    ],
+    "rows": [
+      [
+        1,
+        "mai@example.invalid",
+        "PARTNER-A"
+      ],
+      [
+        2,
+        null,
+        "PARTNER-B"
+      ],
+      [
+        3,
+        "an@example.invalid",
+        "PARTNER-A"
+      ]
+    ]
+  },
+  "native_orders": {
+    "schema": [
+      [
+        "order_id",
+        "BIGINT"
+      ],
+      [
+        "customer_email",
+        "VARCHAR"
+      ],
+      [
+        "amount_cents",
+        "BIGINT"
+      ]
+    ],
+    "rows": [
+      [
+        101,
+        "mai@example.invalid",
+        12500
+      ],
+      [
+        102,
+        "an@example.invalid",
+        25000
+      ],
+      [
+        102,
+        "an@example.invalid",
+        25000
+      ],
+      [
+        103,
+        null,
+        0
+      ]
+    ]
+  },
+  "ops_orders": {
+    "schema": [
+      [
+        "order_id",
+        "BIGINT"
+      ],
+      [
+        "customer_email",
+        "VARCHAR"
+      ],
+      [
+        "amount_cents",
+        "BIGINT"
+      ]
+    ],
+    "rows": [
+      [
+        901,
+        "other@example.invalid",
+        99999999
+      ]
+    ]
+  },
+  "empty_orders": {
+    "schema": [
+      [
+        "order_id",
+        "BIGINT"
+      ],
+      [
+        "amount_cents",
+        "BIGINT"
+      ]
+    ],
+    "rows": []
+  },
+  "added": {
+    "schema": [
+      [
+        "order_id",
+        "VARCHAR"
+      ],
+      [
+        "amount",
+        "VARCHAR"
+      ],
+      [
+        "department_code",
+        "VARCHAR"
+      ]
+    ],
+    "rows": [
+      [
+        "A-1",
+        "100",
+        "SALES"
+      ],
+      [
+        "A-2",
+        "200",
+        "FINANCE"
+      ]
+    ]
+  },
+  "renamed": {
+    "schema": [
+      [
+        "order_id",
+        "VARCHAR"
+      ],
+      [
+        "amount_vnd",
+        "VARCHAR"
+      ]
+    ],
+    "rows": [
+      [
+        "A-1",
+        "100"
+      ],
+      [
+        "A-2",
+        "200"
+      ]
+    ]
+  },
+  "removed": {
+    "schema": [
+      [
+        "order_id",
+        "VARCHAR"
+      ]
+    ],
+    "rows": [
+      [
+        "A-1"
+      ],
+      [
+        "A-2"
+      ]
+    ]
+  }
+}

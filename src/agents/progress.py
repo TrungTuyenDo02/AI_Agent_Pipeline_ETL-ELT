@@ -29,6 +29,7 @@ NODE_LABELS = {
     "rescue": "J  Cứu hộ",
     "optimizer": "E4 Tối ưu",
     "compare": "V3 Đối chiếu",
+    "opt_revert": "V3 Khôi phục bản gốc",
     "package": "Đóng gói bản duyệt",
     "review": "J2 Duyệt",
     "finalize": "Hoàn tất",
@@ -118,6 +119,8 @@ def _detail_patch_verify(update: dict) -> str:
     result = (update.get("patch") or {}).get("regression") or {}
     if not result.get("compared"):
         return str(result.get("note", "chưa so sánh"))
+    if result.get("schema_same") is False:
+        return "cấu trúc bảng đích đã đổi; " + str(result.get("note", "cần người duyệt kiểm tra"))
     return (
         "bảng đích giống hệt lần chạy gốc"
         if result.get("same")
@@ -142,6 +145,7 @@ def _detail_default(node: str, update: dict) -> tuple[bool, str]:
         "profiler": lambda u: f"{len(u.get('profile', {}))} bảng",
         "mock_data": lambda u: ", ".join(u.get("datasets", {})),
         "schema_guard": lambda u: SchemaReport.model_validate(u.get("schema_report") or {}).summary()[:120],
+        "opt_revert": lambda u: str((u.get("optimization") or {}).get("reason", ""))[:120],
         "codegen": lambda u: f"{len(u.get('code_files', {}))} file",
         "testgen": lambda u: f"{len(u.get('test_files', {}))} file test",
         "planner": lambda u: (

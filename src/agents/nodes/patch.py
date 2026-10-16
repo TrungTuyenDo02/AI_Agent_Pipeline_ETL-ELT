@@ -6,6 +6,8 @@ patch_verify → package → J2. Không có E4 (code gốc đã tối ưu) và k
 """
 
 import logging
+from collections import Counter
+from math import isnan
 from pathlib import Path
 
 import duckdb
@@ -65,27 +67,50 @@ def patch_apply_node(state: PipelineState) -> dict:
     }
 
 
-def _mart_rows(db: Path, target: str) -> list[tuple]:
+def _row_key(value: object) -> tuple:
+    """Khóa đếm dòng, giữ dữ liệu lồng nhau và coi các giá trị NaN là bằng nhau như DuckDB."""
+    if isinstance(value, float) and isnan(value):
+        return ("nan",)
+    if isinstance(value, list | tuple):
+        return ("sequence", tuple(_row_key(item) for item in value))
+    if isinstance(value, dict):
+        return ("mapping", frozenset((_row_key(key), _row_key(item)) for key, item in value.items()))
+    return ("scalar", value)
+
+
+def _mart_snapshot(db: Path, target: str) -> tuple[list[tuple[str, str]], Counter[tuple]]:
     with connect_read(db) as con:
-        return con.execute(f'SELECT * FROM main."{target}" ORDER BY ALL').fetchall()
+        identifier = target.replace('"', '""')
+        result = con.execute(f'SELECT * FROM main."{identifier}"')
+        schema = [(column[0], str(column[1])) for column in result.description]
+        rows: Counter[tuple] = Counter()
+        while batch := result.fetchmany(4096):
+            rows.update(_row_key(row) for row in batch)
+        return schema, rows
 
 
 def compare_marts(parent_db: Path, new_db: Path, target: str) -> dict:
-    """So bảng đích của bản vá với lần chạy gốc (đo bằng code). Nguồn thật có thể đã đổi dữ liệu nên khác biệt chỉ là bằng chứng cho người duyệt."""
+    """So tên/thứ tự/kiểu cột và số lần xuất hiện từng dòng; dữ liệu khác là bằng chứng cho người duyệt."""
     if not parent_db.exists():
         return {"compared": False, "note": "Không còn dữ liệu chạy thử của lần chạy gốc để so sánh."}
     try:
-        before, after = _mart_rows(parent_db, target), _mart_rows(new_db, target)
+        before_schema, before = _mart_snapshot(parent_db, target)
+        after_schema, after = _mart_snapshot(new_db, target)
     except duckdb.Error as exc:
         logger.warning("patch compare failed", extra={"error": str(exc)[:200]})
         return {"compared": False, "note": "Không so sánh được bảng đích với lần chạy gốc."}
-    return {
+    schema_same = before_schema == after_schema
+    result = {
         "compared": True,
-        "same": before == after,
-        "rows_before": len(before),
-        "rows_after": len(after),
-        "differing_rows": len(set(before) ^ set(after)),
+        "same": schema_same and before == after,
+        "schema_same": schema_same,
+        "rows_before": before.total(),
+        "rows_after": after.total(),
+        "differing_rows": (before - after).total() + (after - before).total(),
     }
+    if not schema_same:
+        result["note"] = "Tên, thứ tự hoặc kiểu cột của bảng đích đã thay đổi."
+    return result
 
 
 def patch_verify_node(state: PipelineState) -> dict:

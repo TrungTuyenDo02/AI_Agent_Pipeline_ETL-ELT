@@ -24,7 +24,7 @@ STAGES: list[tuple[str, str, str, str, tuple[str, ...], bool]] = [
     ("sandbox", "V2", "Chạy thử", "V", ("sandbox_run",), False),
     ("rescue", "J", "Cứu hộ", "J", ("rescue",), True),
     ("optimizer", "E4", "Tối ưu", "E", ("optimizer",), False),
-    ("compare", "V3", "Đối chiếu", "V", ("compare",), False),
+    ("compare", "V3", "Đối chiếu", "V", ("compare", "opt_revert"), False),
     ("review", "J2", "Duyệt code", "J", ("review", "package", "finalize"), False),
 ]
 PENDING_STAGE = {

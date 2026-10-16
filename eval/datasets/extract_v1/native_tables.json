@@ -1,0 +1,128 @@
+{
+  "tables": [
+    {
+      "schema": "main",
+      "name": "orders",
+      "columns": [
+        [
+          "order_id",
+          "BIGINT"
+        ],
+        [
+          "customer_email",
+          "VARCHAR"
+        ],
+        [
+          "amount_cents",
+          "BIGINT"
+        ]
+      ],
+      "rows": [
+        [
+          101,
+          "mai@example.invalid",
+          12500
+        ],
+        [
+          102,
+          "an@example.invalid",
+          25000
+        ],
+        [
+          102,
+          "an@example.invalid",
+          25000
+        ],
+        [
+          103,
+          null,
+          0
+        ]
+      ]
+    },
+    {
+      "schema": "main",
+      "name": "customers",
+      "columns": [
+        [
+          "id",
+          "BIGINT"
+        ],
+        [
+          "email",
+          "VARCHAR"
+        ]
+      ],
+      "rows": [
+        [
+          1,
+          "mai@example.invalid"
+        ],
+        [
+          2,
+          "an@example.invalid"
+        ]
+      ]
+    },
+    {
+      "schema": "ops",
+      "name": "orders",
+      "columns": [
+        [
+          "order_id",
+          "BIGINT"
+        ],
+        [
+          "customer_email",
+          "VARCHAR"
+        ],
+        [
+          "amount_cents",
+          "BIGINT"
+        ]
+      ],
+      "rows": [
+        [
+          901,
+          "other@example.invalid",
+          99999999
+        ]
+      ]
+    },
+    {
+      "schema": "main",
+      "name": "empty_orders",
+      "columns": [
+        [
+          "order_id",
+          "BIGINT"
+        ],
+        [
+          "amount_cents",
+          "BIGINT"
+        ]
+      ],
+      "rows": []
+    },
+    {
+      "schema": "main",
+      "name": "private_payroll",
+      "columns": [
+        [
+          "employee_id",
+          "BIGINT"
+        ],
+        [
+          "salary",
+          "BIGINT"
+        ]
+      ],
+      "rows": [
+        [
+          999,
+          77777777
+        ]
+      ]
+    }
+  ]
+}

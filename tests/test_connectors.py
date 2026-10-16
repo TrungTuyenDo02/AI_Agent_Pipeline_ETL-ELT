@@ -585,3 +585,40 @@ def test_full_run_through_postgres_connector_matches_file_run(seeded_sources: Pa
     assert through_pg["row_counts"] == through_files["row_counts"]
     assert through_pg["sandbox"]["passed"] and through_pg["sandbox"]["sample"] == through_files["sandbox"]["sample"]
     assert {i["source_kind"] for i in through_pg["source_catalog"]} == {"postgres"}
+
+
+@pytest.mark.parametrize("bad_file", ["private_payroll.json", "private_payroll.sqlite"])
+def test_file_connector_skips_disallowed_malformed_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, bad_file: str):
+    (tmp_path / "orders.csv").write_text("order_id,amount\nA-1,125000\n", encoding="utf-8")
+    (tmp_path / bad_file).write_text("{ invalid data", encoding="utf-8")
+    monkeypatch.setenv(secrets.env_name("conn_extract_scope"), str(tmp_path))
+    source = make_source("file", "conn_extract_scope", allowed_tables=["orders"])
+    connector = get_connector(source)
+    assert connector.list_tables() == ["orders"]
+    with duckdb.connect() as con:
+        assert connector.load_to_sandbox(["orders"], con, 10) == {"orders": 1}
+        assert con.execute("select order_id, amount from raw.orders").fetchall() == [("A-1", "125000")]
+
+
+def test_file_connector_filters_sqlite_tables_before_reading_rows(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    import sqlite3
+
+    from src.agents.tools import duckdb_tools
+
+    with sqlite3.connect(tmp_path / "source.sqlite") as con:
+        con.execute("create table orders (id integer)")
+        con.execute("insert into orders values (1)")
+        con.execute("create table private_payroll (id integer)")
+    read = duckdb_tools._sqlite_rows
+    visited = []
+
+    def checked(path, table, limit=None):
+        visited.append(table)
+        assert table == "orders", "Bảng ngoài quyền không được đọc dòng mẫu"
+        return read(path, table, limit)
+
+    monkeypatch.setattr(duckdb_tools, "_sqlite_rows", checked)
+    monkeypatch.setenv(secrets.env_name("conn_extract_scope"), str(tmp_path))
+    connector = get_connector(make_source("file", "conn_extract_scope", allowed_tables=["source_orders"]))
+    assert connector.list_tables() == ["source_orders"]
+    assert visited == ["orders"]

@@ -1,0 +1,5 @@
+[
+  {"customer_id": 1, "email": "mai@example.invalid", "partner_code": "PARTNER-A"},
+  {"customer_id": 2, "email": null, "partner_code": "PARTNER-B"},
+  {"customer_id": 3, "email": "an@example.invalid", "partner_code": "PARTNER-A"}
+]

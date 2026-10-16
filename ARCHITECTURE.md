@@ -60,7 +60,8 @@ Mermaid + mô tả thành phần: [docs/architecture_diagram.md](docs/architectu
 | `sandbox_run` (V2) | Code | preflight `check_source_schema` rồi `dbt build` tiến trình con (test nguồn, test ép kiểu), kiểm kiểu cột bảng đích, timeout, `memory_limit`, `enable_external_access=false` |
 | `rescue` | Người | Quá 3 lần sửa hoặc lỗi lặp 2 lần: nhập gợi ý hoặc dừng |
 | `optimizer` (E4) | Code + LLM | 12 dấu hiệu chậm (sqlglot), baseline trung vị, ứng viên theo thứ tự: 7 luật tất định (có giả định + SQL kiểm chứng) → sqlglot.optimizer → LLM; mọi ứng viên qua V1 |
-| `compare` (V3) | Code | So hai chiều (cả kiểu cột) trên 5 bộ dữ liệu; chạy SQL kiểm chứng giả định; đo trên `large`; cổng lợi ích tối thiểu + hòa vốn; không đạt → E4 thử ứng viên kế (≤ `OPT_MAX_ATTEMPTS`) |
+| `compare` (V3) | Code | So hai chiều (cả kiểu cột) trên 6 bộ dữ liệu (small, dirty, empty, few, dupkeys, nullmoney); chạy SQL kiểm chứng giả định; đo trên `large`; cổng lợi ích tối thiểu + hòa vốn; không đạt → E4 thử ứng viên kế (≤ `OPT_MAX_ATTEMPTS`) |
+| `opt_revert` (V) | Code | Bản tối ưu đã áp dụng mà V1/V2 kiểm lại không đạt hoặc bảng đích trên sandbox khác bản gốc (dấu vân tay cột + số dòng + băm từng dòng): trả về bản gốc, ghi `skipped`, chạy lại V1+V2; không gọi Codegen |
 | `package` | Code | Bằng chứng `measured` / `claimed`, `PULL_REQUEST.md` |
 | `review` (J2) | Người | Approve / reject (ghi chú → Coder) |
 | `finalize`, `fail` | Code | Kết thúc |

@@ -89,10 +89,16 @@ def _sqlite_rows(path: Path, table: str, limit: int | None = None) -> list[tuple
         return conn.execute(sql).fetchall()
 
 
-def _sqlite_sources(path: Path) -> list[SourceInfo]:
+def _sqlite_sources(path: Path, allowed_tables: set[str] | None = None) -> list[SourceInfo]:
+    # Tên raw của SQLite là <tệp>_<bảng> (hoặc <tệp> khi cùng tên): loại file không thể chứa bảng được phép trước khi mở.
+    stem = path.stem.lower()
+    if allowed_tables is not None and not any(name == stem or name.startswith(stem + "_") for name in allowed_tables):
+        return []
     infos = []
     for table in _sqlite_table_names(path):
         name = path.stem if table == path.stem else f"{path.stem}_{table}"
+        if allowed_tables is not None and name.lower() not in allowed_tables:
+            continue
         columns = _sqlite_columns(path, table)
         sample = [dict(zip(columns, row, strict=False)) for row in _sqlite_rows(path, table, 3)]
         infos.append(SourceInfo(name=name, kind="sqlite", path=str(path), table=table, columns=columns, sample=sample))
@@ -108,13 +114,16 @@ def _file_source(path: Path, kind: str) -> SourceInfo:
     return SourceInfo(name=path.stem, kind=kind, path=str(path), columns=columns, sample=sample)
 
 
-def discover_sources(sources_dir: Path) -> list[SourceInfo]:
-    """Liệt kê nguồn trong thư mục: schema thật + 3 dòng mẫu đã che PII."""
+def discover_sources(sources_dir: Path, allowed_tables: set[str] | None = None) -> list[SourceInfo]:
+    """Liệt kê nguồn; nếu có danh sách quyền thì lọc trước khi đọc cấu trúc hoặc dòng mẫu."""
+    allowed_tables = None if allowed_tables is None or "*" in allowed_tables else {t.lower() for t in allowed_tables}
     infos: list[SourceInfo] = []
     for path in sorted(sources_dir.glob("*")):
         suffix = path.suffix.lower()
         if suffix in (".sqlite", ".db"):
-            infos.extend(_sqlite_sources(path))
+            infos.extend(_sqlite_sources(path, allowed_tables))
+        elif allowed_tables is not None and path.stem.lower() not in allowed_tables:
+            continue
         elif suffix in FILE_KINDS:
             infos.append(_file_source(path, FILE_KINDS[suffix]))
         elif suffix in NON_TABULAR_KINDS:

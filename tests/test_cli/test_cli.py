@@ -57,6 +57,29 @@ def test_review_blocks_wrong_role(capsys):
     assert "Chỉ vai trò Reviewer" in capsys.readouterr().out
 
 
+def test_review_approve_blocked_when_source_breaks_after_codegen(capsys, monkeypatch: pytest.MonkeyPatch):
+    """Giống API: nguồn đổi cấu trúc kiểu breaking sau lúc sinh code thì CLI cũng không cho duyệt."""
+    from datetime import UTC, datetime
+
+    from src import cli_commands
+    from src.models.drift import DriftReport, SchemaChangeView
+
+    record = get_store().create_run("doanh thu", "alice")
+    change = SchemaChangeView(
+        id=0, source_id=1, source_name="shopee", table="orders", from_version=0, to_version=0, change_type="column_removed",
+        severity="breaking", detail="Cột amount bị xóa", hint="", detected_at=datetime.now(UTC), status="open",
+    )  # fmt: skip
+    monkeypatch.setattr(cli_commands, "print_review_package", lambda values, full=False: None)
+    monkeypatch.setattr(cli_commands.runner, "get_values", lambda run_id: {})
+    monkeypatch.setattr(cli_commands.runner, "pending_interrupt", lambda run_id: {"kind": "review"})
+    monkeypatch.setattr(
+        cli_commands.schema_drift, "recheck_run", lambda values, run_id: DriftReport(open_breaking=[change])
+    )
+    monkeypatch.setattr(cli_commands.runner, "submit_review", lambda *a, **k: pytest.fail("không được gửi duyệt"))
+    assert main(["review", record.id, "--approve", "--as", "reviewer", "--user", "bob"]) == 1
+    assert "Cột amount bị xóa" in capsys.readouterr().out.replace("\n", "")
+
+
 def test_users_seed_dev_prints_random_passwords_once(capsys):
     from src.services import auth
 

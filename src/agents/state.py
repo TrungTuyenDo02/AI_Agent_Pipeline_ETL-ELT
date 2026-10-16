@@ -70,6 +70,7 @@ class PipelineState(TypedDict, total=False):
     optimization: dict  # OptimizationReport.model_dump(); rỗng = chưa tối ưu
     opt_attempts: int  # số lần đề xuất viết lại
     opt_candidate: dict  # đề xuất hiện tại của E4 chờ V3 kiểm tra
+    opt_baseline: dict  # V3 vừa áp dụng bản tối ưu: {code_files (bản gốc), fingerprint (bảng đích gốc trên sandbox)}; rỗng = không thử
 
     # J2
     evidence: dict  # Evidence.model_dump(): measured tách claimed

@@ -134,6 +134,7 @@ ACTIVITIES: dict[str, Callable[[dict], list[str]]] = {
     "safety": _quick("Kiểm an toàn bằng code: chặn lệnh ghi, hàm hệ thống, DAG gọi shell"),
     "sandbox_run": _quick("Ghi file đã qua V1 vào workspace, chạy `dbt build` + test trên DuckDB local"),
     "compare": _quick("Chạy SQL gốc và SQL tối ưu trên nhiều bộ dữ liệu, so kết quả từng dòng"),
+    "opt_revert": _quick("Bản tối ưu không qua kiểm tra lại: trả về bản gốc đã đạt V1+V2, rồi chạy thử lại"),
     "package": _quick("Gom bằng chứng đo được và diff để bạn duyệt"),
 }
 

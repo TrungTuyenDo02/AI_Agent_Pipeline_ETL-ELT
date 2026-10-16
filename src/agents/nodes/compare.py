@@ -12,9 +12,9 @@ from pathlib import Path
 
 import duckdb
 
-from src.agents.nodes.common import mart_path, spec_of
+from src.agents.nodes.common import mart_path, sandbox_db, spec_of
 from src.agents.state import PipelineState
-from src.agents.tools.duckdb_tools import QueryResult, benchmark_query, run_query
+from src.agents.tools.duckdb_tools import QueryResult, benchmark_query, connect_read, run_query
 from src.agents.tools.sql_tools import same_query, to_dbt_refs
 from src.config import get_settings
 from src.models.contracts import OptCandidate, hand_off
@@ -23,6 +23,12 @@ from src.services.cost import compute_cost_usd
 
 EQUIVALENCE_DATASETS = ("small", "dirty", "empty", "few", "dupkeys", "nullmoney")
 BENCH_DATASET = "large"
+FLOAT_TYPES = ("DOUBLE", "FLOAT", "REAL")
+
+
+def tolerance_digits(abs_tol: float) -> int:
+    """Số chữ số thập phân giữ lại khi so số thực với sai số tuyệt đối `abs_tol`."""
+    return max(0, -math.floor(math.log10(abs_tol))) if abs_tol > 0 else 12
 
 
 def _normalize(value: object, digits: int) -> object:
@@ -42,13 +48,57 @@ def compare_results(a: QueryResult, b: QueryResult, abs_tol: float) -> tuple[boo
         return False, f"Khác kiểu cột: {a.types} ≠ {b.types}"
     if len(a.rows) != len(b.rows):
         return False, f"Khác số dòng: {len(a.rows)} ≠ {len(b.rows)}"
-    digits = max(0, -math.floor(math.log10(abs_tol))) if abs_tol > 0 else 12
+    digits = tolerance_digits(abs_tol)
     rows_a = Counter(tuple(_normalize(v, digits) for v in row) for row in a.rows)
     rows_b = Counter(tuple(_normalize(v, digits) for v in row) for row in b.rows)
     only_a, only_b = rows_a - rows_b, rows_b - rows_a
     if only_a or only_b:
         return False, f"{sum(only_a.values())} dòng chỉ có ở bản gốc, {sum(only_b.values())} dòng chỉ có ở bản mới"
     return True, f"Giống hệt ({len(a.rows)} dòng)"
+
+
+def _fingerprint_value(name: str, data_type: str, digits: int) -> str:
+    column = '"' + name.replace('"', '""') + '"'
+    # `+ 0.0` gộp -0.0 với 0.0 sau khi làm tròn (cùng sai số với `compare_results`)
+    return f"round({column}, {digits}) + 0.0" if data_type.upper() in FLOAT_TYPES else column
+
+
+def mart_fingerprint(db: Path, target: str) -> dict | None:
+    """Dấu vân tay bảng đích trên sandbox (code, 0 token): cột + kiểu, số dòng, tổng băm từng dòng.
+
+    Không phụ thuộc thứ tự dòng, đếm cả dòng trùng, số thực làm tròn theo COMPARE_ABS_TOL như V3. Chạy hoàn toàn trong
+    DuckDB nên không kéo dữ liệu sandbox ra bộ nhớ. Không đọc được (chưa có bảng đích) → None.
+    """
+    digits = tolerance_digits(get_settings().compare_abs_tol)
+    try:
+        with connect_read(db) as con:
+            columns = con.execute(
+                "SELECT column_name, data_type FROM information_schema.columns "
+                "WHERE table_schema = 'main' AND table_name = ? ORDER BY ordinal_position",
+                [target],
+            ).fetchall()
+            if not columns:
+                return None
+            values = ", ".join(_fingerprint_value(name, data_type, digits) for name, data_type in columns)
+            rows, digest = con.execute(
+                f"SELECT count(*), coalesce(sum(hash(row({values})))::VARCHAR, '0') FROM main.\"{target}\""
+            ).fetchone()
+    except duckdb.Error:
+        return None
+    return {"columns": [[name, data_type] for name, data_type in columns], "rows": rows, "digest": digest}
+
+
+def fingerprint_difference(expected: dict, actual: dict | None) -> str:
+    """Hai dấu vân tay khác nhau ở đâu (chuỗi rỗng = giống hệt)."""
+    if actual is None:
+        return "không đọc được bảng đích sau khi chạy lại"
+    if actual["columns"] != expected["columns"]:
+        return f"khác cột/kiểu: {expected['columns']} ≠ {actual['columns']}"
+    if actual["rows"] != expected["rows"]:
+        return f"khác số dòng: {expected['rows']} ≠ {actual['rows']}"
+    if actual["digest"] != expected["digest"]:
+        return f"cùng {actual['rows']} dòng nhưng khác nội dung"
+    return ""
 
 
 def check_on_dataset(original: str, candidate: str, db: Path) -> tuple[bool, str]:
@@ -164,7 +214,11 @@ def _applied_code(state: PipelineState, report: OptimizationReport) -> dict[str,
 
 
 def compare_node(state: PipelineState) -> dict:
-    """V3: ứng viên không đạt → báo lý do cho E4 thử ứng viên kế (trong giới hạn); `applied` → ghi vào model đích."""
+    """V3: ứng viên không đạt → báo lý do cho E4 thử ứng viên kế (trong giới hạn); `applied` → ghi vào model đích.
+
+    Khi áp dụng: giữ bản gốc và dấu vân tay bảng đích của bản gốc trên sandbox (`opt_baseline`) để V2 đối chiếu lại sau khi
+    chạy bản mới, lệch hoặc lỗi thì `opt_revert` khôi phục bản gốc. Không chụp được → không áp dụng (không kiểm được = không đạt).
+    """
     candidate = state.get("opt_candidate", {})
     report = evaluate_candidate(candidate, state.get("datasets", {}))
     history = [*candidate.get("history", []), f"[{candidate.get('source', '?')}] {report.reason}"]
@@ -173,7 +227,18 @@ def compare_node(state: PipelineState) -> dict:
     if report.decision != "applied":
         summary = f"Đã thử {len(history)} đề xuất, không đề xuất nào đạt: " + " | ".join(history)
         report = report.model_copy(update={"decision": "skipped", "reason": summary})
-    update: dict = {"optimization": report.model_dump(mode="json")}
-    if report.decision == "applied":
-        update["code_files"] = _applied_code(state, report)
-    return update
+    if report.decision != "applied":
+        return {"optimization": report.model_dump(mode="json")}
+    fingerprint = mart_fingerprint(sandbox_db(state), spec_of(state).target)
+    if fingerprint is None:
+        reason = (
+            "Không chụp được kết quả bản gốc trên dữ liệu sandbox để đối chiếu lại sau khi áp dụng; giữ nguyên bản gốc."
+        )
+        return {
+            "optimization": report.model_copy(update={"decision": "skipped", "reason": reason}).model_dump(mode="json")
+        }
+    return {
+        "optimization": report.model_dump(mode="json"),
+        "code_files": _applied_code(state, report),
+        "opt_baseline": {"code_files": state["code_files"], "fingerprint": fingerprint},
+    }

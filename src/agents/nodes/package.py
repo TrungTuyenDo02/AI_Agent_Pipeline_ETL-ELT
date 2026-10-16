@@ -138,6 +138,8 @@ def _patch_items(state: PipelineState) -> list[MeasuredItem]:
             if same
             else f"Bảng đích khác lần chạy gốc: {regression['rows_before']} → {regression['rows_after']} dòng, {regression['differing_rows']} dòng khác"
         )
+        if regression.get("schema_same") is False:
+            result += "; " + regression["note"]
         items.append(
             MeasuredItem(node="P Bản vá", check="So với lần chạy gốc", result=result, passed=True if same else None)
         )

@@ -117,10 +117,12 @@
 | TrungTuyenDo02 | Giai đoạn 5: phát hiện thay đổi cấu trúc nguồn, pipeline tự phòng thủ, mô phỏng 6 kịch bản | ✅ Done | 6 kịch bản: 4 chặn/fail sớm, 1 vô hại, 1 cảnh báo; 0 sai âm thầm; mutation 14/15; chỉ mock | — |
 | TrungTuyenDo02 | Giai đoạn 6: từ điển nghiệp vụ, Planner nhận thuật ngữ, 5 ca golden mới | ✅ Done | Thuật ngữ cần thiết 6/6; token Planner +13,5%; độ đúng chưa đo LLM thật | — |
 | TrungTuyenDo02 | Giao diện thay đổi cấu trúc: nút đỏ ở chuông, so sánh trước/sau, đề xuất sửa pipeline | ✅ Done | Thêm ca type_narrowed, nullable_tightened; Gemini chỉ diễn giải khi bấm; mock only | — |
-| TrungTuyenDo02 | Chạy make eval phần kiểm bằng code, cập nhật report.md và README | ✅ Done | 1078 test đạt, độ phủ 91,55%; golden reference 16/16; mutation 14/15 (chạy lại trên DB test vì DB dev chưa migrate); không chạy LLM thật theo yêu cầu | — |
+| TrungTuyenDo02 | Chạy eval phần kiểm bằng code, cập nhật report và README | ✅ Done | 1114 test đạt; độ phủ 91,82%; golden 16/16; mutation 14/15; không gọi LLM thật | — |
 | TrungTuyenDo02 | Số đỏ trên tab điều hướng; script demo/seed_drift.py tạo thay đổi giả để xem giao diện | ✅ Done | Hook useDriftAlerts dùng chung cho chuông, tab và trang; số đỏ giảm ngay sau khi xác nhận (sự kiện drift:refresh) | — |
-| TrungTuyenDo02 | Bản vá nhanh khi nguồn đổi cấu trúc (ADR 0012): run vá dùng lại đặc tả đã duyệt, sửa SQL bằng sqlglot, chỉ gọi AI cho phần đổi nghĩa | ✅ Done | Nguyên nhân: bản vá cũ đi lại từ G0/Planner/J1/J1b nên hỏi lại và tốn token. Mới: patch_start → ingest → profiler → patch_apply → testgen → V1 → V2 → patch_verify → J2. Đo: 5/6 kịch bản 0 token, bảng đích giống hệt; 1/6 cần AI chạy thật gpt-6-luna 8.327 token ≈ 0,0027 USD (eval/results/patch.md, patch_llm.md). Gọi Gemini thật 1 lần (drift_advice) xác nhận hoạt động | — |
-| TrungTuyenDo02 | Trang đăng nhập: canvas ít chữ hơn (luồng làm việc theo màu agent/code/người, công cụ, 4 số đo được), bỏ khung lệnh chạy và dữ liệu mẫu | ✅ Done | Giải thích dài chuyển vào tooltip; hoạt ảnh tắt khi giảm chuyển động; tương phản đạt | — |
+| TrungTuyenDo02 | Bản vá nhanh schema drift (ADR 0012), tái dùng đặc tả và sửa SQL tất định | ✅ Done | 5/6 kịch bản vá 0 token, đầu ra khớp; ca cần AI dùng 8.327 token; Gemini diễn giải đã chạy thật | — |
+| TrungTuyenDo02 | Tinh gọn trang đăng nhập, thêm luồng màu, công cụ và 4 số đo | ✅ Done | Bỏ khung lệnh và dữ liệu mẫu; giải thích dài vào tooltip; tương phản đạt | — |
+| TrungTuyenDo02 | Sửa xác thực trong hướng dẫn, đối chiếu bản vá và đồng bộ tài liệu | ✅ Done | CI: 1124 đạt, phủ 91.83%; frontend kiểm tra đạt; thêm 9 test hồi quy | — |
+| TrungTuyenDo02 | Thêm dataset và bộ chấm Extract độc lập, lọc nguồn trước khi đọc nội dung | ✅ Done | Eval 21/21; CI 1149 đạt, phủ 91.85%; chặn đọc ngoài quyền; 0 LLM | — |
 
 ---
 

@@ -1,14 +1,15 @@
 # Evaluation Report — P-113
 
-> Sinh tự động bởi `eval/run_eval.py` ngày 2026-10-16. Chỉ ghi số đã đo thật; chưa đo ghi `—`.
+> Báo cáo từ `eval/run_eval.py`; chỉ số pytest cập nhật bằng `python scripts/tasks.py ci` ngày 2026-10-16. Các phép đo khác giữ nguyên điều kiện đã ghi; chưa đo ghi `—`.
 > Số chạy bằng `mock` KHÔNG phải chất lượng mô hình thật.
 
 ## 1. Chỉ số
 
 | Chỉ số | Provider/model | Kết quả |
 |---|---|---|
-| pytest | mock (không cần khóa) | 1078 đạt, 0 lỗi |
-| Độ phủ code | — | 91.55% (ngưỡng 60%) |
+| pytest | mock (không cần khóa) | 1149 đạt, 0 lỗi |
+| Độ phủ code | — | 91.85% (ngưỡng 60%) |
+| Extract: đúng nguồn, đúng bảng và kết quả nạp | code, dataset tổng hợp p113-extract-v1 | 21/21 ca, đạt; chưa đo PostgreSQL thật • [extract.md](extract.md) |
 | Mutation: bắt được lỗi giả | code (0 token) | 14/15 (93.3%) |
 | Mutation: báo động nhầm ở đối chứng | code (0 token) | 0/1 |
 | Golden: kết quả đúng khớp SQL chuẩn | code | 16/16 ca |

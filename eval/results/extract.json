@@ -1,0 +1,753 @@
+{
+  "dataset_id": "p113-extract-v1",
+  "origin": "synthetic; explicitly authored fixtures and separate frozen oracles",
+  "manifest_sha256": "168f4c83926e1a945f3b4cb21a26468a93a3e20d76550192ef08634f91f98d3b",
+  "oracle_sha256": "5c77804e97919aae8086c02eb95d813f8a77ac7809ad62a2a5c2dfa34f17939c",
+  "fixture_sha256": {
+    "expected.json": "5c77804e97919aae8086c02eb95d813f8a77ac7809ad62a2a5c2dfa34f17939c",
+    "manifest.json": "168f4c83926e1a945f3b4cb21a26468a93a3e20d76550192ef08634f91f98d3b",
+    "native_tables.json": "996f7d4f7885af65fe5d6d74a60f596c126789c86a5ced3accbffed9f3a30946",
+    "README.md": "0cbf99ce961aebc48cb3e45c002666ef54a0baddcd570e138a59f375048c8334",
+    "sources/added/orders.csv": "b1086645c95a484c3051d694f3ea49be2296d4caff409d73a437dd9e2bc3f9f0",
+    "sources/partner_finance/orders.csv": "942f90140ccdc817f46811f87e8ee5b6620bc30c6e4cb9742cc4abd98672543b",
+    "sources/partner_sales/contacts.json": "678c39511002c518e3db1043aa380056d9eb0b73a2dcb884608aeadcd7f7ceff",
+    "sources/partner_sales/orders.csv": "53c000001d6be563776d1101bd0520b0a1b7c7becc53bd8c5a1af53c5f1fdf17",
+    "sources/partner_sales/private_payroll.json": "fed9f9aa31c7bab621ea70fdd484909e61587b2d450e24d25447e6f31fb5270d",
+    "sources/partner_sales/private_payroll.sqlite": "1101247f5d61145d521a195bed8424cb83a9d6f8277c3b041f4aa9156086b92c",
+    "sources/removed/orders.csv": "cfb9acb2164db80952cc8d7e4850d84f61cf2c8e03feb3b358ed3845d1b075fb",
+    "sources/renamed/orders.csv": "332a6e1f0f7986260f3af85dfaf441c04cb9af4408a9287329aab024a0e32692"
+  },
+  "measured_at": "2026-10-16T05:10:12.104286+00:00",
+  "scope": [
+    "CSV",
+    "JSON",
+    "SQLite",
+    "DuckDB",
+    "Parquet"
+  ],
+  "not_evaluated": [
+    "PostgreSQL thật",
+    "kiểu native phức tạp và múi giờ",
+    "API đối tác",
+    "CDC/incremental",
+    "lựa chọn nguồn tự động khi trùng tên bảng"
+  ],
+  "llm_calls": 0,
+  "summary": {
+    "passed": 21,
+    "total": 21,
+    "pass_rate_pct": 100.0,
+    "critical_failures": [],
+    "accepted": true
+  },
+  "cases": [
+    {
+      "id": "csv_exact",
+      "category": "exact_extract",
+      "critical": false,
+      "seconds": 0.1743,
+      "passed": true,
+      "checks": {
+        "schema_exact": true,
+        "row_count_exact": true,
+        "rows_exact_with_duplicates": true,
+        "source_id_exact": true,
+        "only_requested_table": true,
+        "count_matches_sandbox": true,
+        "source_bytes_unchanged": true
+      },
+      "expected_rows": 6,
+      "actual_rows": 6,
+      "differing_rows": 0,
+      "expected_digest": "ec1c07aab4dde730ab8cd06e68b9e120200c350801a38cf168686bfa757d3689",
+      "actual_digest": "ec1c07aab4dde730ab8cd06e68b9e120200c350801a38cf168686bfa757d3689",
+      "receipt": {
+        "source_id": 2,
+        "source_name": "Extract sales",
+        "department": "sales",
+        "connector": "FileConnector",
+        "table": "orders",
+        "artifact": "partner_sales/orders.csv",
+        "input_sha256": "53c000001d6be563776d1101bd0520b0a1b7c7becc53bd8c5a1af53c5f1fdf17",
+        "schema": [
+          [
+            "order_id",
+            "VARCHAR"
+          ],
+          [
+            "department_code",
+            "VARCHAR"
+          ],
+          [
+            "partner_code",
+            "VARCHAR"
+          ],
+          [
+            "amount",
+            "VARCHAR"
+          ],
+          [
+            "note",
+            "VARCHAR"
+          ]
+        ],
+        "loaded_rows": 6,
+        "max_rows": 100
+      }
+    },
+    {
+      "id": "json_exact",
+      "category": "exact_extract",
+      "critical": false,
+      "seconds": 0.1042,
+      "passed": true,
+      "checks": {
+        "schema_exact": true,
+        "row_count_exact": true,
+        "rows_exact_with_duplicates": true,
+        "source_id_exact": true,
+        "only_requested_table": true,
+        "count_matches_sandbox": true,
+        "source_bytes_unchanged": true
+      },
+      "expected_rows": 3,
+      "actual_rows": 3,
+      "differing_rows": 0,
+      "expected_digest": "89eb4533f0c4f711f9bc0df8c7a799efc6bc752b64c6b1f04d2433fcbc2fe22a",
+      "actual_digest": "89eb4533f0c4f711f9bc0df8c7a799efc6bc752b64c6b1f04d2433fcbc2fe22a",
+      "receipt": {
+        "source_id": 2,
+        "source_name": "Extract sales",
+        "department": "sales",
+        "connector": "FileConnector",
+        "table": "contacts",
+        "artifact": "partner_sales/contacts.json",
+        "input_sha256": "678c39511002c518e3db1043aa380056d9eb0b73a2dcb884608aeadcd7f7ceff",
+        "schema": [
+          [
+            "customer_id",
+            "BIGINT"
+          ],
+          [
+            "email",
+            "VARCHAR"
+          ],
+          [
+            "partner_code",
+            "VARCHAR"
+          ]
+        ],
+        "loaded_rows": 3,
+        "max_rows": 100
+      }
+    },
+    {
+      "id": "same_name_other_department",
+      "category": "exact_extract",
+      "critical": false,
+      "seconds": 0.1404,
+      "passed": true,
+      "checks": {
+        "schema_exact": true,
+        "row_count_exact": true,
+        "rows_exact_with_duplicates": true,
+        "source_id_exact": true,
+        "only_requested_table": true,
+        "count_matches_sandbox": true,
+        "source_bytes_unchanged": true
+      },
+      "expected_rows": 6,
+      "actual_rows": 6,
+      "differing_rows": 0,
+      "expected_digest": "86b2a33b26a5b00ecd2e9d7398b3aaedcf473fd634cdf75b7efbaa64ecf0d428",
+      "actual_digest": "86b2a33b26a5b00ecd2e9d7398b3aaedcf473fd634cdf75b7efbaa64ecf0d428",
+      "receipt": {
+        "source_id": 3,
+        "source_name": "Extract finance",
+        "department": "finance",
+        "connector": "FileConnector",
+        "table": "orders",
+        "artifact": "partner_finance/orders.csv",
+        "input_sha256": "942f90140ccdc817f46811f87e8ee5b6620bc30c6e4cb9742cc4abd98672543b",
+        "schema": [
+          [
+            "order_id",
+            "VARCHAR"
+          ],
+          [
+            "department_code",
+            "VARCHAR"
+          ],
+          [
+            "partner_code",
+            "VARCHAR"
+          ],
+          [
+            "amount",
+            "VARCHAR"
+          ],
+          [
+            "note",
+            "VARCHAR"
+          ]
+        ],
+        "loaded_rows": 6,
+        "max_rows": 100
+      }
+    },
+    {
+      "id": "sqlite_exact",
+      "category": "exact_extract",
+      "critical": false,
+      "seconds": 0.1219,
+      "passed": true,
+      "checks": {
+        "schema_exact": true,
+        "row_count_exact": true,
+        "rows_exact_with_duplicates": true,
+        "source_id_exact": true,
+        "only_requested_table": true,
+        "count_matches_sandbox": true,
+        "source_bytes_unchanged": true
+      },
+      "expected_rows": 4,
+      "actual_rows": 4,
+      "differing_rows": 0,
+      "expected_digest": "57bb95d74a04204b0d3f685d019d4baccee9a13bdaceab6e750bdd4d6d71fe84",
+      "actual_digest": "57bb95d74a04204b0d3f685d019d4baccee9a13bdaceab6e750bdd4d6d71fe84",
+      "receipt": {
+        "source_id": 4,
+        "source_name": "Extract sqlite",
+        "department": "sales",
+        "connector": "FileConnector",
+        "table": "warehouse_orders",
+        "artifact": "sqlite/warehouse.sqlite",
+        "input_sha256": "d7cb9003ffb3a49a2451f937fff4f9b491758084a5fea739fa75a622a3c54e59",
+        "schema": [
+          [
+            "order_id",
+            "BIGINT"
+          ],
+          [
+            "customer_email",
+            "VARCHAR"
+          ],
+          [
+            "amount_cents",
+            "BIGINT"
+          ]
+        ],
+        "loaded_rows": 4,
+        "max_rows": 100
+      }
+    },
+    {
+      "id": "duckdb_exact",
+      "category": "exact_extract",
+      "critical": false,
+      "seconds": 0.1727,
+      "passed": true,
+      "checks": {
+        "schema_exact": true,
+        "row_count_exact": true,
+        "rows_exact_with_duplicates": true,
+        "source_id_exact": true,
+        "only_requested_table": true,
+        "count_matches_sandbox": true,
+        "source_bytes_unchanged": true
+      },
+      "expected_rows": 4,
+      "actual_rows": 4,
+      "differing_rows": 0,
+      "expected_digest": "57bb95d74a04204b0d3f685d019d4baccee9a13bdaceab6e750bdd4d6d71fe84",
+      "actual_digest": "57bb95d74a04204b0d3f685d019d4baccee9a13bdaceab6e750bdd4d6d71fe84",
+      "receipt": {
+        "source_id": 5,
+        "source_name": "Extract duckdb",
+        "department": "sales",
+        "connector": "DuckDBConnector",
+        "table": "orders",
+        "artifact": "warehouse.duckdb",
+        "input_sha256": "c7d2814148dd8cf74d8479d938711cea27914ac59a2c6d818037ebea309f17ec",
+        "schema": [
+          [
+            "order_id",
+            "BIGINT"
+          ],
+          [
+            "customer_email",
+            "VARCHAR"
+          ],
+          [
+            "amount_cents",
+            "BIGINT"
+          ]
+        ],
+        "loaded_rows": 4,
+        "max_rows": 100
+      }
+    },
+    {
+      "id": "schema_qualified_table",
+      "category": "exact_extract",
+      "critical": false,
+      "seconds": 0.1654,
+      "passed": true,
+      "checks": {
+        "schema_exact": true,
+        "row_count_exact": true,
+        "rows_exact_with_duplicates": true,
+        "source_id_exact": true,
+        "only_requested_table": true,
+        "count_matches_sandbox": true,
+        "source_bytes_unchanged": true
+      },
+      "expected_rows": 1,
+      "actual_rows": 1,
+      "differing_rows": 0,
+      "expected_digest": "ffb26125222b8f6c3c17da11535c32b519c2a1cf756b2d17f43e4044e598aba9",
+      "actual_digest": "ffb26125222b8f6c3c17da11535c32b519c2a1cf756b2d17f43e4044e598aba9",
+      "receipt": {
+        "source_id": 5,
+        "source_name": "Extract duckdb",
+        "department": "sales",
+        "connector": "DuckDBConnector",
+        "table": "ops__orders",
+        "artifact": "warehouse.duckdb",
+        "input_sha256": "c7d2814148dd8cf74d8479d938711cea27914ac59a2c6d818037ebea309f17ec",
+        "schema": [
+          [
+            "order_id",
+            "BIGINT"
+          ],
+          [
+            "customer_email",
+            "VARCHAR"
+          ],
+          [
+            "amount_cents",
+            "BIGINT"
+          ]
+        ],
+        "loaded_rows": 1,
+        "max_rows": 100
+      }
+    },
+    {
+      "id": "empty_table_schema",
+      "category": "exact_extract",
+      "critical": false,
+      "seconds": 0.1709,
+      "passed": true,
+      "checks": {
+        "schema_exact": true,
+        "row_count_exact": true,
+        "rows_exact_with_duplicates": true,
+        "source_id_exact": true,
+        "only_requested_table": true,
+        "count_matches_sandbox": true,
+        "source_bytes_unchanged": true
+      },
+      "expected_rows": 0,
+      "actual_rows": 0,
+      "differing_rows": 0,
+      "expected_digest": "5fd89925f4768a47b94262a84775a9b2fc5d3092435f3a153b6a08fcde360cd3",
+      "actual_digest": "5fd89925f4768a47b94262a84775a9b2fc5d3092435f3a153b6a08fcde360cd3",
+      "receipt": {
+        "source_id": 5,
+        "source_name": "Extract duckdb",
+        "department": "sales",
+        "connector": "DuckDBConnector",
+        "table": "empty_orders",
+        "artifact": "warehouse.duckdb",
+        "input_sha256": "c7d2814148dd8cf74d8479d938711cea27914ac59a2c6d818037ebea309f17ec",
+        "schema": [
+          [
+            "order_id",
+            "BIGINT"
+          ],
+          [
+            "amount_cents",
+            "BIGINT"
+          ]
+        ],
+        "loaded_rows": 0,
+        "max_rows": 100
+      }
+    },
+    {
+      "id": "parquet_exact",
+      "category": "exact_extract",
+      "critical": false,
+      "seconds": 0.1073,
+      "passed": true,
+      "checks": {
+        "schema_exact": true,
+        "row_count_exact": true,
+        "rows_exact_with_duplicates": true,
+        "source_id_exact": true,
+        "only_requested_table": true,
+        "count_matches_sandbox": true,
+        "source_bytes_unchanged": true
+      },
+      "expected_rows": 4,
+      "actual_rows": 4,
+      "differing_rows": 0,
+      "expected_digest": "57bb95d74a04204b0d3f685d019d4baccee9a13bdaceab6e750bdd4d6d71fe84",
+      "actual_digest": "57bb95d74a04204b0d3f685d019d4baccee9a13bdaceab6e750bdd4d6d71fe84",
+      "receipt": {
+        "source_id": 6,
+        "source_name": "Extract parquet",
+        "department": "sales",
+        "connector": "FileConnector",
+        "table": "orders",
+        "artifact": "parquet/orders.parquet",
+        "input_sha256": "0cb2611f00419f16b4a018e2ef210a07bc089ae033537d47dd4ea2664676c54a",
+        "schema": [
+          [
+            "order_id",
+            "BIGINT"
+          ],
+          [
+            "customer_email",
+            "VARCHAR"
+          ],
+          [
+            "amount_cents",
+            "BIGINT"
+          ]
+        ],
+        "loaded_rows": 4,
+        "max_rows": 100
+      }
+    },
+    {
+      "id": "column_added",
+      "category": "exact_extract",
+      "critical": false,
+      "seconds": 0.1241,
+      "passed": true,
+      "checks": {
+        "schema_exact": true,
+        "row_count_exact": true,
+        "rows_exact_with_duplicates": true,
+        "source_id_exact": true,
+        "only_requested_table": true,
+        "count_matches_sandbox": true,
+        "source_bytes_unchanged": true
+      },
+      "expected_rows": 2,
+      "actual_rows": 2,
+      "differing_rows": 0,
+      "expected_digest": "a9d297b090f378261a22b16d96d20d31519b05c44a1fe735a02a8b465da7bdaf",
+      "actual_digest": "a9d297b090f378261a22b16d96d20d31519b05c44a1fe735a02a8b465da7bdaf",
+      "receipt": {
+        "source_id": 7,
+        "source_name": "Extract added",
+        "department": "sales",
+        "connector": "FileConnector",
+        "table": "orders",
+        "artifact": "added/orders.csv",
+        "input_sha256": "b1086645c95a484c3051d694f3ea49be2296d4caff409d73a437dd9e2bc3f9f0",
+        "schema": [
+          [
+            "order_id",
+            "VARCHAR"
+          ],
+          [
+            "amount",
+            "VARCHAR"
+          ],
+          [
+            "department_code",
+            "VARCHAR"
+          ]
+        ],
+        "loaded_rows": 2,
+        "max_rows": 100
+      }
+    },
+    {
+      "id": "column_renamed",
+      "category": "exact_extract",
+      "critical": false,
+      "seconds": 0.1197,
+      "passed": true,
+      "checks": {
+        "schema_exact": true,
+        "row_count_exact": true,
+        "rows_exact_with_duplicates": true,
+        "source_id_exact": true,
+        "only_requested_table": true,
+        "count_matches_sandbox": true,
+        "source_bytes_unchanged": true
+      },
+      "expected_rows": 2,
+      "actual_rows": 2,
+      "differing_rows": 0,
+      "expected_digest": "22b867198b2f0371ee314d6031d48895b9de66539fc94d81565b459821c3e33e",
+      "actual_digest": "22b867198b2f0371ee314d6031d48895b9de66539fc94d81565b459821c3e33e",
+      "receipt": {
+        "source_id": 8,
+        "source_name": "Extract renamed",
+        "department": "sales",
+        "connector": "FileConnector",
+        "table": "orders",
+        "artifact": "renamed/orders.csv",
+        "input_sha256": "332a6e1f0f7986260f3af85dfaf441c04cb9af4408a9287329aab024a0e32692",
+        "schema": [
+          [
+            "order_id",
+            "VARCHAR"
+          ],
+          [
+            "amount_vnd",
+            "VARCHAR"
+          ]
+        ],
+        "loaded_rows": 2,
+        "max_rows": 100
+      }
+    },
+    {
+      "id": "column_removed",
+      "category": "exact_extract",
+      "critical": false,
+      "seconds": 0.1164,
+      "passed": true,
+      "checks": {
+        "schema_exact": true,
+        "row_count_exact": true,
+        "rows_exact_with_duplicates": true,
+        "source_id_exact": true,
+        "only_requested_table": true,
+        "count_matches_sandbox": true,
+        "source_bytes_unchanged": true
+      },
+      "expected_rows": 2,
+      "actual_rows": 2,
+      "differing_rows": 0,
+      "expected_digest": "596df0f516f09b80ef2b5092767bda04f191b00b27df85029a34fda8d159efbe",
+      "actual_digest": "596df0f516f09b80ef2b5092767bda04f191b00b27df85029a34fda8d159efbe",
+      "receipt": {
+        "source_id": 9,
+        "source_name": "Extract removed",
+        "department": "sales",
+        "connector": "FileConnector",
+        "table": "orders",
+        "artifact": "removed/orders.csv",
+        "input_sha256": "cfb9acb2164db80952cc8d7e4850d84f61cf2c8e03feb3b358ed3845d1b075fb",
+        "schema": [
+          [
+            "order_id",
+            "VARCHAR"
+          ]
+        ],
+        "loaded_rows": 2,
+        "max_rows": 100
+      }
+    },
+    {
+      "id": "sampling_repeatable_subset",
+      "category": "sampling",
+      "critical": false,
+      "seconds": 0.1874,
+      "passed": true,
+      "checks": {
+        "schema_exact": true,
+        "row_cap": true,
+        "subset_with_duplicates": true,
+        "source_id_exact": true,
+        "only_requested_table": true,
+        "count_matches_sandbox": true,
+        "source_bytes_unchanged": true,
+        "repeatable": true,
+        "second_load_valid": true
+      },
+      "expected_rows": 6,
+      "actual_rows": 3,
+      "differing_rows": 3,
+      "expected_digest": "ec1c07aab4dde730ab8cd06e68b9e120200c350801a38cf168686bfa757d3689",
+      "actual_digest": "c635ab8d88893a3544b3afe0f863403038658dfeb6958da42d16bc2136d755ec",
+      "receipt": {
+        "source_id": 2,
+        "source_name": "Extract sales",
+        "department": "sales",
+        "connector": "FileConnector",
+        "table": "orders",
+        "artifact": "partner_sales/orders.csv",
+        "input_sha256": "53c000001d6be563776d1101bd0520b0a1b7c7becc53bd8c5a1af53c5f1fdf17",
+        "schema": [
+          [
+            "order_id",
+            "VARCHAR"
+          ],
+          [
+            "department_code",
+            "VARCHAR"
+          ],
+          [
+            "partner_code",
+            "VARCHAR"
+          ],
+          [
+            "amount",
+            "VARCHAR"
+          ],
+          [
+            "note",
+            "VARCHAR"
+          ]
+        ],
+        "loaded_rows": 3,
+        "max_rows": 3
+      }
+    },
+    {
+      "id": "forbidden_table",
+      "category": "access",
+      "critical": true,
+      "seconds": 0.0223,
+      "checks": {
+        "forbidden_table_denied": true,
+        "no_forbidden_table_loaded": true
+      },
+      "passed": true
+    },
+    {
+      "id": "department_visibility",
+      "category": "access",
+      "critical": true,
+      "seconds": 0.0032,
+      "checks": {
+        "departments_isolated": true
+      },
+      "passed": true
+    },
+    {
+      "id": "cross_department_ingest",
+      "category": "access",
+      "critical": true,
+      "seconds": 0.0621,
+      "checks": {
+        "request_denied": true,
+        "no_table_loaded": true
+      },
+      "passed": true
+    },
+    {
+      "id": "revoked_source_ingest",
+      "category": "access",
+      "critical": true,
+      "seconds": 0.0633,
+      "checks": {
+        "request_denied": true,
+        "no_table_loaded": true
+      },
+      "passed": true
+    },
+    {
+      "id": "changed_file_changes_output",
+      "category": "provenance",
+      "critical": true,
+      "seconds": 0.2411,
+      "passed": true,
+      "checks": {
+        "schema_exact": true,
+        "row_count_exact": true,
+        "rows_exact_with_duplicates": true,
+        "source_id_exact": true,
+        "only_requested_table": true,
+        "count_matches_sandbox": true,
+        "source_bytes_unchanged": true,
+        "baseline_valid": true,
+        "input_changed": true,
+        "output_changed": true
+      },
+      "expected_rows": 6,
+      "actual_rows": 6,
+      "differing_rows": 0,
+      "expected_digest": "1ed3822c0e1c8160ee220730bc20551863b631d93b2152d8da69d621ac2cf4fc",
+      "actual_digest": "1ed3822c0e1c8160ee220730bc20551863b631d93b2152d8da69d621ac2cf4fc",
+      "receipt": {
+        "source_id": 2,
+        "source_name": "Extract sales",
+        "department": "sales",
+        "connector": "FileConnector",
+        "table": "orders",
+        "artifact": "partner_sales/orders.csv",
+        "input_sha256": "3ce8a5545f2eb9a0364969bece5906c690355bf363bf16bc16d8dee8354aa0c8",
+        "schema": [
+          [
+            "order_id",
+            "VARCHAR"
+          ],
+          [
+            "department_code",
+            "VARCHAR"
+          ],
+          [
+            "partner_code",
+            "VARCHAR"
+          ],
+          [
+            "amount",
+            "VARCHAR"
+          ],
+          [
+            "note",
+            "VARCHAR"
+          ]
+        ],
+        "loaded_rows": 6,
+        "max_rows": 100
+      }
+    },
+    {
+      "id": "hashed_join",
+      "category": "privacy",
+      "critical": true,
+      "seconds": 0.0912,
+      "checks": {
+        "independent_hash_matches": true,
+        "join_preserved": true,
+        "null_preserved": true
+      },
+      "passed": true
+    },
+    {
+      "id": "missing_secret",
+      "category": "access",
+      "critical": true,
+      "seconds": 0.0013,
+      "checks": {
+        "missing_secret_does_not_fall_back": true
+      },
+      "passed": true
+    },
+    {
+      "id": "source_immutability",
+      "category": "provenance",
+      "critical": true,
+      "seconds": 0.0089,
+      "checks": {
+        "all_source_bytes_unchanged": true
+      },
+      "passed": true
+    },
+    {
+      "id": "scorer_negative_controls",
+      "category": "scorer",
+      "critical": true,
+      "seconds": 0.0008,
+      "checks": {
+        "wrong_source_rejected": true,
+        "wrong_duplicate_count_rejected": true,
+        "wrong_schema_rejected": true,
+        "row_order_accepted": true
+      },
+      "passed": true
+    }
+  ],
+  "duration_sec": 3.737
+}

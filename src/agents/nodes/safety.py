@@ -290,10 +290,13 @@ def run_safety_checks(state: PipelineState) -> list[str]:
 
 
 def safety_node(state: PipelineState) -> dict:
-    """Chặn code không an toàn/bịa tên; lỗi được ghi sổ lỗi và đếm vào vòng sửa."""
+    """Chặn code không an toàn/bịa tên; lỗi được ghi sổ lỗi và đếm vào vòng sửa.
+
+    Lỗi của bản tối ưu đang thử (`opt_baseline`) không ghi sổ lỗi, không tính lượt sửa: `opt_revert` khôi phục bản gốc.
+    """
     issues = run_safety_checks(state)
     result: dict = {"safety": hand_off(SafetyResult, {"passed": not issues, "issues": issues})}
-    if issues:
+    if issues and not state.get("opt_baseline"):
         result.update(
             register_failure(
                 state, "\n".join(issues), sql_before=state.get("code_files", {}).get(mart_path(spec_of(state)), "")

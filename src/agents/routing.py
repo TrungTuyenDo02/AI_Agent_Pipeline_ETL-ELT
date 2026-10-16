@@ -64,7 +64,7 @@ def after_plan_review(state: PipelineState) -> str:
         return "plan_review"
     if review.get("decision") == "approve":
         return "ingest"
-    return "fail" if state.get("plan_reviews", 0) > get_settings().max_review_rounds else "planner"
+    return "fail" if state.get("plan_reviews", 0) >= get_settings().max_review_rounds else "planner"
 
 
 def after_ingest(state: PipelineState) -> str:
@@ -87,15 +87,21 @@ def fix_route(state: PipelineState) -> str:
     return "codegen"
 
 
+def failure_route(state: PipelineState) -> str:
+    """V1/V2 không đạt: bản tối ưu đang thử → khôi phục bản gốc đã đạt (không tốn token); còn lại → vòng sửa."""
+    return "opt_revert" if state.get("opt_baseline") else fix_route(state)
+
+
 def after_safety(state: PipelineState) -> str:
-    """V1 đạt → sandbox; không đạt → vòng sửa."""
-    return "sandbox_run" if state.get("safety", {}).get("passed") else fix_route(state)
+    """V1 đạt → sandbox; không đạt → khôi phục bản gốc hoặc vòng sửa."""
+    return "sandbox_run" if state.get("safety", {}).get("passed") else failure_route(state)
 
 
 def after_sandbox(state: PipelineState) -> str:
-    """V2 đạt → tối ưu (nếu chưa) hoặc đóng gói; không đạt → vòng sửa. Run vá không tối ưu lại: so với lần chạy gốc rồi đóng gói."""
+    """V2 đạt → tối ưu (nếu chưa) hoặc đóng gói; không đạt → khôi phục bản gốc hoặc vòng sửa. Run vá không tối ưu lại: so với
+    lần chạy gốc rồi đóng gói."""
     if not state.get("sandbox", {}).get("passed"):
-        return fix_route(state)
+        return failure_route(state)
     if state.get("patch_of"):
         return "patch_verify"
     return "package" if state.get("optimization") else "optimizer"
@@ -112,7 +118,7 @@ def after_optimizer(state: PipelineState) -> str:
 
 
 def after_compare(state: PipelineState) -> str:
-    """Lệch → thử lại E4; áp dụng → kiểm tra lại V1+V2 với code mới; giữ nguyên → đóng gói."""
+    """Lệch → thử lại E4; áp dụng → kiểm tra lại V1+V2 với code mới (V2 so bảng đích với bản gốc); giữ nguyên → đóng gói."""
     report = state.get("optimization")
     if not report:
         return "optimizer"

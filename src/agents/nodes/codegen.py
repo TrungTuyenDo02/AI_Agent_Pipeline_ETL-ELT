@@ -189,5 +189,6 @@ def codegen_node(state: PipelineState) -> dict:
         "optimization": {},
         "opt_candidate": {},
         "opt_attempts": 0,
+        "opt_baseline": {},
         "rescue_hint": "",
     }

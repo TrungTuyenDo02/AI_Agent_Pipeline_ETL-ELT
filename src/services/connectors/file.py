@@ -40,11 +40,11 @@ def _signature(directory: Path) -> tuple:
 
 
 @lru_cache(maxsize=8)
-def _discover_cached(directory: str, signature: tuple) -> tuple[dict, ...]:
+def _discover_cached(directory: str, signature: tuple, allowed_tables: tuple[str, ...]) -> tuple[dict, ...]:
     """Cấu trúc các file trong thư mục (không có dòng mẫu), nhớ tới khi file nguồn đổi."""
     labels = read_manifest(Path(directory))
     items = []
-    for info in discover_sources(Path(directory)):
+    for info in discover_sources(Path(directory), set(allowed_tables)):
         item = info.model_dump()
         item["sample"] = []  # dòng mẫu không đi vào danh mục dùng chung (state, checkpoint, prompt)
         item["label"] = labels.get(info.name, {}).get("label", "")
@@ -66,7 +66,8 @@ class FileConnector(SourceConnector):
 
     def _items(self) -> list[dict]:
         directory = self.directory()
-        found = _discover_cached(str(directory.resolve()), _signature(directory))
+        allowed = tuple(sorted(t.lower() for t in self.source.allowed_tables))
+        found = _discover_cached(str(directory.resolve()), _signature(directory), allowed)
         return [dict(item) for item in found if self.source.allows_table(item["name"])]
 
     def _item(self, table: str) -> dict:

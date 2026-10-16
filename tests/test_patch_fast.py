@@ -272,6 +272,7 @@ def test_compare_marts_reports_same_different_and_missing(tmp_path: Path):
     assert compare_marts(old, same, "fct") == {
         "compared": True,
         "same": True,
+        "schema_same": True,
         "rows_before": 2,
         "rows_after": 2,
         "differing_rows": 0,
@@ -279,6 +280,72 @@ def test_compare_marts_reports_same_different_and_missing(tmp_path: Path):
     different = compare_marts(old, other, "fct")
     assert different["same"] is False and different["differing_rows"] == 2
     assert compare_marts(tmp_path / "khong-co.duckdb", same, "fct")["compared"] is False
+
+
+@pytest.mark.parametrize(
+    ("before_sql", "after_sql"),
+    [
+        ("select 1::integer as amount", "select 1::integer as total"),
+        ("select 1::integer as amount", "select 1::bigint as amount"),
+        ("select 1 as a, 1 as b", "select 1 as b, 1 as a"),
+        ("select 1 as amount where false", "select 1::bigint as amount where false"),
+    ],
+)
+def test_compare_marts_detects_schema_changes(tmp_path: Path, before_sql: str, after_sql: str):
+    paths = [tmp_path / name for name in ("old.duckdb", "new.duckdb")]
+    for path, sql in zip(paths, (before_sql, after_sql), strict=True):
+        with duckdb.connect(str(path)) as con:
+            con.execute(f"create table fct as {sql}")
+    result = compare_marts(*paths, "fct")
+    assert result["compared"] is True and result["same"] is False
+    assert result["schema_same"] is False
+    assert result["note"]
+
+
+@pytest.mark.parametrize(
+    ("before_rows", "after_rows", "expected"),
+    [
+        ([(1,), (1,), (2,)], [(1,), (2,), (2,)], 2),
+        ([(1,), (1,)], [(1,)], 1),
+        ([(1,), (1,), (2,)], [(2,), (1,), (1,)], 0),
+    ],
+)
+def test_compare_marts_counts_duplicate_rows(tmp_path: Path, before_rows: list, after_rows: list, expected: int):
+    paths = [tmp_path / name for name in ("old.duckdb", "new.duckdb")]
+    for path, rows in zip(paths, (before_rows, after_rows), strict=True):
+        with duckdb.connect(str(path)) as con:
+            con.execute("create table fct (n integer)")
+            con.executemany("insert into fct values (?)", rows)
+    result = compare_marts(*paths, "fct")
+    assert result["same"] is (expected == 0)
+    assert result["differing_rows"] == expected
+
+
+def test_compare_marts_handles_nested_values_and_nan(tmp_path: Path):
+    paths = [tmp_path / name for name in ("old.duckdb", "new.duckdb")]
+    for path in paths:
+        with duckdb.connect(str(path)) as con:
+            con.execute("create table fct as select [1, NULL] as a, {'k': [2]} as b, 'NaN'::double as n")
+    result = compare_marts(*paths, "fct")
+    assert result["same"] is True and result["differing_rows"] == 0
+
+
+def test_patch_schema_change_is_shown_in_review_and_progress():
+    from src.agents.progress import _detail_patch_verify
+
+    regression = {
+        "compared": True,
+        "same": False,
+        "schema_same": False,
+        "rows_before": 1,
+        "rows_after": 1,
+        "differing_rows": 0,
+        "note": "Tên, thứ tự hoặc kiểu cột của bảng đích đã thay đổi.",
+    }
+    state = {"patch": {"regression": regression}}
+    evidence = _patch_items(state)[1]
+    assert evidence.passed is None and regression["note"] in evidence.result
+    assert regression["note"] in _detail_patch_verify(state)
 
 
 def test_patch_evidence_is_measured_by_code():
