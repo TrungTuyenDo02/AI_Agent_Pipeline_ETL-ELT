@@ -9,6 +9,7 @@ import { Card, Empty, Stat } from "../ui";
 import { useRun } from "./RunContext";
 
 const TASK_LABELS: Record<string, string> = {
+  input_gate: "G0 Kiểm tra đầu vào",
   planner: "E1 Lập kế hoạch",
   codegen: "E3 Sinh code",
   testgen: "E3b Sinh test",

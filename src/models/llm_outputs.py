@@ -4,7 +4,7 @@ Gửi kèm lời gọi API thay cho đoạn "hãy trả về JSON như sau…" t
 lạ (đúng luật `strict` của OpenAI). Node vẫn tự kiểm tra lại đầu ra: schema chỉ giảm lỗi định dạng, không thay V.
 """
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -81,11 +81,28 @@ class OptimizerOutput(_Strict):
     warehouse_hints: list[str]
 
 
+class GateOutput(_Strict):
+    """Kết quả bộ phân loại tầng 2 của cửa kiểm tra đầu vào (src/prompts/input_gate.md)."""
+
+    label: Literal["pipeline", "optimize", "off_topic", "unclear"]
+    confidence: float = Field(description="0 to 1")
+    missing: list[Literal["source", "metric", "grain", "filter", "target"]]
+
+
+class AdviceOutput(_Strict):
+    """Lời diễn giải ngắn cho đề xuất sửa pipeline (src/prompts/drift_advice.md)."""
+
+    summary: str = Field(description="1-2 short sentences in Vietnamese")
+    extra_steps: list[str] = Field(description="0-3 short extra checks in Vietnamese")
+
+
 OUTPUT_MODELS: dict[str, type[BaseModel]] = {
     "planner": PlannerOutput,
     "codegen": CodegenOutput,
     "testgen": TestgenOutput,
     "optimizer": OptimizerOutput,
+    "input_gate": GateOutput,
+    "drift_advice": AdviceOutput,
 }
 
 

@@ -1,0 +1,153 @@
+{
+  "dataset_id": "p113-extract-v1",
+  "version": 1,
+  "origin": "synthetic; explicitly authored fixtures and separate frozen oracles",
+  "sources": [
+    {
+      "key": "sales",
+      "department": "sales",
+      "kind": "file",
+      "location": "partner_sales",
+      "allowed_tables": [
+        "orders",
+        "contacts"
+      ]
+    },
+    {
+      "key": "finance",
+      "department": "finance",
+      "kind": "file",
+      "location": "partner_finance",
+      "allowed_tables": [
+        "orders"
+      ]
+    },
+    {
+      "key": "sqlite",
+      "department": "sales",
+      "kind": "file",
+      "location": "sqlite",
+      "allowed_tables": [
+        "warehouse_orders",
+        "warehouse_customers",
+        "warehouse_empty_orders"
+      ]
+    },
+    {
+      "key": "duckdb",
+      "department": "sales",
+      "kind": "duckdb",
+      "location": "warehouse.duckdb",
+      "allowed_tables": [
+        "orders",
+        "customers",
+        "ops__orders",
+        "empty_orders"
+      ]
+    },
+    {
+      "key": "parquet",
+      "department": "sales",
+      "kind": "file",
+      "location": "parquet",
+      "allowed_tables": [
+        "orders"
+      ]
+    },
+    {
+      "key": "added",
+      "department": "sales",
+      "kind": "file",
+      "location": "added",
+      "allowed_tables": [
+        "orders"
+      ]
+    },
+    {
+      "key": "renamed",
+      "department": "sales",
+      "kind": "file",
+      "location": "renamed",
+      "allowed_tables": [
+        "orders"
+      ]
+    },
+    {
+      "key": "removed",
+      "department": "sales",
+      "kind": "file",
+      "location": "removed",
+      "allowed_tables": [
+        "orders"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "csv_exact",
+      "source": "sales",
+      "table": "orders",
+      "oracle": "sales_orders"
+    },
+    {
+      "id": "json_exact",
+      "source": "sales",
+      "table": "contacts",
+      "oracle": "contacts"
+    },
+    {
+      "id": "same_name_other_department",
+      "source": "finance",
+      "table": "orders",
+      "oracle": "finance_orders"
+    },
+    {
+      "id": "sqlite_exact",
+      "source": "sqlite",
+      "table": "warehouse_orders",
+      "oracle": "native_orders"
+    },
+    {
+      "id": "duckdb_exact",
+      "source": "duckdb",
+      "table": "orders",
+      "oracle": "native_orders"
+    },
+    {
+      "id": "schema_qualified_table",
+      "source": "duckdb",
+      "table": "ops__orders",
+      "oracle": "ops_orders"
+    },
+    {
+      "id": "empty_table_schema",
+      "source": "duckdb",
+      "table": "empty_orders",
+      "oracle": "empty_orders"
+    },
+    {
+      "id": "parquet_exact",
+      "source": "parquet",
+      "table": "orders",
+      "oracle": "native_orders"
+    },
+    {
+      "id": "column_added",
+      "source": "added",
+      "table": "orders",
+      "oracle": "added"
+    },
+    {
+      "id": "column_renamed",
+      "source": "renamed",
+      "table": "orders",
+      "oracle": "renamed"
+    },
+    {
+      "id": "column_removed",
+      "source": "removed",
+      "table": "orders",
+      "oracle": "removed"
+    }
+  ]
+}

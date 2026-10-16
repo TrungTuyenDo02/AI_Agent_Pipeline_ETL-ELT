@@ -11,6 +11,7 @@ import duckdb
 
 from src.agents.nodes.common import sandbox_db
 from src.agents.state import PipelineState
+from src.agents.tools.dbt_tools import write_sources_yml
 from src.agents.tools.duckdb_tools import RAW_SCHEMA, connect_read, read_catalog
 from src.agents.tools.pii import mask_value
 
@@ -144,7 +145,6 @@ def _column_profile(con: duckdb.DuckDBPyConnection, table: str, column_type: tup
         "nulls": total - filled,
         "null_pct": round(100 * (total - filled) / total, 2) if total else 0.0,
         "distinct": distinct,
-        "examples": [mask_value(v) for v in texts[:3]],
     }
     if dtype == "VARCHAR":
         profile.update(text_hints(con, (ref, column), texts))
@@ -206,4 +206,8 @@ def profiler_node(state: PipelineState) -> dict:
     """Soi mọi bảng raw trong sandbox."""
     db = sandbox_db(state)
     raw = read_catalog(db).get(RAW_SCHEMA, {})
-    return {"profile": {table: profile_table(db, table, columns) for table, columns in raw.items()}}
+    profile = {table: profile_table(db, table, columns) for table, columns in raw.items()}
+    write_sources_yml(
+        Path(state["workspace"]), profile
+    )  # khai báo cột/kiểu/test kỳ vọng để preflight so cấu trúc thật lúc chạy
+    return {"profile": profile}

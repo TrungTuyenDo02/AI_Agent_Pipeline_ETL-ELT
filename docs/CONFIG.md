@@ -18,7 +18,35 @@ Nguồn sự thật của mặc định: [src/config.py](../src/config.py). Cộ
 | `LLM_MAX_TOKENS` | Trần token đầu ra chung (mỗi bước có trần riêng nhỏ hơn) | `16000` | không |
 | `LLM_STRUCTURED_OUTPUT` | Gửi JSON Schema strict; `false` = quay về `json_object` | `true` | không |
 
+Mục `input_gate` trong `models.yaml` là model của **tầng 2 cửa kiểm tra đầu vào** (thay cho biến `MODEL_GATE` mà CLAUDE.md bản 2 nêu: dự án cấm tên model ở biến môi trường): model rẻ nhất đang dùng, khác nhà cung cấp với Planner, trần đầu ra 200 token.
+
 **Tên model** không đặt bằng biến môi trường: chỉ khai báo trong [config/models.yaml](../config/models.yaml) (mỗi bước một dòng `provider` + `name`, Anthropic thêm `effort`; mục `fallback` là model Gemini). Hiện tại: Planner/Codegen/Testgen = `gpt-5.6-luna`, Optimizer = `claude-haiku-5-5` (không đặt effort), dự phòng = `gemini-3.1-flash-lite`. Các biến cũ `MODEL_NAME`, `MODEL_<BƯỚC>`, `GOOGLE_MODEL_NAME` không còn tác dụng.
+
+## Cửa kiểm tra đầu vào và trần chi phí
+
+Luật cố định (mẫu tấn công prompt, động từ nghiệp vụ, bảng đồng nghĩa, từ viết tắt kỹ thuật) nằm ở [config/input_gate.yaml](../config/input_gate.yaml): sửa file là đủ, không cần sửa code.
+
+| Biến | Ý nghĩa | Mặc định | Bí mật |
+|---|---|---|---|
+| `INPUT_MIN_CHARS` • `INPUT_MAX_CHARS` | Yêu cầu ngắn hơn / dài hơn bị chặn ở tầng 0 | `10` • `2000` | không |
+| `INPUT_GATE_CACHE_SIZE` | Số kết quả kiểm tra nhớ cho câu giống hệt (chuẩn hóa rồi băm); `0` tắt | `512` | không |
+| `MAX_CLARIFY_ROUNDS` | Tối đa số vòng hỏi làm rõ mỗi lần chạy; quá số vòng thì dừng, chuyển cho kỹ sư dữ liệu | `2` | không |
+| `RUN_TOKEN_BUDGET` | Trần token (vào + ra) mỗi lần chạy, cộng dồn cả các lượt chạy tiếp; vượt thì dừng và báo rõ; `0` không chặn | `200000` | không |
+| `USER_DAILY_RUN_LIMIT` | Số lần chạy tối đa mỗi người mỗi ngày (giờ VN); lần bị chặn ở cửa kiểm tra không tính; `0` không chặn | `30` | không |
+
+## Sổ nguồn, mức truy cập của LLM, bí mật nguồn
+
+| Biến | Ý nghĩa | Mặc định | Bí mật |
+|---|---|---|---|
+| `LLM_ACCESS_DEFAULT` | Mức dữ liệu AI được xem cho nguồn **đăng ký mới**: `schema_only` (chỉ cấu trúc), `profile` (thống kê + dạng giá trị, không dòng thật), `masked_sample` (vài dòng đã che). Nguồn `high` ép về `schema_only`, `medium` tối đa `profile`. Đặt `schema_only` để quay về quyết định ban đầu "chỉ cho xem schema" | `profile` | không |
+| `LLM_SAMPLE_MAX_ROWS` | Trần số dòng đã che ở mức `masked_sample` | `5` | không |
+| `REQUIRE_SEPARATE_REVIEWER` | `true`: người tạo yêu cầu không tự duyệt được ([ADR 0006](adr/0006-tach-nguoi-tao-va-nguoi-duyet.md)); `false` khi chạy demo cá nhân | `true` | không |
+| `P113_SECRET_<TÊN IN HOA>` | Giá trị thật của bí mật có tên tham chiếu `<tên>` ở sổ nguồn (chuỗi kết nối, đường dẫn thư mục dữ liệu). Chỉ lớp kết nối đọc; lọc khỏi môi trường của dbt, không vào prompt/log/state | trống | **có** |
+| `CONNECTOR_TIMEOUT_SEC` | Thời hạn kết nối và mỗi truy vấn của bộ nạp nguồn (PostgreSQL: `statement_timeout`) | `15` | không |
+| `SANDBOX_LOAD_MAX_ROWS` | Số dòng tối đa mỗi bảng nạp vào sandbox; bảng lớn hơn chỉ nạp một tập con có hạt giống cố định (cùng giới hạn → cùng tập con) | `100000` | không |
+| `SANDBOX_HASH_SENSITIVE` | Băm cột nhạy cảm (tên gợi ý thông tin cá nhân hoặc admin đánh dấu) khi nạp sandbox: `auto` chỉ nguồn độ nhạy cảm `high`, `always` mọi nguồn, `never` không băm. Băm SHA-256 có muối, nhất quán giữa các bảng nên JOIN còn đúng | `auto` | không |
+| `SANDBOX_HASH_SALT` | Muối băm cột nhạy cảm; đặt giá trị bí mật khi triển khai (trống: muối mặc định, chỉ đủ cho demo) | trống | **có** |
+| `SECRETS_DIR` | Thư mục chứa bí mật dạng file (mỗi file một tên tham chiếu, kiểu Docker/Kubernetes secrets), thay cho biến môi trường | trống | không |
 
 ## Đăng nhập và cơ sở dữ liệu
 
@@ -84,6 +112,26 @@ Nguồn sự thật của mặc định: [src/config.py](../src/config.py). Cộ
 | `OPT_MAX_ATTEMPTS` | Số ứng viên viết lại tối đa | `3` | không |
 | `OPT_BENCH_RUNS` | Số lần đo tốc độ (lấy trung vị) | `5` | không |
 | `COMPARE_ABS_TOL` | Sai số tuyệt đối khi so kết quả hai query | `1e-6` | không |
+
+## Từ điển nghiệp vụ
+
+| Biến | Ý nghĩa | Mặc định | Bí mật |
+|---|---|---|---|
+| `GLOSSARY_MAX_TERMS` | Số thuật ngữ tối đa đưa vào prompt Planner (chọn theo khớp từ khóa với yêu cầu); `0` = tắt | `3` | không |
+
+Từ điển mẫu cho P113 Retail nằm ở `config/glossary_seed.yaml` (seed của migration 0007; cũng là từ điển chỉ đọc khi không có `DATABASE_URL`).
+
+## Giám sát thay đổi cấu trúc nguồn
+
+| Biến | Ý nghĩa | Mặc định | Bí mật |
+|---|---|---|---|
+| `DRIFT_CHECK_TOKEN` | Khóa nội bộ cho `POST /api/v1/sources/check-drift` (header `X-Drift-Token`); trống = kiểm tra định kỳ tắt | trống | **có** |
+| `DRIFT_GATE_ENABLED` | Bật cửa G1: so cấu trúc nguồn với bản chuẩn trước Planner, thay đổi `breaking` chặn run | `true` | không |
+| `DRIFT_NULL_PCT_DELTA` | % rỗng của cột tăng hơn chừng này điểm phần trăm → cảnh báo | `20` | không |
+| `DRIFT_ROWCOUNT_RATIO` | Số dòng lệch hơn chừng này lần (tăng hoặc giảm) → cảnh báo | `3` | không |
+| `CAST_FAIL_THRESHOLD` | Tỷ lệ dòng không ép được kiểu tối đa trong pipeline sinh ra; vượt thì test dbt fail | `0.01` | không |
+
+Bảng kiểu "mở rộng an toàn", ngưỡng tên cột giống nhau (nghi đổi tên), ngưỡng dạng giá trị mới và độ lệch khoảng giá trị nằm ở `config/drift_rules.yaml`.
 
 ## Theo dõi (tùy chọn)
 

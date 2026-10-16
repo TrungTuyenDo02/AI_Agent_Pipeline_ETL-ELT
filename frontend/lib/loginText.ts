@@ -3,6 +3,8 @@
 export type Lang = "vi" | "en";
 export const LANG_KEY = "p113.lang";
 
+export type FlowKind = "agent" | "code" | "human";
+
 export interface LoginText {
   welcome: string;
   welcomeAccent: string;
@@ -23,20 +25,18 @@ export interface LoginText {
   heroTitle: string;
   heroSub: string;
   quote: string;
-  tabsLabel: string;
-  tabs: { about: string; run: string; data: string };
-  about: { title: string; text: string }[];
-  aboutNote: string;
-  runSteps: string[];
-  runOpen: string;
+  canvasLabel: string;
+  flowLabel: string;
+  flow: { code: string; label: string; kind: FlowKind; hint: string }[];
+  legendLabel: string;
+  legend: { kind: FlowKind; label: string }[];
+  toolsLabel: string;
+  tools: string[];
+  statsLabel: string;
+  highlights: { value: string; label: string; hint: string }[];
   accountsTitle: string;
   accountsHint: string;
   roles: { engineer: string; reviewer: string; admin: string };
-  dataIntro: string;
-  datasets: { name: string; detail: string }[];
-  dataNote: string;
-  copy: string;
-  copied: string;
   footer: string;
   langLabel: string;
   themeToLight: string;
@@ -63,39 +63,70 @@ export const LOGIN_TEXT: Record<Lang, LoginText> = {
       "Tài khoản do quản trị viên của công ty cấp, không tự đăng ký. Gửi cho quản trị viên tên đăng nhập và vai trò cần dùng (Engineer hoặc Reviewer); họ sẽ cấp hoặc đặt lại mật khẩu cho bạn.",
     contactMail: "Gửi email cho quản trị viên",
     heroTitle: "Từ một câu yêu cầu đến pipeline đã chạy thử.",
-    heroSub:
-      "P-113 lập kế hoạch, sinh model dbt và DAG Airflow, chạy thử trong sandbox DuckDB, tìm query chậm và đề xuất tối ưu. Người duyệt xem bằng chứng rồi mới merge.",
-    quote: "“Agent chỉ thấy cấu trúc bảng, không bao giờ thấy dữ liệu thật.”",
-    tabsLabel: "Thông tin dự án",
-    tabs: { about: "Giới thiệu", run: "Chạy thử", data: "Dữ liệu mẫu" },
-    about: [
-      { title: "Lập kế hoạch", text: "Hỏi lại khi chưa rõ, trình kế hoạch để bạn duyệt." },
-      { title: "Sinh code", text: "Model dbt, DAG Airflow và test do agent viết." },
-      { title: "Chạy thử", text: "Chặn SQL nguy hiểm, chạy thật trong DuckDB." },
-      { title: "Tối ưu và duyệt", text: "Chỉ áp dụng khi kết quả giống hệt và nhanh hơn." },
+    heroSub: "Lập kế hoạch, sinh dbt và Airflow, chạy thử trong sandbox. Người duyệt xem bằng chứng rồi mới merge.",
+    quote: "“Agent chỉ thấy cấu trúc và thống kê, không bao giờ thấy dòng dữ liệu thật.”",
+    canvasLabel: "Tổng quan dự án",
+    flowLabel: "Luồng làm việc",
+    flow: [
+      {
+        code: "G0",
+        label: "Cổng vào",
+        kind: "code",
+        hint: "Chặn câu vô nghĩa, lạc đề hoặc tấn công prompt trước khi tốn token.",
+      },
+      {
+        code: "G1",
+        label: "Cấu trúc nguồn",
+        kind: "code",
+        hint: "Nguồn đổi kiểu, đổi tên hoặc xóa cột thì chặn và báo rõ.",
+      },
+      { code: "E1", label: "Kế hoạch", kind: "agent", hint: "Agent lập kế hoạch, hỏi lại khi chưa rõ." },
+      {
+        code: "J1b",
+        label: "Duyệt kế hoạch",
+        kind: "human",
+        hint: "Người duyệt kế hoạch và chọn cách nạp, lịch chạy.",
+      },
+      { code: "E3", label: "Sinh code", kind: "agent", hint: "Agent viết model dbt, DAG Airflow và test." },
+      { code: "V1", label: "An toàn", kind: "code", hint: "Code thuần chặn SQL nguy hiểm và tên bảng, cột bịa." },
+      { code: "V2", label: "Chạy thử", kind: "code", hint: "dbt build và test thật trong sandbox DuckDB." },
+      { code: "E4", label: "Tối ưu", kind: "agent", hint: "Chỉ áp dụng khi kết quả giống hệt và nhanh hơn." },
+      { code: "J2", label: "Duyệt cuối", kind: "human", hint: "Người duyệt xem bằng chứng đo được rồi mới merge." },
     ],
-    aboutNote: "Nguyên tắc: người phán đoán, agent thực thi, code thuần kiểm chứng.",
-    runSteps: [
-      "Cài Python 3.11 và Node.js 20.9 trở lên, rồi cài thư viện (xem demo/README.md).",
-      "Chạy lệnh bên dưới trong thư mục dự án.",
-      "Mở http://localhost:3000 và đăng nhập bằng một tài khoản demo.",
+    legendLabel: "Ai làm bước nào",
+    legend: [
+      { kind: "agent", label: "Agent làm" },
+      { kind: "code", label: "Code kiểm" },
+      { kind: "human", label: "Người quyết" },
     ],
-    runOpen: "Lệnh chạy demo (LLM mô phỏng, không cần khóa API):",
+    toolsLabel: "Công cụ",
+    tools: ["LangGraph", "dbt", "DuckDB", "Airflow", "sqlglot", "FastAPI", "Next.js", "PostgreSQL"],
+    statsLabel: "Số đo được",
+    highlights: [
+      {
+        value: "0",
+        label: "dòng dữ liệu thật tới AI",
+        hint: "AI chỉ thấy cấu trúc, thống kê và dạng giá trị, qua một cửa duy nhất.",
+      },
+      {
+        value: "14/15",
+        label: "lỗi giả bị chặn",
+        hint: "Mutation test: cố ý sửa sai pipeline, bộ kiểm chứng phải bắt được.",
+      },
+      {
+        value: "0/6",
+        label: "ca đổi nguồn sai mà báo đạt",
+        hint: "Mô phỏng 6 kiểu backend đổi nguồn không báo trước.",
+      },
+      {
+        value: "0 token",
+        label: "vá khi nguồn đổi tên cột",
+        hint: "Bản vá nhanh sửa bằng code và dùng lại kế hoạch đã duyệt.",
+      },
+    ],
     accountsTitle: "Tài khoản demo",
     accountsHint: "Bấm để điền sẵn. Mật khẩu cố định, chỉ dùng cho máy demo.",
     roles: { engineer: "Engineer", reviewer: "Reviewer", admin: "Admin" },
-    dataIntro: "Dữ liệu công khai hoặc giả lập, không có dữ liệu công ty:",
-    datasets: [
-      {
-        name: "P113 Retail (giả lập)",
-        detail: "8 hệ thống, 19 bảng, bẩn có chủ đích: đơn trùng, ngày lẫn định dạng, tiền “1.075.000”.",
-      },
-      { name: "TPC-H (sf 0,1)", detail: "Bộ chuẩn để đo query chậm và hiệu quả tối ưu." },
-      { name: "ELT-Bench-Verified (một phần)", detail: "10 task, 34 bảng để đo độ đúng của pipeline sinh ra." },
-    ],
-    dataNote: "Giao diện chỉ hiển thị cấu trúc bảng, không hiển thị dữ liệu thật.",
-    copy: "Sao chép",
-    copied: "Đã chép",
     footer: "© 2026 P-113 Agent Studio · Phần mềm nội bộ, tài khoản do quản trị viên cấp.",
     langLabel: "Ngôn ngữ",
     themeToLight: "Chuyển sang giao diện sáng",
@@ -121,38 +152,80 @@ export const LOGIN_TEXT: Record<Lang, LoginText> = {
     contactMail: "Email the administrator",
     heroTitle: "From one sentence to a pipeline that already ran.",
     heroSub:
-      "P-113 plans the work, generates dbt models and Airflow DAGs, runs them in a DuckDB sandbox, finds slow queries and suggests optimisations. A reviewer checks the evidence before anything is merged.",
-    quote: "“The agent only sees table structure, never the real data.”",
-    tabsLabel: "Project information",
-    tabs: { about: "About", run: "Try it", data: "Sample data" },
-    about: [
-      { title: "Plan", text: "Asks when unclear, then shows a plan for you to approve." },
-      { title: "Generate", text: "dbt models, Airflow DAGs and tests written by the agent." },
-      { title: "Run", text: "Blocks unsafe SQL, then runs it for real in DuckDB." },
-      { title: "Optimise and review", text: "Applied only when results are identical and faster." },
+      "Plans the work, generates dbt and Airflow, runs it in a sandbox. A reviewer checks the evidence before any merge.",
+    quote: "“The agent sees structure and statistics, never real data rows.”",
+    canvasLabel: "Project overview",
+    flowLabel: "Workflow",
+    flow: [
+      {
+        code: "G0",
+        label: "Input gate",
+        kind: "code",
+        hint: "Blocks nonsense, off-topic or prompt attacks before any token is spent.",
+      },
+      {
+        code: "G1",
+        label: "Source schema",
+        kind: "code",
+        hint: "Blocks the run and explains it when a source changes type, name or drops a column.",
+      },
+      { code: "E1", label: "Plan", kind: "agent", hint: "The agent plans and asks when something is unclear." },
+      {
+        code: "J1b",
+        label: "Approve plan",
+        kind: "human",
+        hint: "A person approves the plan and picks load mode and schedule.",
+      },
+      { code: "E3", label: "Generate", kind: "agent", hint: "The agent writes dbt models, Airflow DAGs and tests." },
+      {
+        code: "V1",
+        label: "Safety",
+        kind: "code",
+        hint: "Plain code blocks unsafe SQL and invented tables or columns.",
+      },
+      { code: "V2", label: "Run", kind: "code", hint: "Real dbt build and tests in a DuckDB sandbox." },
+      { code: "E4", label: "Optimise", kind: "agent", hint: "Applied only when results are identical and faster." },
+      {
+        code: "J2",
+        label: "Final review",
+        kind: "human",
+        hint: "A reviewer checks the measured evidence before merging.",
+      },
     ],
-    aboutNote: "Principle: humans judge, agents execute, plain code verifies.",
-    runSteps: [
-      "Install Python 3.11 and Node.js 20.9+, then the dependencies (see demo/README.md).",
-      "Run the command below in the project folder.",
-      "Open http://localhost:3000 and sign in with a demo account.",
+    legendLabel: "Who does each step",
+    legend: [
+      { kind: "agent", label: "Agent works" },
+      { kind: "code", label: "Code checks" },
+      { kind: "human", label: "Human decides" },
     ],
-    runOpen: "Demo command (simulated LLM, no API key needed):",
+    toolsLabel: "Tools",
+    tools: ["LangGraph", "dbt", "DuckDB", "Airflow", "sqlglot", "FastAPI", "Next.js", "PostgreSQL"],
+    statsLabel: "Measured numbers",
+    highlights: [
+      {
+        value: "0",
+        label: "real data rows reach the AI",
+        hint: "The AI sees structure, statistics and value shapes through a single gate.",
+      },
+      {
+        value: "14/15",
+        label: "seeded bugs caught",
+        hint: "Mutation test: pipelines are broken on purpose and the checks must catch it.",
+      },
+      {
+        value: "0/6",
+        label: "source changes wrong but green",
+        hint: "Six ways a backend can change a source without telling anyone, simulated.",
+      },
+      {
+        value: "0 tokens",
+        label: "to patch a renamed column",
+        hint: "The fast patch fixes it with code and reuses the approved plan.",
+      },
+    ],
     accountsTitle: "Demo accounts",
     accountsHint: "Click to fill in. Fixed passwords, for demo machines only.",
     roles: { engineer: "Engineer", reviewer: "Reviewer", admin: "Admin" },
-    dataIntro: "Public or synthetic data only, no company data:",
-    datasets: [
-      {
-        name: "P113 Retail (synthetic)",
-        detail: "8 systems, 19 tables, deliberately dirty: duplicate orders, mixed dates, “1.075.000” amounts.",
-      },
-      { name: "TPC-H (sf 0.1)", detail: "Standard benchmark for slow queries and optimiser gains." },
-      { name: "ELT-Bench-Verified (subset)", detail: "10 tasks, 34 tables to measure pipeline correctness." },
-    ],
-    dataNote: "The UI shows table structure only, never real data.",
-    copy: "Copy",
-    copied: "Copied",
     footer: "© 2026 P-113 Agent Studio · Internal software, accounts issued by an administrator.",
     langLabel: "Language",
     themeToLight: "Switch to light theme",
@@ -169,4 +242,3 @@ export const DEMO_ACCOUNTS: { user: string; password: string; role: keyof LoginT
 export const SHOW_DEMO_ACCOUNTS = process.env.NEXT_PUBLIC_SHOW_DEMO_ACCOUNTS === "true";
 /** Email quản trị viên (công khai, tùy chọn): đặt NEXT_PUBLIC_ADMIN_CONTACT khi build thì nút Liên hệ có thêm liên kết gửi email. */
 export const ADMIN_CONTACT = (process.env.NEXT_PUBLIC_ADMIN_CONTACT || "").trim();
-export const DEMO_COMMAND = "python demo/run_demo.py";

@@ -19,14 +19,24 @@ console = Console(highlight=False)
 LEVEL_STYLE = {"ok": "[green]✓[/]", "warn": "[yellow]![/]", "fail": "[red]✗[/]", "info": "[cyan]i[/]"}
 STATUS_TEXT = {
     "running": "đang chạy",
+    "waiting_input": "chờ bạn bổ sung yêu cầu",
     "waiting_clarification": "chờ trả lời câu hỏi làm rõ",
     "waiting_plan_review": "chờ duyệt kế hoạch",
+    "waiting_drift": "chờ xác nhận nguồn đã đổi cấu trúc",
     "waiting_schema": "chờ xác nhận cấu trúc nguồn thay đổi",
     "waiting_rescue": "chờ cứu hộ",
     "waiting_review": "chờ Reviewer duyệt",
     "approved": "đã duyệt",
     "failed": "dừng do lỗi",
+    "rejected_input": "bị chặn ở cửa kiểm tra đầu vào",
 }
+
+
+def print_rejection(message: str) -> None:
+    """Yêu cầu bị chặn ở cửa kiểm tra đầu vào: thông điệp lịch sự + ví dụ hợp lệ."""
+    from rich.panel import Panel
+
+    console.print(Panel(message, title="Yêu cầu chưa dùng được", border_style="yellow"))
 
 
 def simulated_banner() -> None:
@@ -97,6 +107,14 @@ def show_plan(pending: dict) -> None:
         f"Bảng đích: [bold]{spec.get('target')}[/] • mỗi dòng là: {', '.join(spec.get('grain') or [])} • "
         f"{spec.get('mode')} ({spec.get('mode_reason')})"
     )
+    options = spec.get("options") or {}
+    if options:
+        console.print(
+            f"Nạp: [bold]{options.get('load_mode')}[/] ({options.get('load_reason')}) • "
+            f"Lịch: [bold]{options.get('schedule')}[/] ({options.get('schedule_reason')})"
+        )
+        for item in options.get("connections", []):
+            console.print(f"  Nguồn {item['source']}: {item['via']}")
     console.print(f"[dim]{pending.get('next_steps', '')}[/]")
 
 

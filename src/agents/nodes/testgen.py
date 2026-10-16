@@ -6,15 +6,18 @@ Luật: Testgen KHÔNG nhận code của Coder; chỉ thấy spec, danh mục ra
 """
 
 import logging
+import re
 
 import yaml
 
 from src.agents.nodes.common import spec_of, usage_of
 from src.agents.state import PipelineState
-from src.agents.tools.pii import mask_literals
+from src.agents.tools.scrub import prompt_error
+from src.config import get_settings
 from src.models.spec import OutputColumn, PipelineSpec
 from src.services.llm import LLMOutputError, call_llm, parse_json_output, to_json
-from src.services.prompt_context import compact_profile, spec_for_build
+from src.services.llm_context import context_for_state
+from src.services.prompt_context import spec_for_build
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +31,37 @@ def _column_tests(column: OutputColumn, grain: list[str]) -> dict:
     return {"name": column.name, "data_tests": tests}
 
 
-def generic_tests(spec: PipelineSpec) -> dict[str, str]:
+CAST_TEST = """-- Chống mất dữ liệu lặng lẽ: quá {percent}% giá trị không rỗng của {table}.{column} không ép được kiểu thì test thất bại
+with total as (select count(*) as n from {{{{ source('raw', '{table}') }}}} where "{column}" is not null),
+failed as (
+    select count(*) as n from {{{{ source('raw', '{table}') }}}}
+    where "{column}" is not null and ({expression}) is null
+)
+select failed.n as failed_rows, total.n as total_rows
+from failed, total
+where total.n > 0 and failed.n * 1.0 / total.n > {threshold}
+"""
+
+
+def cast_tests(profile: dict, threshold: float) -> dict[str, str]:
+    """Test ép kiểu cho mỗi cột nguồn có biểu thức đọc (`duckdb_parse`: ngày/tiền dạng chuỗi). Chỉ đặt khi lúc sinh dữ liệu vẫn đọc
+    được (tỷ lệ lỗi ≤ ngưỡng): nếu đã bẩn quá ngưỡng thì test sẽ hỏng ngay và không có nghĩa phòng thủ."""
+    files: dict[str, str] = {}
+    for table, info in profile.items():
+        rows = info.get("rows", 0)
+        for column, col in info.get("columns", {}).items():
+            expression = col.get("duckdb_parse")
+            non_null = rows - col.get("nulls", 0)
+            if not expression or non_null <= 0 or col.get("parse_failures", 0) / non_null > threshold:
+                continue
+            name = re.sub(r"\W", "_", f"{table}_{column}")
+            files[f"tests/assert_{name}_castable.sql"] = CAST_TEST.format(
+                percent=f"{threshold * 100:g}", table=table, column=column, expression=expression, threshold=threshold
+            )
+    return files
+
+
+def generic_tests(spec: PipelineSpec, profile: dict | None = None) -> dict[str, str]:
     """Test tất định: schema.yml (grain không rỗng, khóa ngoại) + test grain không trùng."""
     columns = [_column_tests(c, spec.grain) for c in spec.output_columns]
     schema = {"version": 2, "models": [{"name": spec.target, "columns": [c for c in columns if c["data_tests"]]}]}
@@ -40,6 +73,7 @@ def generic_tests(spec: PipelineSpec) -> dict[str, str]:
     return {
         f"models/marts/{spec.target}.yml": yaml.safe_dump(schema, sort_keys=False, allow_unicode=True),
         "tests/assert_grain_unique.sql": unique_sql,
+        **cast_tests(profile or {}, get_settings().cast_fail_threshold),
     }
 
 
@@ -47,7 +81,9 @@ def blind_inputs(state: PipelineState) -> dict[str, str]:
     """Đầu vào cho LLM testgen: chỉ spec + hồ sơ dữ liệu raw (đủ tên bảng, cột, kiểu). Không có `code_files`."""
     return {
         "spec": to_json(spec_for_build(state.get("spec", {}))),
-        "profile": to_json(compact_profile(state.get("profile", {}))),
+        "profile": to_json(
+            context_for_state(state, tables=list(state.get("profile", {}))).build_profile(state.get("profile", {}))
+        ),
     }
 
 
@@ -120,14 +156,15 @@ def testgen_node(state: PipelineState) -> dict:
     Đặc tả không đổi thì "đáp án" không đổi theo code: test vòng trước không lỗi được giữ nguyên.
     """
     spec = spec_of(state)
-    files, notes = generic_tests(spec), ["Test tất định: cột grain không rỗng, grain không trùng."]
+    files = generic_tests(spec, state.get("profile", {}))
+    notes = ["Test tất định: cột grain không rỗng, grain không trùng, giá trị ngày/tiền ép được kiểu (≥ 99%)."]
     if not spec.metrics:
         return {"test_files": files, "test_notes": notes}
     previous, errors = previous_llm_tests(state, files), own_test_errors(state)
     if previous and not errors:
         return {"test_files": {**files, **previous}, "test_notes": state.get("test_notes", notes)}
     variables = {**blind_inputs(state), "previous_tests": to_json(previous) if errors else "(chưa có)"}
-    test_errors = mask_literals("\n".join(errors)) or "(không có)"
+    test_errors = prompt_error("\n".join(errors)) or "(không có)"
     response = call_llm("testgen", {**variables, "test_errors": test_errors})
     llm_files, llm_notes = _parse_expected(response.text, spec)
     return {"test_files": {**files, **llm_files}, "test_notes": notes + llm_notes, "llm_usage": usage_of(response)}

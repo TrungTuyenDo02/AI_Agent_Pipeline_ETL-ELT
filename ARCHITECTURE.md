@@ -21,6 +21,17 @@ Mermaid + mô tả thành phần: [docs/architecture_diagram.md](docs/architectu
   cấu trúc và hồ sơ dữ liệu, sổ lỗi, quản trị.
 - **Đăng nhập** (`src/services/auth.py`): tài khoản nội bộ (argon2id), phiên phía máy chủ, 3 vai trò `engineer` / `reviewer` / `admin`, nhật ký `audit_log`.
 
+### 1b. Cửa kiểm tra, sổ nguồn, ngữ cảnh dữ liệu cho LLM (CLAUDE.md bản 2)
+- **Cửa kiểm tra đầu vào (G0)** (`src/services/input_gate.py`, node `input_gate`): tầng 0 luật cố định, tầng 1 đối chiếu danh mục nghiệp vụ (code, 0 token), tầng 2 bộ phân loại model nhỏ (`input_gate` ở `config/models.yaml`). Chặn trước khi tạo lần chạy.
+- **Sổ nguồn** (`src/services/source_registry.py`, bảng `departments`/`data_sources`/`source_grants`): `get_visible_sources(user)` là cửa duy nhất vào danh sách nguồn; người dùng chỉ thấy nguồn của phòng ban mình ([ADR 0007](docs/adr/0007-so-nguon-luu-cung-csdl-tai-khoan.md)).
+- **`build_llm_context`** (`src/services/llm_context.py`): cửa duy nhất tạo ngữ cảnh dữ liệu cho prompt theo mức `llm_access` của nguồn ([ADR 0008](docs/adr/0008-muc-truy-cap-du-lieu-cua-llm.md)); lỗi vào prompt qua `scrub_error` (`src/agents/tools/scrub.py`).
+
+- **Khung Extract** (`src/services/connectors/`): giao diện `SourceConnector` với hai nhóm hàm — cho LLM (`list_tables`, `get_schema`, `get_schema_fingerprint`, `get_profile`, `sample` chỉ ở mức `masked_sample`) và cho code (`load_to_sandbox`, `health_check`); ba bộ nạp `FileConnector`, `DuckDBConnector`, `PostgresConnector` (chỉ đọc, sqlglot kiểm từng câu).
+- **Giám sát cấu trúc nguồn** (`src/services/schema_drift.py`, node `drift_gate` G1, `src/api/drift.py`, [ADR 0010](docs/adr/0010-giam-sat-thay-doi-cau-truc-nguon.md)): chụp cấu trúc chuẩn hóa của từng nguồn, so với bản chuẩn, phân loại `info` / `warning` / `breaking` (luật ở `config/drift_rules.yaml`). `breaking` chặn run trước Planner tới khi Engineer xác nhận; kiểm lại trước J2; kiểm định kỳ qua endpoint có khóa; "Đề xuất bản vá" chỉ chạy khi người bấm. Hệ thống phát hiện, không ngăn được backend đổi.
+- **Bản vá nhanh** (`src/services/patch_plan.py`, `src/agents/tools/drift_fix.py`, `src/agents/nodes/patch.py`, [ADR 0012](docs/adr/0012-ban-va-nhanh-khi-nguon-doi-cau-truc.md)): run vá vào graph ở `patch_start` (điểm vào có điều kiện), mang đặc tả/câu trả lời/code của lần chạy gốc nên không lập kế hoạch lại. Staging là lớp đệm: đổi tên cột và đổi kiểu được sửa bằng sqlglot (0 token), chỉ phần đổi nghĩa gọi AI, chỉ phần chỉ người biết mới hỏi; sau V1, V2 là `patch_verify` so bảng đích với lần chạy gốc.
+- **Từ điển nghiệp vụ** (`src/services/glossary.py`, bảng `glossary_terms`, [ADR 0011](docs/adr/0011-tu-dien-nghiep-vu.md)): Admin viết, agent chỉ đọc; thuật ngữ vào prompt Planner chỉ qua `build_llm_context(..., glossary=True)` và là từ khóa cho tầng 1 của cửa kiểm tra.
+- **Lựa chọn pipeline** (`PipelineOptions` trong spec): nạp toàn bộ/phần mới, lịch chạy, cách kết nối nguồn; code đề xuất kèm lý do, DE chọn ở J1b; Coder và V0 dùng.
+
 ### 2. Runner (`src/agents/runner.py`)
 - Mỗi lần chạy có `run_id` = `thread_id` của checkpointer SQLite.
 - `start_run`, `resume_run`, `submit_review`: dùng chung cho CLI và API; kiểm tra quyền trước khi tiếp tục.
@@ -33,6 +44,8 @@ Mermaid + mô tả thành phần: [docs/architecture_diagram.md](docs/architectu
 
 | Node | Loại | Việc |
 |---|---|---|
+| `input_gate` (G0) | Code + LLM nhỏ | Tầng 0 luật cố định, tầng 1 danh mục + từ điển nghiệp vụ, tầng 2 model rẻ khi chưa chắc; hỏi bổ sung bằng mẫu câu cố định |
+| `drift_gate` (G1) | Code | So cấu trúc nguồn với bản chuẩn; thay đổi `breaking` đang mở thì dừng chờ Engineer xác nhận hoặc dừng; `warning`/`info` ghi để hiện ở J1b |
 | `planner` (E1) | LLM | Spec: nguồn, bảng đích, grain, cột, chỉ số, điểm chưa rõ, câu hỏi; mode do `decide_mode` (code) |
 | `clarify` (J1) | Người | `interrupt` chờ chọn đáp án |
 | `spec_check` (V0) | Code | Đủ trường, nguồn có thật, mode khớp tín hiệu, không còn điểm chưa rõ, `references` trỏ tới model có thật |
@@ -43,11 +56,12 @@ Mermaid + mô tả thành phần: [docs/architecture_diagram.md](docs/architectu
 | `mock_data` (E2) | Code | Bộ small / large / dirty / empty / few / dupkeys / nullmoney (seed cố định) |
 | `codegen` (E3) | LLM | Staging (ephemeral) + mart (table) + DAG; nhận lỗi trước, gợi ý sổ lỗi đã duyệt, ghi chú Reviewer |
 | `testgen` (E3b) | Code + LLM | not_null, grain duy nhất (code); đối soát tổng tiền/số dòng (LLM, chỉ thấy spec + schema) |
-| `safety` (V1) | Code | sqlglot: 1 câu SELECT, chặn DROP/ATTACH/INSTALL/COPY/PRAGMA/SET, hàm đọc file, đường dẫn tuyệt đối, Jinja lạ; bảng/cột phải có thật; kiểm tra DAG bằng AST |
-| `sandbox_run` (V2) | Code | `dbt build` tiến trình con, timeout, `memory_limit`, `enable_external_access=false` |
+| `safety` (V1) | Code | sqlglot: 1 câu SELECT, không `SELECT *` ở staging/mart, DAG có task preflight `check_source_schema` đứng đầu, đủ test ép kiểu bắt buộc, chặn DROP/ATTACH/INSTALL/COPY/PRAGMA/SET, hàm đọc file, đường dẫn tuyệt đối, Jinja lạ; bảng/cột phải có thật; kiểm tra DAG bằng AST |
+| `sandbox_run` (V2) | Code | preflight `check_source_schema` rồi `dbt build` tiến trình con (test nguồn, test ép kiểu), kiểm kiểu cột bảng đích, timeout, `memory_limit`, `enable_external_access=false` |
 | `rescue` | Người | Quá 3 lần sửa hoặc lỗi lặp 2 lần: nhập gợi ý hoặc dừng |
 | `optimizer` (E4) | Code + LLM | 12 dấu hiệu chậm (sqlglot), baseline trung vị, ứng viên theo thứ tự: 7 luật tất định (có giả định + SQL kiểm chứng) → sqlglot.optimizer → LLM; mọi ứng viên qua V1 |
-| `compare` (V3) | Code | So hai chiều (cả kiểu cột) trên 5 bộ dữ liệu; chạy SQL kiểm chứng giả định; đo trên `large`; cổng lợi ích tối thiểu + hòa vốn; không đạt → E4 thử ứng viên kế (≤ `OPT_MAX_ATTEMPTS`) |
+| `compare` (V3) | Code | So hai chiều (cả kiểu cột) trên 6 bộ dữ liệu (small, dirty, empty, few, dupkeys, nullmoney); chạy SQL kiểm chứng giả định; đo trên `large`; cổng lợi ích tối thiểu + hòa vốn; không đạt → E4 thử ứng viên kế (≤ `OPT_MAX_ATTEMPTS`) |
+| `opt_revert` (V) | Code | Bản tối ưu đã áp dụng mà V1/V2 kiểm lại không đạt hoặc bảng đích trên sandbox khác bản gốc (dấu vân tay cột + số dòng + băm từng dòng): trả về bản gốc, ghi `skipped`, chạy lại V1+V2; không gọi Codegen |
 | `package` | Code | Bằng chứng `measured` / `claimed`, `PULL_REQUEST.md` |
 | `review` (J2) | Người | Approve / reject (ghi chú → Coder) |
 | `finalize`, `fail` | Code | Kết thúc |

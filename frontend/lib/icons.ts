@@ -75,6 +75,8 @@ export const ICONS = {
   home: House,
   runs: PlayCircle,
   sources: Database,
+  registry: Stack,
+  drift: GitDiff,
   errors: Bug,
   create: PlusCircle,
   monitor: Pulse,

@@ -88,7 +88,8 @@ def test_stream_emits_start_before_finish_for_each_node(built_state):
         "frank",
         lambda e: seen.append(("start" if isinstance(e, NodeStart) else "done", e.node)),
     )
-    assert seen[0] == ("start", "planner") and ("done", "planner") in seen
+    assert seen[0] == ("start", "input_gate") and ("done", "input_gate") in seen  # cửa kiểm tra đứng đầu graph
+    assert seen.index(("done", "input_gate")) < seen.index(("start", "planner")) and ("done", "planner") in seen
     assert seen.index(("start", "planner")) < seen.index(("done", "planner"))
     assert all(("start", node) in seen for kind, node in seen if kind == "done")
 

@@ -1,6 +1,6 @@
 # ADR 0004 — Vai trò và luật duyệt
 
-- Ngày: 2026-10-02 • Sửa: 2026-10-08 • Trạng thái: chấp nhận (bản sửa thay quyết định "một vai trò DE")
+- Ngày: 2026-10-02 • Sửa: 2026-10-08 • Trạng thái: chấp nhận (bản sửa thay quyết định "một vai trò DE"); phần "Reviewer tự duyệt được" bị thay bởi [ADR 0006](0006-tach-nguoi-tao-va-nguoi-duyet.md) (2026-10-15)
 
 ## Bối cảnh
 

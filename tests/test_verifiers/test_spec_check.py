@@ -35,7 +35,7 @@ def test_valid_spec_passes():
         ({"unknowns": ["trạng thái nào?"]}, "không đặt câu hỏi"),
         ({"target": "Bang Dich"}, "bảng đích"),
         ({"grain": ["ngay"]}, "grain"),
-        ({"sources": [{"name": "khong_co", "kind": "csv"}]}, "không có trong thư mục"),
+        ({"sources": [{"name": "khong_co", "kind": "csv"}]}, "không tồn tại hoặc bạn chưa được cấp quyền"),
         ({"sources": [{"name": "orders", "kind": "json"}]}, "sai loại"),
         ({"mode": "ETL"}, "không khớp"),
         ({"output_columns": []}, "cột đầu ra"),

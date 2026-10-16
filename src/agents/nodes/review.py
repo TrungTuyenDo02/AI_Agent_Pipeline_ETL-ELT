@@ -14,6 +14,7 @@ from src.agents.state import PipelineState
 from src.config import get_settings
 from src.models.evidence import ReviewDecision
 from src.models.schemas import RunStatus
+from src.services import schema_drift
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,9 @@ def finalize_node(state: PipelineState) -> dict:
     """
     if get_settings().database_url:
         try:
-            promote_snapshot(state, (state.get("review") or {}).get("reviewer", ""))
+            reviewer = (state.get("review") or {}).get("reviewer", "")
+            promote_snapshot(state, reviewer)
+            close_patched_changes(state, reviewer)
         except Exception as exc:  # noqa: BLE001 — lỗi CSDL không được làm mất quyết định duyệt; log để xử lý
             logger.error(
                 "schema baseline save failed", extra={"run_id": state.get("run_id"), "error": type(exc).__name__}
@@ -60,7 +63,26 @@ def finalize_node(state: PipelineState) -> dict:
     return {"status": RunStatus.APPROVED.value}
 
 
+def close_patched_changes(state: PipelineState, reviewer: str) -> int:
+    """Reviewer duyệt bản vá → các thay đổi cấu trúc mà bản vá đã xử lý thành `acknowledged` và cấu trúc mới thành bản chuẩn (số đỏ giảm)."""
+    done = 0
+    for change in {(c["source_id"], c["id"]) for c in (state.get("patch") or {}).get("changes", [])}:
+        done += schema_drift.acknowledge(change[0], reviewer or "reviewer", change_id=change[1])
+    return done
+
+
+def _round_limit_reason(state: PipelineState) -> str:
+    """Lý do dừng khi không có lỗi cụ thể: quá số vòng hỏi làm rõ thì chuyển cho người xử lý."""
+    limit = get_settings().max_clarify_rounds
+    if state.get("clarify_rounds", 0) >= limit and (state.get("spec") or {}).get("questions"):
+        return (
+            f"Đã hỏi làm rõ {limit} vòng nhưng yêu cầu vẫn chưa đủ rõ. Hãy viết lại yêu cầu cụ thể hơn "
+            "(nguồn, bảng đích, cột, điều kiện lọc) hoặc nhờ kỹ sư dữ liệu hỗ trợ trực tiếp."
+        )
+    return "Vượt quá số vòng cho phép (lập kế hoạch / sửa lỗi / duyệt)."
+
+
 def fail_node(state: PipelineState) -> dict:
     """Dừng hẳn với lý do rõ ràng."""
-    reason = state.get("error") or "Vượt quá số vòng cho phép (lập kế hoạch / sửa lỗi / duyệt)."
+    reason = state.get("error") or _round_limit_reason(state)
     return {"status": RunStatus.FAILED.value, "error": reason}

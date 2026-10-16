@@ -6,7 +6,7 @@ import { useApp } from "@/components/AppContext";
 import { RoleNote, ROLE_LABELS } from "@/components/Topbar";
 import { Card, Checkbox, ErrorBox, Loading } from "@/components/ui";
 import { apiPatch, apiPost, messageOf } from "@/lib/api";
-import type { AdminUser, Role } from "@/lib/types";
+import type { AdminUser, Department, Role } from "@/lib/types";
 import { usePoll } from "@/lib/usePoll";
 import { useToast } from "@/components/Toast";
 
@@ -26,10 +26,11 @@ function formatTime(value: string | null): string {
   return value ? new Date(value).toLocaleString("vi-VN") : "Chưa đăng nhập";
 }
 
-function CreateUser({ onDone }: { onDone: () => Promise<void> }) {
+function CreateUser({ onDone, departments }: { onDone: () => Promise<void>; departments: Department[] }) {
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState<Role>("engineer");
+  const [departmentId, setDepartmentId] = useState<number | "">("");
   const [password, setPassword] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -40,7 +41,13 @@ function CreateUser({ onDone }: { onDone: () => Promise<void> }) {
     setSending(true);
     setError("");
     try {
-      await apiPost("/admin/users", { username, display_name: displayName, role, password });
+      await apiPost("/admin/users", {
+        username,
+        display_name: displayName,
+        role,
+        password,
+        department_id: departmentId === "" ? null : departmentId,
+      });
       setCreated(
         `Đã tạo ${username.toLowerCase()} (${ROLE_LABELS[role]}). Đưa mật khẩu tạm cho người dùng qua kênh riêng.`,
       );
@@ -84,6 +91,17 @@ function CreateUser({ onDone }: { onDone: () => Promise<void> }) {
           </select>
         </label>
         <label>
+          <span>Phòng ban (quyết định nguồn dữ liệu được thấy)</span>
+          <select value={departmentId} onChange={(e) => setDepartmentId(e.target.value ? Number(e.target.value) : "")}>
+            <option value="">Phòng mặc định</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
           <span>Mật khẩu tạm (≥ {MIN_PASSWORD} ký tự)</span>
           <div className="row" style={{ gap: 6 }}>
             <input
@@ -114,14 +132,24 @@ function CreateUser({ onDone }: { onDone: () => Promise<void> }) {
   );
 }
 
-function UserRow({ user, self, onDone }: { user: AdminUser; self: boolean; onDone: () => Promise<void> }) {
+function UserRow({
+  user,
+  self,
+  onDone,
+  departments,
+}: {
+  user: AdminUser;
+  self: boolean;
+  onDone: () => Promise<void>;
+  departments: Department[];
+}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [resetting, setResetting] = useState(false);
   const [password, setPassword] = useState("");
   const toast = useToast();
 
-  async function update(body: Partial<{ role: Role; is_active: boolean; password: string }>) {
+  async function update(body: Partial<{ role: Role; is_active: boolean; password: string; department_id: number }>) {
     setBusy(true);
     setError("");
     try {
@@ -153,6 +181,20 @@ function UserRow({ user, self, onDone }: { user: AdminUser; self: boolean; onDon
           {ROLES.map((r) => (
             <option key={r} value={r}>
               {ROLE_LABELS[r]}
+            </option>
+          ))}
+        </select>
+      </td>
+      <td>
+        <select
+          aria-label={`Phòng ban của ${user.username}`}
+          value={user.department_id ?? ""}
+          disabled={busy}
+          onChange={(e) => update({ department_id: Number(e.target.value) })}
+        >
+          {departments.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.name}
             </option>
           ))}
         </select>
@@ -204,6 +246,7 @@ export default function AdminPage() {
   const { user } = useApp();
   const isAdmin = user?.role === "admin";
   const { data, error, loading, refresh } = usePoll<AdminUser[]>(isAdmin ? "/admin/users" : null, null);
+  const departments = usePoll<Department[]>(isAdmin ? "/departments" : null, null).data ?? [];
   if (!isAdmin) return <RoleNote need="admin" />;
   return (
     <div className="stack">
@@ -214,7 +257,7 @@ export default function AdminPage() {
           mọi thiết bị. Mọi thao tác được ghi vào nhật ký kiểm toán.
         </p>
       </header>
-      <CreateUser onDone={refresh} />
+      <CreateUser onDone={refresh} departments={departments} />
       <Card title="Tài khoản">
         {loading && !data ? (
           <Loading text="Đang tải tài khoản…" />
@@ -227,6 +270,7 @@ export default function AdminPage() {
                 <tr>
                   <th>Người dùng</th>
                   <th>Vai trò</th>
+                  <th>Phòng ban</th>
                   <th>Trạng thái</th>
                   <th>Đăng nhập gần nhất</th>
                   <th>Mật khẩu</th>
@@ -234,7 +278,7 @@ export default function AdminPage() {
               </thead>
               <tbody>
                 {data.map((u) => (
-                  <UserRow key={u.id} user={u} self={u.id === user.id} onDone={refresh} />
+                  <UserRow key={u.id} user={u} self={u.id === user.id} onDone={refresh} departments={departments} />
                 ))}
               </tbody>
             </table>

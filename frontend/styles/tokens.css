@@ -100,8 +100,8 @@
   --login-error: light-dark(#9e0018, #ffd5da);
   --login-error-bg: light-dark(#ffe3e7, #4a1420);
 
-  /* Ảnh nền (public/bg/campus.png): lớp phủ riêng cho sáng/tối để thẻ đặc và chữ luôn đọc rõ */
-  --bg-photo: url("/bg/campus.png");
+  /* Ảnh nền (public/bg/vinuni_banner.webp): lớp phủ riêng cho sáng/tối để thẻ đặc và chữ luôn đọc rõ */
+  --bg-photo: url("/bg/vinuni_banner.webp");
   --bg-veil: light-dark(
     linear-gradient(180deg, rgb(245 247 252 / 78%), rgb(238 242 250 / 90%)),
     linear-gradient(180deg, rgb(8 10 18 / 82%), rgb(8 10 18 / 92%))

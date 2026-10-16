@@ -1,10 +1,10 @@
 {
  "summary": {
-  "date": "2026-10-10",
+  "date": "2026-10-16",
   "provider": "mock (pipeline gốc tất định; không dùng LLM để chấm)",
-  "real_total": 12,
-  "real_caught": 11,
-  "kill_rate_pct": 91.7,
+  "real_total": 15,
+  "real_caught": 14,
+  "kill_rate_pct": 93.3,
   "controls_total": 1,
   "false_alarms": 0,
   "not_applied": 0
@@ -73,7 +73,7 @@
    "labeled_by": "author",
    "caught": false,
    "by": "—",
-   "detail": "3/3 test đạt",
+   "detail": "17/17 test đạt",
    "applied": true
   },
   {
@@ -150,7 +150,40 @@
    "labeled_by": "author",
    "caught": false,
    "by": "—",
-   "detail": "3/3 test đạt",
+   "detail": "17/17 test đạt",
+   "applied": true
+  },
+  {
+   "id": "drop_preflight",
+   "description": "Bỏ task preflight (check_source_schema) khỏi DAG",
+   "file": "dags/fct_daily_revenue_dag.py",
+   "equivalent": false,
+   "labeled_by": "author",
+   "caught": true,
+   "by": "V1 An toàn",
+   "detail": "dags/fct_daily_revenue_dag.py: DAG phải có task đầu tiên chạy `dbt run-operation check_source_schema` (kiểm cấu trúc nguồn) trước mọi task biến đổi, ví dụ: pref",
+   "applied": true
+  },
+  {
+   "id": "select_star",
+   "description": "Dùng SELECT * ở lớp mart (cột mới ở nguồn lọt vào mart)",
+   "file": "models/marts/fct_daily_revenue.sql",
+   "equivalent": false,
+   "labeled_by": "author",
+   "caught": true,
+   "by": "V1 An toàn",
+   "detail": "models/marts/fct_daily_revenue.sql: Không dùng SELECT * ở staging/mart: hãy liệt kê cột tường minh (chỉ lớp raw được đọc nguyên).",
+   "applied": true
+  },
+  {
+   "id": "drop_cast_check",
+   "description": "Bỏ test đếm dòng không ép được kiểu (ép kiểu hỏng âm thầm thành rỗng)",
+   "file": "tests/assert_*_castable.sql",
+   "equivalent": false,
+   "labeled_by": "author",
+   "caught": true,
+   "by": "V1 An toàn",
+   "detail": "Thiếu test ép kiểu bắt buộc: tests/assert_shopee_orders_order_date_castable.sql.",
    "applied": true
   }
  ]

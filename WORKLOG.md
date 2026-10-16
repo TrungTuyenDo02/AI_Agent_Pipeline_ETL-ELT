@@ -110,6 +110,19 @@
 | TrungTuyenDo02 | Bước 5: toast, khung xám khi tải, trạng thái rỗng có icon, hộp xác nhận khi Duyệt (Radix) | ✅ Done | Thử thật: Esc hủy không gửi, xác nhận thì ghi duyệt và hiện toast | — |
 | TrungTuyenDo02 | Bước 6: dock trái, thanh dưới đáy điện thoại, bảng Lần chạy xếp dọc trên điện thoại | ✅ Done | Chụp 1440/820/390px; không tràn ngang; sửa bảng Cài đặt lộ chữ phía sau | — |
 | TrungTuyenDo02 | Bước 7: dòng thời gian vòng 28px, icon xoay khi chạy, dấu tích tự vẽ khi xong | ✅ Done | Đo góc xoay thay đổi; lint, kiểu, định dạng, tương phản, build đều đạt | — |
+| TrungTuyenDo02 | CLAUDE.md bản 2, giai đoạn 1: cửa kiểm tra đầu vào tầng 0–1 và trần chi phí | ✅ Done | Chặn nhầm 0/10 câu hợp lệ; lọt vô nghĩa/tấn công 0/20; 44 test mới; không gọi LLM | — |
+| TrungTuyenDo02 | Giai đoạn 2: cửa kiểm tra tầng 2 (model nhỏ), hỏi bổ sung bằng mẫu cố định, màn nhập web | ✅ Done | ~400 token vào, ≈ 1,2% chi phí một lần chạy (ước tính); mock 0/50 sai; 61 test cổng; chưa đo LLM thật | — |
+| TrungTuyenDo02 | Giai đoạn 3: sổ nguồn, phân quyền phòng ban, build_llm_context, scrub_error, tách người duyệt | ✅ Done | Migration 0005; 3 mức truy cập; kiểm rò rỉ 0 giá trị thật; đo độ đúng LLM thật chưa làm | — |
+| TrungTuyenDo02 | Giai đoạn 4: khung Extract, 3 bộ nạp (tệp, DuckDB, PostgreSQL chỉ đọc), lựa chọn pipeline ở J1b | ✅ Done | 128 test mới; PostgreSQL thật qua Neon (RUN_PG_TESTS=1) đạt; luồng qua DuckDB/PG khớp luồng tệp; golden 11/11, mutation 11/12 giữ nguyên | — |
+| TrungTuyenDo02 | Giai đoạn 5: phát hiện thay đổi cấu trúc nguồn, pipeline tự phòng thủ, mô phỏng 6 kịch bản | ✅ Done | 6 kịch bản: 4 chặn/fail sớm, 1 vô hại, 1 cảnh báo; 0 sai âm thầm; mutation 14/15; chỉ mock | — |
+| TrungTuyenDo02 | Giai đoạn 6: từ điển nghiệp vụ, Planner nhận thuật ngữ, 5 ca golden mới | ✅ Done | Thuật ngữ cần thiết 6/6; token Planner +13,5%; độ đúng chưa đo LLM thật | — |
+| TrungTuyenDo02 | Giao diện thay đổi cấu trúc: nút đỏ ở chuông, so sánh trước/sau, đề xuất sửa pipeline | ✅ Done | Thêm ca type_narrowed, nullable_tightened; Gemini chỉ diễn giải khi bấm; mock only | — |
+| TrungTuyenDo02 | Chạy eval phần kiểm bằng code, cập nhật report và README | ✅ Done | 1114 test đạt; độ phủ 91,82%; golden 16/16; mutation 14/15; không gọi LLM thật | — |
+| TrungTuyenDo02 | Số đỏ trên tab điều hướng; script demo/seed_drift.py tạo thay đổi giả để xem giao diện | ✅ Done | Hook useDriftAlerts dùng chung cho chuông, tab và trang; số đỏ giảm ngay sau khi xác nhận (sự kiện drift:refresh) | — |
+| TrungTuyenDo02 | Bản vá nhanh schema drift (ADR 0012), tái dùng đặc tả và sửa SQL tất định | ✅ Done | 5/6 kịch bản vá 0 token, đầu ra khớp; ca cần AI dùng 8.327 token; Gemini diễn giải đã chạy thật | — |
+| TrungTuyenDo02 | Tinh gọn trang đăng nhập, thêm luồng màu, công cụ và 4 số đo | ✅ Done | Bỏ khung lệnh và dữ liệu mẫu; giải thích dài vào tooltip; tương phản đạt | — |
+| TrungTuyenDo02 | Sửa xác thực trong hướng dẫn, đối chiếu bản vá và đồng bộ tài liệu | ✅ Done | CI: 1124 đạt, phủ 91.83%; frontend kiểm tra đạt; thêm 9 test hồi quy | — |
+| TrungTuyenDo02 | Thêm dataset và bộ chấm Extract độc lập, lọc nguồn trước khi đọc nội dung | ✅ Done | Eval 21/21; CI 1149 đạt, phủ 91.85%; chặn đọc ngoài quyền; 0 LLM | — |
 
 ---
 

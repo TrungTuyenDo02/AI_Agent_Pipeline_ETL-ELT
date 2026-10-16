@@ -24,6 +24,7 @@ from src.cli_views import (
     print_errors,
     print_event,
     print_optimization,
+    print_rejection,
     print_review_package,
     print_run,
     print_runs,
@@ -32,9 +33,10 @@ from src.cli_views import (
 )
 from src.config import get_settings
 from src.models.evidence import ReviewDecision
-from src.services import auth
+from src.services import auth, schema_drift
 from src.services.doctor import run_checks
 from src.services.error_memory import get_error_memory
+from src.services.input_gate import precheck
 from src.services.llm import LLMCallError, LLMConfigError
 from src.services.schema_watch import SchemaReport
 from src.services.seed import SeedConfig, generate_sources
@@ -80,6 +82,11 @@ def _step(outcome: RunOutcome, args: argparse.Namespace) -> RunOutcome | None:
     """Xử lý một điểm dừng; trả None khi cần dừng vòng lặp."""
     kind = (outcome.pending or {}).get("kind")
     auto = getattr(args, "auto_answer", False) or getattr(args, "auto_approve", False)
+    if kind == "input":  # cửa kiểm tra đầu vào hỏi bổ sung: --auto thì dừng (không tự bịa thông tin)
+        print_rejection(outcome.pending.get("message", ""))
+        text = "" if auto else Prompt.ask("Bổ sung / viết lại yêu cầu (Enter để dừng)", default="")
+        value = {"action": "send", "text": text} if text.strip() else {"action": "abort"}
+        return runner.resume_run(ResumeRequest(run_id=outcome.run_id, kind="input", value=value), print_event)
     if kind == "clarify":
         answers = (
             {q["id"]: q["options"][0] for q in outcome.pending["questions"]}
@@ -97,6 +104,15 @@ def _step(outcome: RunOutcome, args: argparse.Namespace) -> RunOutcome | None:
     if kind == "rescue":
         value = {"action": "abort"} if auto else ask_rescue(outcome.pending)
         return runner.resume_run(ResumeRequest(run_id=outcome.run_id, kind="rescue", value=value), print_event)
+    if kind == "drift":  # nguồn đổi cấu trúc kiểu breaking: tự động (--auto) thì dừng, không tự xác nhận thay người
+        console.print(f"[yellow]{outcome.pending.get('message', '')}[/]")
+        go = (
+            not auto
+            and Prompt.ask("Tôi đã biết, dùng cấu trúc mới?", choices=["continue", "abort"], default="abort")
+            == "continue"
+        )
+        value = {"action": "continue" if go else "abort", "by": args.user}
+        return runner.resume_run(ResumeRequest(run_id=outcome.run_id, kind="drift", value=value), print_event)
     if kind == "schema":  # nguồn có cột bị xóa/đổi tên: đổi tên chỉ xác nhận trên web; ở đây chạy tiếp hoặc dừng
         console.print(
             f"[yellow]Cấu trúc nguồn thay đổi: {SchemaReport.model_validate(outcome.pending['report']).summary()}[/]"
@@ -129,6 +145,10 @@ def cmd_run(args: argparse.Namespace) -> int:
     """Chạy luồng từ đầu, hỏi J1 ngay trong terminal."""
     if args.role != "engineer":
         console.print("[red]Chỉ vai trò Engineer tạo yêu cầu (--as engineer).[/]")
+        return 2
+    gate = precheck(args.request, requester=args.user)  # cửa kiểm tra đầu vào: bị chặn thì không tạo lần chạy
+    if gate.status == "rejected":
+        print_rejection(gate.message)
         return 2
     if get_settings().is_mock:
         simulated_banner()
@@ -164,7 +184,7 @@ def _check_reviewer(args: argparse.Namespace) -> str:
     record = get_store().get_run(args.run_id)
     if record is None:
         return f"Không tìm thấy lần chạy {args.run_id}."
-    return runner.review_permission_error(args.role)
+    return runner.review_permission_error(args.role, args.user, record.requester)
 
 
 def _resolve_run_id(run_id: str) -> str:
@@ -173,6 +193,14 @@ def _resolve_run_id(run_id: str) -> str:
         return run_id
     waiting = [r for r in get_store().list_runs(50) if r.status == "waiting_review"]
     return waiting[0].id if waiting else run_id
+
+
+def _review_drift_block(run_id: str) -> str:
+    """Giống API: ngay trước J2, nguồn đổi cấu trúc kiểu breaking sau lúc sinh code thì không cho duyệt (rỗng = được duyệt)."""
+    report = schema_drift.recheck_run(runner.get_values(run_id), run_id)
+    if not report.blocked:
+        return ""
+    return schema_drift.BLOCKED_REVIEW.format(what="; ".join(c.detail for c in report.open_breaking[:3]))
 
 
 def cmd_review(args: argparse.Namespace) -> int:
@@ -189,6 +217,9 @@ def cmd_review(args: argparse.Namespace) -> int:
     decision, note = _review_choice(args)
     if decision == "skip":
         return 0
+    if decision == "approve" and (blocked := _review_drift_block(args.run_id)):
+        console.print(f"[red]{blocked}[/]")
+        return 1
     try:
         review = ReviewDecision(run_id=args.run_id, reviewer=args.user, decision=decision, note=note)
         auth.audit(f"review.{decision}", args.user, target=args.run_id, detail={"via": "cli"})

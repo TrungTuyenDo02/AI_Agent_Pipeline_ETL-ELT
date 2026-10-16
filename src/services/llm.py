@@ -8,6 +8,10 @@ import json
 import logging
 import re
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
 from pathlib import Path
 from string import Template
 from typing import Protocol
@@ -34,6 +38,10 @@ class LLMConfigError(RuntimeError):
 
 class LLMCallError(RuntimeError):
     """Gọi LLM thất bại (mạng, hết hạn mức, ...)."""
+
+
+class LLMBudgetError(LLMCallError):
+    """Lần chạy đã dùng hết trần token (RUN_TOKEN_BUDGET): dừng và báo rõ, không âm thầm tiếp tục."""
 
 
 class LLMOutputError(ValueError):
@@ -330,10 +338,40 @@ def get_provider(settings: Settings | None = None, task: str = "") -> LLMProvide
     return MockProvider()
 
 
+@dataclass
+class RunBudget:
+    """Trần token của một lần chạy: `used` cộng dồn token vào + ra của mọi lượt gọi LLM trong lần chạy."""
+
+    limit: int
+    used: int = 0
+
+
+_BUDGET: ContextVar[RunBudget | None] = ContextVar("run_token_budget", default=None)
+
+
+@contextmanager
+def run_budget(limit: int, used: int = 0) -> Iterator[RunBudget]:
+    """Đặt trần token cho các lượt gọi LLM trong khối này (runner bọc mỗi lượt chạy graph). `limit` = 0: không chặn."""
+    budget = RunBudget(limit=limit, used=used)
+    token = _BUDGET.set(budget)
+    try:
+        yield budget
+    finally:
+        _BUDGET.reset(token)
+
+
 def call_llm(task: str, variables: dict[str, str]) -> LLMResponse:
-    """Dựng prompt cho `task` và gọi nhà cung cấp hiện tại."""
+    """Dựng prompt cho `task` và gọi nhà cung cấp hiện tại; vượt trần token của lần chạy thì từ chối gọi."""
+    budget = _BUDGET.get()
+    if budget and budget.limit and budget.used >= budget.limit:
+        raise LLMBudgetError(
+            f"Lần chạy đã dùng {budget.used:,} token, chạm trần {budget.limit:,} token mỗi lần chạy "
+            "(RUN_TOKEN_BUDGET) nên dừng lại. Hãy tách yêu cầu nhỏ hơn hoặc nhờ quản trị viên tăng trần."
+        )
     request = LLMRequest(task=task, variables=variables)
     response = get_provider(task=task).complete(request, render_prompt(request))
+    if budget:
+        budget.used += response.usage.input_tokens + response.usage.output_tokens
     logger.info("llm call", extra=response.usage.model_dump())
     return response
 

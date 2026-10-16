@@ -9,13 +9,16 @@ class RunStatus(StrEnum):
     """Trạng thái một lần chạy (lưu trong store)."""
 
     RUNNING = "running"
+    WAITING_INPUT = "waiting_input"  # cửa kiểm tra đầu vào hỏi bổ sung / xin viết lại yêu cầu
     WAITING_CLARIFICATION = "waiting_clarification"
     WAITING_PLAN = "waiting_plan_review"
+    WAITING_DRIFT = "waiting_drift"  # nguồn đổi cấu trúc kiểu breaking: chờ Engineer xác nhận hoặc dừng
     WAITING_SCHEMA = "waiting_schema"
     WAITING_RESCUE = "waiting_rescue"
     WAITING_REVIEW = "waiting_review"
     APPROVED = "approved"
     FAILED = "failed"
+    REJECTED_INPUT = "rejected_input"  # bị chặn ở cửa kiểm tra đầu vào: không chạy, không tính hạn mức
 
 
 class RunRecord(BaseModel):

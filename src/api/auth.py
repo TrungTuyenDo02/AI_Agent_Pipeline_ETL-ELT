@@ -40,6 +40,7 @@ class UserView(BaseModel):
     username: str
     display_name: str
     role: auth.Role
+    department_id: int | None = None
     is_active: bool = True
     last_login_at: datetime | None = None
 
@@ -50,6 +51,7 @@ class CreateUserBody(BaseModel):
     username: str = Field(min_length=2, max_length=32)
     display_name: str = Field(default="", max_length=80)
     role: auth.Role
+    department_id: int | None = None  # để trống: phòng mặc định
     password: str = Field(min_length=1, max_length=256)
 
 
@@ -58,6 +60,7 @@ class UpdateUserBody(BaseModel):
 
     display_name: str | None = Field(default=None, max_length=80)
     role: auth.Role | None = None
+    department_id: int | None = None
     is_active: bool | None = None
     password: str | None = Field(default=None, max_length=256)
 
@@ -68,6 +71,7 @@ def _view(user: auth.User) -> UserView:
         username=user.username,
         display_name=user.display_name,
         role=user.role,
+        department_id=user.department_id,
         is_active=user.is_active,
         last_login_at=user.last_login_at,
     )
@@ -161,7 +165,7 @@ def list_users(admin: Admin) -> list[UserView]:
 def create_user(body: CreateUserBody, admin: Admin, request: Request) -> UserView:
     """Cấp tài khoản mới (mật khẩu tạm đưa riêng cho người dùng, không gửi qua kênh chung)."""
     try:
-        user = auth.create_user(body.username, body.display_name, body.role, body.password)
+        user = auth.create_user(body.username, body.display_name, body.role, body.password, body.department_id)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     auth.audit("user.create", admin.name, target=user.username, ip=client_ip(request), detail={"role": user.role})
@@ -175,7 +179,12 @@ def update_user(user_id: int, body: UpdateUserBody, admin: Admin, request: Reque
         raise HTTPException(status_code=422, detail="Không thể tự khóa hoặc tự bỏ quyền Admin của chính mình.")
     try:
         user = auth.update_user(
-            user_id, role=body.role, is_active=body.is_active, password=body.password, display_name=body.display_name
+            user_id,
+            role=body.role,
+            is_active=body.is_active,
+            password=body.password,
+            display_name=body.display_name,
+            department_id=body.department_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

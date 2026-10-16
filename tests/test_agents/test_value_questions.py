@@ -106,7 +106,7 @@ async def test_answers_api_accepts_list_for_multiple_question(client: AsyncClien
     from src.api import runs
     from src.services.store import get_store
 
-    run_id = get_store().create_run("doanh thu", "an").id
+    run_id = get_store().create_run("doanh thu", client.username).id
     resumed = {}
     pending = {"kind": "clarify", "questions": [q.model_dump() for q in QUESTIONS]}
     monkeypatch.setattr(runs, "_pending", lambda _run_id, _kind: pending)

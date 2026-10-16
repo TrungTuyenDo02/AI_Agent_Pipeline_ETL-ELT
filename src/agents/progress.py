@@ -8,6 +8,12 @@ from src.agents.activity import activity_for
 from src.services.schema_watch import SchemaReport
 
 NODE_LABELS = {
+    "input_gate": "G0 Kiểm tra đầu vào",
+    "input_info": "G0 Bổ sung yêu cầu",
+    "drift_gate": "G1 Kiểm tra cấu trúc nguồn",
+    "patch_start": "P0 Chuẩn bị bản vá",
+    "patch_apply": "P1 Sửa theo thay đổi nguồn",
+    "patch_verify": "P2 So với lần chạy gốc",
     "planner": "E1 Lập kế hoạch",
     "clarify": "J1 Hỏi làm rõ",
     "plan_review": "J1b Duyệt kế hoạch",
@@ -23,6 +29,7 @@ NODE_LABELS = {
     "rescue": "J  Cứu hộ",
     "optimizer": "E4 Tối ưu",
     "compare": "V3 Đối chiếu",
+    "opt_revert": "V3 Khôi phục bản gốc",
     "package": "Đóng gói bản duyệt",
     "review": "J2 Duyệt",
     "finalize": "Hoàn tất",
@@ -103,14 +110,42 @@ DETAILS = {
 }
 
 
+def _detail_patch_apply(update: dict) -> str:
+    patch = update.get("patch") or {}
+    return f"{len(patch.get('applied', []))} file sửa bằng code, {len(patch.get('llm_files', []))} file cần AI"
+
+
+def _detail_patch_verify(update: dict) -> str:
+    result = (update.get("patch") or {}).get("regression") or {}
+    if not result.get("compared"):
+        return str(result.get("note", "chưa so sánh"))
+    if result.get("schema_same") is False:
+        return "cấu trúc bảng đích đã đổi; " + str(result.get("note", "cần người duyệt kiểm tra"))
+    return (
+        "bảng đích giống hệt lần chạy gốc"
+        if result.get("same")
+        else f"bảng đích khác {result.get('differing_rows', 0)} dòng"
+    )
+
+
 def _detail_default(node: str, update: dict) -> tuple[bool, str]:
     if update.get("error"):
         return False, update["error"][:120]
     simple = {
+        "drift_gate": lambda u: (
+            "cấu trúc nguồn không có thay đổi chặn"
+            if (u.get("drift") or {}).get("checked")
+            else "chưa kiểm (không có cơ sở dữ liệu)"
+        ),
+        "patch_start": lambda u: "dùng lại đặc tả, câu trả lời và code của lần chạy gốc",
+        "patch_apply": _detail_patch_apply,
+        "patch_verify": _detail_patch_verify,
+        "input_gate": lambda u: "đạt" if (u.get("input_gate") or {}).get("status") == "ok" else "bị chặn",
         "ingest": lambda u: ", ".join(f"{k}: {v} dòng" for k, v in u.get("row_counts", {}).items()),
         "profiler": lambda u: f"{len(u.get('profile', {}))} bảng",
         "mock_data": lambda u: ", ".join(u.get("datasets", {})),
         "schema_guard": lambda u: SchemaReport.model_validate(u.get("schema_report") or {}).summary()[:120],
+        "opt_revert": lambda u: str((u.get("optimization") or {}).get("reason", ""))[:120],
         "codegen": lambda u: f"{len(u.get('code_files', {}))} file",
         "testgen": lambda u: f"{len(u.get('test_files', {}))} file test",
         "planner": lambda u: (

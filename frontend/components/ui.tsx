@@ -25,7 +25,7 @@ export function Loading({ text = "Đang tải…", lines = 3 }: { text?: string;
 export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div className="alert danger" role="alert">
-      <span className="alert-text">
+      <span className="alert-text" style={{ whiteSpace: "pre-line" }}>
         <StatusIcon tone="danger" size={18} />
         {message}
       </span>

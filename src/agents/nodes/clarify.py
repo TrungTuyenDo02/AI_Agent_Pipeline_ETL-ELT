@@ -47,6 +47,7 @@ def clarify_node(state: PipelineState) -> dict:
     chosen = valid_answers(questions, reply)
     answered = [{"id": q.id, "question": q.question, "answer": chosen[q.id]} for q in questions if q.id in chosen]
     return {
+        "clarify_rounds": state.get("clarify_rounds", 0) + 1,
         "answers": {**state.get("answers", {}), **chosen},
         "answered": [*state.get("answered", []), *answered],
     }

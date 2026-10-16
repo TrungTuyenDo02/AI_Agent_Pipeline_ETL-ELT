@@ -7,12 +7,15 @@ from pathlib import Path
 import duckdb
 
 from src.agents.nodes.common import all_files, mart_path, register_failure, sandbox_db, spec_of
+from src.agents.nodes.compare import fingerprint_difference, mart_fingerprint
 from src.agents.state import PipelineState
 from src.agents.tools.dbt_tools import DbtResult, run_dbt_build, write_generated_files
 from src.agents.tools.duckdb_tools import RAW_SCHEMA, connect_read
 from src.agents.tools.pii import mask_rows
 from src.agents.tools.sql_tools import SOURCE_RE, SqlCheckError, render_dbt_sql
 from src.models.contracts import SandboxResult, hand_off
+from src.models.evidence import DatasetCheck
+from src.services.connectors.base import normalize_type
 
 logger = logging.getLogger(__name__)
 SAMPLE_ROWS = 10
@@ -60,15 +63,59 @@ def reconcile_staging(db: Path, files: dict[str, str]) -> list[dict]:
     return out
 
 
+def type_mismatches(db: Path, spec) -> list[str]:  # noqa: ANN001 — PipelineSpec
+    """Kiểu cột của bảng đích phải cùng nhóm kiểu với đặc tả (integer/decimal/float/string/boolean/date/timestamp). Thay cho hợp
+    đồng mô hình dbt (`contract: enforced`): dbt-duckdb chưa ổn định với kiểu thập phân/thời gian, xem docs/adr/0010."""
+    with connect_read(db) as con:
+        rows = con.execute(
+            "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = 'main' AND table_name = ?",
+            [spec.target],
+        ).fetchall()
+    actual = {name.lower(): data_type for name, data_type in rows}
+    issues = []
+    for column in spec.output_columns:
+        want, got = normalize_type(column.type), normalize_type(actual.get(column.name.lower(), ""))
+        if want != "other" and got != "other" and want != got:
+            issues.append(
+                f"Cột {column.name} của bảng đích có kiểu {actual[column.name.lower()]} nhưng đặc tả yêu cầu {column.type}."
+            )
+    return issues
+
+
 def _summary(result: DbtResult) -> dict:
     tests = [r for r in result.results if r.unique_id.startswith("test.")]
     models = [r for r in result.results if r.unique_id.startswith("model.")]
     return {
         "models_ok": sum(r.status == "success" for r in models),
         "models_total": len(models),
-        "tests_ok": sum(r.status == "pass" for r in tests),
+        "tests_ok": sum(r.status in ("pass", "warn") for r in tests),
         "tests_total": len(tests),
     }
+
+
+def optimized_output_issue(state: PipelineState, target: str) -> str:
+    """Đang thử bản tối ưu (`opt_baseline`): bảng đích trên dữ liệu sandbox phải giống hệt bản gốc. Rỗng = đạt / không thử."""
+    baseline = state.get("opt_baseline") or {}
+    if not baseline:
+        return ""
+    difference = fingerprint_difference(baseline["fingerprint"], mart_fingerprint(sandbox_db(state), target))
+    return f"Bản tối ưu (E4) cho kết quả khác bản gốc trên dữ liệu sandbox: {difference}." if difference else ""
+
+
+def confirm_optimization(state: PipelineState, rows: int) -> dict:
+    """Bản tối ưu qua V1+V2 và giống hệt bản gốc trên sandbox: ghi thêm bằng chứng đối chiếu, bỏ bản gốc đã giữ."""
+    report = state.get("optimization") or {}
+    check = DatasetCheck(dataset="sandbox", equal=True, detail=f"Giống hệt bản gốc trên dữ liệu sandbox ({rows} dòng)")
+    equivalence = [*report.get("equivalence", []), check.model_dump(mode="json")]
+    return {"optimization": {**report, "equivalence": equivalence}, "opt_baseline": {}}
+
+
+def _failed(state: PipelineState, result: DbtResult, message: str, spec) -> dict:  # noqa: ANN001 — PipelineSpec
+    """Kết quả V2 không đạt. Lỗi của bản tối ưu đang thử không ghi sổ lỗi, không tính lượt sửa: `opt_revert` khôi phục bản gốc."""
+    sandbox = hand_off(SandboxResult, {"passed": False, "error": message, **_summary(result)})
+    if state.get("opt_baseline"):
+        return {"sandbox": sandbox}
+    return {"sandbox": sandbox, **register_failure(state, message, state["code_files"].get(mart_path(spec), ""))}
 
 
 def sandbox_run_node(state: PipelineState) -> dict:
@@ -78,13 +125,16 @@ def sandbox_run_node(state: PipelineState) -> dict:
     result = run_dbt_build(workspace)
     spec = spec_of(state)
     if not result.ok:
-        message = failure_message(result)
-        sandbox = hand_off(SandboxResult, {"passed": False, "error": message, **_summary(result)})
-        return {"sandbox": sandbox, **register_failure(state, message, state["code_files"].get(mart_path(spec), ""))}
+        return _failed(state, result, failure_message(result), spec)
+    if mismatched := type_mismatches(sandbox_db(state), spec):
+        return _failed(state, result, "\n".join(mismatched), spec)
+    if issue := optimized_output_issue(state, spec.target):
+        return _failed(state, result, issue, spec)
     rows, sample = mart_sample(sandbox_db(state), spec.target)
-    return {
+    update = {
         "sandbox": hand_off(
             SandboxResult, {"passed": True, "error": "", "target_rows": rows, "sample": sample, **_summary(result)}
         ),
         "reconciliation": reconcile_staging(sandbox_db(state), state.get("code_files", {})),
     }
+    return {**update, **confirm_optimization(state, rows)} if state.get("opt_baseline") else update

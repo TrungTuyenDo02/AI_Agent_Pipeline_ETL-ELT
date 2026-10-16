@@ -112,6 +112,44 @@ def _data_rule_items(state: PipelineState, filters: list[dict]) -> list[Measured
     return items
 
 
+def _patch_items(state: PipelineState) -> list[MeasuredItem]:
+    """Bản vá nhanh: bao nhiêu thay đổi, sửa bằng code hay AI, và bảng đích có giống lần chạy gốc không (đo bằng code)."""
+    patch = state.get("patch") or {}
+    if not patch:
+        return []
+    plan = patch.get("plan") or {}
+    tokens = sum(u.get("input_tokens", 0) + u.get("output_tokens", 0) for u in state.get("llm_usage", []))
+    items = [
+        MeasuredItem(
+            node="P Bản vá",
+            check="Thay đổi nguồn đã xử lý",
+            result=(
+                f"{len(plan.get('items', []))} thay đổi: {len(patch.get('applied', []))} file sửa bằng code, "
+                f"{len(patch.get('llm_files', []))} file cần AI; {tokens} token"
+            ),
+            passed=True,
+        )
+    ]
+    regression = patch.get("regression") or {}
+    if regression.get("compared"):
+        same = regression["same"]
+        result = (
+            f"Bảng đích giống hệt lần chạy gốc ({regression['rows_after']} dòng)"
+            if same
+            else f"Bảng đích khác lần chạy gốc: {regression['rows_before']} → {regression['rows_after']} dòng, {regression['differing_rows']} dòng khác"
+        )
+        if regression.get("schema_same") is False:
+            result += "; " + regression["note"]
+        items.append(
+            MeasuredItem(node="P Bản vá", check="So với lần chạy gốc", result=result, passed=True if same else None)
+        )
+    elif regression:
+        items.append(
+            MeasuredItem(node="P Bản vá", check="So với lần chạy gốc", result=str(regression.get("note", "—")))
+        )
+    return items
+
+
 def _optimization_items(state: PipelineState) -> list[MeasuredItem]:
     report = state.get("optimization", {})
     if not report:
@@ -136,7 +174,13 @@ def build_evidence(state: PipelineState, filters: list[dict] | None = None) -> E
     if explanation:
         claimed.append(f"Optimizer: {explanation}")
     filters = find_value_filters(state) if filters is None else filters
-    measured = _spec_items(state) + _run_items(state) + _data_rule_items(state, filters) + _optimization_items(state)
+    measured = (
+        _spec_items(state)
+        + _run_items(state)
+        + _patch_items(state)
+        + _data_rule_items(state, filters)
+        + _optimization_items(state)
+    )
     return Evidence(measured=measured, claimed=claimed)
 
 

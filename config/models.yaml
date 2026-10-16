@@ -16,12 +16,19 @@
 #   (terra 5/13 0,24 USD; Opus 3/13 0,96 USD). Khác nhà cung cấp với planner/codegen/testgen (OpenAI) để tránh cùng kiểu sai.
 # - 2026-10-13: planner/codegen/testgen → gpt-6-luna (chủ dự án chọn: $0,10/$0,50 so với $0,20/$1,20 mỗi triệu token).
 #   Model này từ chối temperature=0 nên đặt `temperature: false`.
+# - 2026-10-15: thêm `input_gate` (tầng 2 của cửa kiểm tra đầu vào) = claude-haiku-5-5; đầu ra ≤ ~100 token, chỉ gọi khi code không đủ kết luận.
 
 models:
   planner:   { provider: openai,    name: gpt-6-luna, temperature: false }
   codegen:   { provider: openai,    name: gpt-6-luna, temperature: false }
   testgen:   { provider: openai,    name: gpt-6-luna, temperature: false }
   optimizer: { provider: anthropic, name: claude-haiku-5-5 }
+  # Cửa kiểm tra đầu vào, tầng 2 (CLAUDE.md bản 2, mục 2): model rẻ nhất đang dùng ($0,10/$0,50), khác nhà cung cấp với planner,
+  # KHÔNG dùng model của planner/optimizer. Thay cho biến MODEL_GATE vì dự án cấm tên model ở biến môi trường.
+  input_gate: { provider: anthropic, name: claude-haiku-5-5 }
+
+  # Diễn giải đề xuất sửa pipeline khi nguồn đổi cấu trúc: Gemini rẻ nhất, chỉ gọi khi người bấm "Hỏi AI".
+  drift_advice: { provider: google, name: gemini-3.1-flash-lite }
 
 # Dự phòng khi gọi model chính THẤT BẠI (mạng, hạn mức, từ chối); tắt bằng LLM_FALLBACK=none.
 fallback: { provider: google, name: gemini-3.1-flash-lite }

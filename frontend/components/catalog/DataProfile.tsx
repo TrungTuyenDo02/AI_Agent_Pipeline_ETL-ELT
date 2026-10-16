@@ -259,7 +259,7 @@ function Kpis({ profile }: { profile: TableProfile }) {
         <span>Số dòng</span>
         <strong>{formatNumber(profile.rows)}</strong>
         {rowsHint && (
-          <em className={profile.rows_in === profile.rows ? "ok" : "warn"} title="Đối chiếu số dòng (mục 9)">
+          <em className={profile.rows_in === profile.rows ? "ok" : "warn"} title="Đối chiếu số dòng">
             {rowsHint}
           </em>
         )}

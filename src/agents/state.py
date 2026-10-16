@@ -14,6 +14,17 @@ class PipelineState(TypedDict, total=False):
     request_text: str  # yêu cầu bằng ngôn ngữ thường
     requester: str  # người tạo yêu cầu (không được tự duyệt)
 
+    # G0 Cửa kiểm tra đầu vào
+    input_gate: dict  # GateResult.model_dump(): status (ok|rejected|needs_info), tier, code, message, examples, missing
+    clarify_rounds: int  # số vòng hỏi làm rõ đã dùng (J1); trần MAX_CLARIFY_ROUNDS
+    drift: (
+        dict  # G1: {checked, warnings (thay đổi info/warning), tables (cấu trúc nguồn lúc bắt đầu, để kiểm lại ở J2)}
+    )
+
+    # Bản vá nhanh khi nguồn đổi cấu trúc (src/services/patch_plan.py): run vá mang theo đặc tả/code của lần chạy gốc
+    patch_of: str  # id lần chạy gốc; có giá trị = run vá, đi đường patch_start thay vì input_gate
+    patch: dict  # {parent, plan (PatchPlan), changes, parent_workspace, applied, llm_items, llm_files, regression}
+
     # E1 Planner ⇄ J1, V0
     source_catalog: list[
         dict
@@ -26,6 +37,9 @@ class PipelineState(TypedDict, total=False):
     plan_review: dict  # quyết định J1b gần nhất: {"decision": "approve"|"revise", "note": "..."}
     plan_feedback: list[str]  # ghi chú DE yêu cầu sửa kế hoạch (Planner đọc khi lập lại)
     plan_reviews: int  # số lần DE yêu cầu sửa kế hoạch
+    plan_options: dict[
+        str, str
+    ]  # lựa chọn pipeline DE đã đặt ở J1b (nạp, lịch, cột thời gian): giữ khi lập lại kế hoạch
 
     # E0, P, E2
     workspace: str  # đường dẫn workspace dbt
@@ -56,6 +70,7 @@ class PipelineState(TypedDict, total=False):
     optimization: dict  # OptimizationReport.model_dump(); rỗng = chưa tối ưu
     opt_attempts: int  # số lần đề xuất viết lại
     opt_candidate: dict  # đề xuất hiện tại của E4 chờ V3 kiểm tra
+    opt_baseline: dict  # V3 vừa áp dụng bản tối ưu: {code_files (bản gốc), fingerprint (bảng đích gốc trên sandbox)}; rỗng = không thử
 
     # J2
     evidence: dict  # Evidence.model_dump(): measured tách claimed

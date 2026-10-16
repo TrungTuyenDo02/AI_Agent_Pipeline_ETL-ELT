@@ -124,12 +124,24 @@ async def test_engineer_calling_review_api_gets_403_and_is_logged(login):
     assert ("permission.denied", "denied") in _actions(f"/runs/{run_id}/review")
 
 
-async def test_reviewer_passes_role_check_and_may_review_own_request(login):
-    """Người dùng chọn: Reviewer được duyệt cả yêu cầu do mình tạo (chỉ chặn sai vai trò)."""
+async def test_creator_cannot_review_own_request_unless_switch_is_off(login, monkeypatch: pytest.MonkeyPatch):
+    """ADR 0006 (thay ADR 0004): REQUIRE_SEPARATE_REVIEWER bật mặc định → người tạo yêu cầu không tự duyệt; tắt khi demo cá nhân."""
+    from src.config import get_settings
+
     reviewer = await login("reviewer")
     run_id = get_store().create_run("doanh thu", reviewer.username).id
-    response = await reviewer.post(f"{API}/runs/{run_id}/review", json={"decision": "approve"})
-    assert response.status_code == 409  # qua kiểm tra quyền, chỉ vì lần chạy chưa ở bước chờ duyệt
+    blocked = await reviewer.post(f"{API}/runs/{run_id}/review", json={"decision": "approve"})
+    assert blocked.status_code == 403 and "tự duyệt" in blocked.json()["detail"]
+    other = await login("reviewer")  # Reviewer khác qua kiểm tra quyền (409 vì lần chạy chưa ở bước chờ duyệt)
+    assert (await other.post(f"{API}/runs/{run_id}/review", json={"decision": "approve"})).status_code == 409
+    monkeypatch.setenv("REQUIRE_SEPARATE_REVIEWER", "false")
+    get_settings.cache_clear()
+    try:
+        allowed = await reviewer.post(f"{API}/runs/{run_id}/review", json={"decision": "approve"})
+        assert allowed.status_code == 409
+    finally:
+        monkeypatch.undo()
+        get_settings.cache_clear()
 
 
 @pytest.mark.parametrize(

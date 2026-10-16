@@ -146,7 +146,7 @@ async def test_friendly_errors(login, role: str, method: str, path: str, body: d
 async def test_review_requires_note_and_waiting_state(client: AsyncClient, login):
     from src.services.store import get_store
 
-    run_id = get_store().create_run("doanh thu", "an").id
+    run_id = get_store().create_run("doanh thu", client.username).id
     reviewer = await login("reviewer")
     reject = await reviewer.post(f"{API}/runs/{run_id}/review", json={"decision": "reject"})
     assert reject.status_code == 422 and "ghi chú" in reject.json()["detail"]

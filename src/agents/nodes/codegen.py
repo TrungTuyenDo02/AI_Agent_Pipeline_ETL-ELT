@@ -6,10 +6,11 @@ import re
 from src.agents.nodes.common import memory_notes, usage_of
 from src.agents.state import PipelineState
 from src.agents.tools.dbt_tools import is_allowed_path
-from src.agents.tools.pii import mask_literals
+from src.agents.tools.scrub import prompt_error
 from src.services.error_memory import classify_error, error_signature, get_error_memory
 from src.services.llm import LLMOutputError, call_llm, parse_json_output, to_json
-from src.services.prompt_context import compact_profile, spec_for_build
+from src.services.llm_context import context_for_state
+from src.services.prompt_context import spec_for_build
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,8 @@ def previous_code(state: PipelineState) -> str:
     """Code vòng trước, chỉ gửi khi cần sửa; có lỗi nêu tên file thì chỉ gửi file liên quan."""
     if not needs_fix(state):
         return "(chưa có)"
-    return to_json(related_files(state["code_files"], code_error(state)))
+    patch_files = " ".join((state.get("patch") or {}).get("llm_files", []))  # run vá: chỉ các file cần AI sửa
+    return to_json(related_files(state["code_files"], code_error(state) or patch_files))
 
 
 def error_hints(error: str) -> list[dict]:
@@ -70,7 +72,13 @@ def error_hints(error: str) -> list[dict]:
     if not error:
         return []
     entries = get_error_memory().approved_hints(error_signature(error), classify_error(error))
-    return [{"code": e.code, "description": e.description[:300], "fix": e.fix} for e in entries]
+    return [{"code": e.code, "description": prompt_error(e.description, 300), "fix": e.fix} for e in entries]
+
+
+def _profile_context(state: PipelineState) -> dict:
+    """Hồ sơ dữ liệu cho prompt, cắt theo mức truy cập của từng nguồn (cửa duy nhất: llm_context)."""
+    profile = state.get("profile", {})
+    return context_for_state(state, tables=list(profile)).build_profile(profile)
 
 
 def codegen_variables(state: PipelineState) -> dict[str, str]:
@@ -78,8 +86,8 @@ def codegen_variables(state: PipelineState) -> dict[str, str]:
     error = code_error(state)
     return {
         "spec": to_json(spec_for_build(state.get("spec", {}))),
-        "profile": to_json(compact_profile(state.get("profile", {}))),
-        "last_error": mask_literals(error) or "(không có)",
+        "profile": to_json(_profile_context(state)),
+        "last_error": prompt_error(error) or "(không có)",
         "previous_code": previous_code(state),
         "error_hints": to_json(error_hints(error)),
         "memory_notes": to_json(memory_notes(state)),
@@ -181,5 +189,6 @@ def codegen_node(state: PipelineState) -> dict:
         "optimization": {},
         "opt_candidate": {},
         "opt_attempts": 0,
+        "opt_baseline": {},
         "rescue_hint": "",
     }

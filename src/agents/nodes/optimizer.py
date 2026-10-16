@@ -15,8 +15,8 @@ from src.agents.nodes.compare import BENCH_DATASET, evaluate_candidate
 from src.agents.nodes.safety import check_sql
 from src.agents.state import PipelineState
 from src.agents.tools.duckdb_tools import benchmark_query, explain_outline, materialize_views, read_catalog
-from src.agents.tools.pii import mask_literals
 from src.agents.tools.rewrite_rules import rules_candidate, sqlglot_candidate
+from src.agents.tools.scrub import prompt_error
 from src.agents.tools.slow_patterns import detect_slow_patterns
 from src.agents.tools.sql_tools import SqlCheckError, render_dbt_sql
 from src.config import get_settings
@@ -24,7 +24,7 @@ from src.models.contracts import OptCandidate, hand_off
 from src.models.evidence import Finding, OptimizationReport
 from src.models.schemas import LLMUsage
 from src.services.llm import LLMCallError, LLMConfigError, LLMOutputError, call_llm, parse_json_output, to_json
-from src.services.prompt_context import referenced_schema
+from src.services.llm_context import schema_for_sql
 
 logger = logging.getLogger(__name__)
 EXPLAIN_LIMIT = 2000  # ký tự của cây toán tử gọn (explain_outline)
@@ -54,12 +54,12 @@ def optimizer_variables(job: ProposalInput) -> dict[str, str]:
     db = Path(job.bench_db)
     findings = [f.model_dump() for f in job.findings]
     if job.feedback:
-        findings.append({"rule": "previous_attempt_rejected", "message": mask_literals(job.feedback)})
+        findings.append({"rule": "previous_attempt_rejected", "message": prompt_error(job.feedback)})
     return {
         "sql": job.sql,
         "findings": to_json(findings),
         "explain": explain_outline(db, job.sql)[:EXPLAIN_LIMIT],
-        "schema": to_json(referenced_schema(job.sql, read_catalog(db))),
+        "schema": to_json(schema_for_sql(job.sql, read_catalog(db))),
     }
 
 

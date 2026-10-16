@@ -26,11 +26,30 @@ Tiền tố `/api/v1`, riêng `/health` không có tiền tố.
 | PATCH | `/api/v1/admin/users/{user_id}` | admin | Đổi vai trò, khóa/mở, đặt lại mật khẩu (không tự khóa mình) |
 | GET | `/api/v1/admin/audit` | admin | Nhật ký kiểm toán, mới nhất trước (`limit` ≤ 200) |
 | GET | `/api/v1/runs` | đăng nhập | Danh sách lần chạy (`limit` 1–100) |
-| POST | `/api/v1/runs` | engineer | Tạo yêu cầu (`request_text` 5–4000 ký tự) → `202` + `run_id` |
+| GET | `/api/v1/sources` | đăng nhập | Nguồn dữ liệu bạn được phép dùng (phòng ban mình + được cấp thêm; Admin: tất cả). Kèm tên phòng ban, mức AI được xem bằng lời; `secret_ref` (chỉ là tên tham chiếu) chỉ Admin thấy |
+| POST | `/api/v1/sources` | admin | Đăng ký nguồn (`kind` file/duckdb/postgres, `secret_ref`, `allowed_tables`, `sensitivity`, `llm_access`, `restricted_columns`). Mức AI vượt trần theo độ nhạy cảm → `422` |
+| PATCH | `/api/v1/sources/{id}` | admin | Sửa nguồn; nâng độ nhạy cảm thì mức AI tự hạ về trần |
+| GET/POST | `/api/v1/sources/{id}/grants` | admin | Xem / cấp thêm quyền xem cho một người hoặc một phòng ban |
+| DELETE | `/api/v1/sources/grants/{grant_id}` | admin | Thu hồi quyền xem thêm |
+| GET/POST | `/api/v1/departments` | admin | Xem / tạo phòng ban |
+| GET | `/api/v1/glossary` | đăng nhập | Thuật ngữ bạn được dùng: dùng chung + của phòng ban mình (Admin: tất cả) |
+| POST | `/api/v1/glossary` | admin | Thêm thuật ngữ (`term`, `synonyms`, `definition`, `maps_to`, `department_id` trống = dùng chung). Trùng tên → `422` |
+| PATCH | `/api/v1/glossary/{id}` | admin | Sửa thuật ngữ (`department_id=0` = chuyển thành dùng chung). Agent chỉ đọc, không tự ghi |
+| GET | `/api/v1/schema-changes` | đăng nhập | Thay đổi cấu trúc của nguồn bạn được thấy (lọc `status`, `severity`, `source_id`), kèm pipeline bị ảnh hưởng |
+| GET | `/api/v1/schema-changes/{id}/diff` | đăng nhập | Hình trước/sau: các cột của bảng bị đổi với trạng thái `same/added/removed/changed/renamed_*` (chỉ cấu trúc) |
+| POST | `/api/v1/schema-changes/{id}/suggest` | admin, engineer | Đề xuất sửa pipeline: file nào, sửa gì (code dựng, 0 token). `use_ai=true` thêm lời diễn giải của Gemini (`drift_advice` ở `config/models.yaml`); lỗi gọi AI vẫn trả phần của code. Không tạo run |
+| POST | `/api/v1/schema-changes/{id}/acknowledge` | admin, engineer | "Tôi đã biết, dùng cấu trúc mới": cấu trúc hiện tại thành bản chuẩn (ghi AuditLog) |
+| POST | `/api/v1/sources/{id}/check-drift` | admin, engineer | Nút "Kiểm tra lại cấu trúc" của một nguồn; trả `DriftReport` (thay đổi mới, thay đổi chặn đang mở, cảnh báo) |
+| POST | `/api/v1/sources/check-drift` | khóa nội bộ | Kiểm tra định kỳ mọi nguồn đang bật; header `X-Drift-Token` = `DRIFT_CHECK_TOKEN`. `503` nếu chưa cấu hình, `403` nếu sai khóa |
+| POST | `/api/v1/runs/{run_id}/drift` | engineer | Cửa G1 chờ: `action` = `continue` (dùng cấu trúc mới làm bản chuẩn) hoặc `abort` |
+| POST | `/api/v1/runs/{run_id}/patch-plan` | engineer | Kế hoạch bản vá dựng bằng code (0 token, không tạo run). Body `{"answers": {"<mã thay đổi>": "use:<cột>" \| "drop"}}`. Mỗi mục có `action`: `none` / `code` / `llm` / `ask` / `blocked`, kèm câu hỏi trắc nghiệm khi cần người chọn cột thay thế. `409` nếu không có thay đổi mở |
+| POST | `/api/v1/runs/{run_id}/patch` | engineer | "Đề xuất bản vá": tạo lần chạy MỚI nhưng **không lập kế hoạch lại**: run vá dùng lại đặc tả, câu trả lời và code của lần chạy gốc, sửa bằng code hoặc AI chỉ phần cần, qua V1 → V2 → so với lần chạy gốc → duyệt J2. Cùng body như `patch-plan`; `409` nếu còn câu hỏi chưa trả lời hoặc có thay đổi không vá được (ví dụ bảng bị xóa) |
+| POST | `/api/v1/runs` | engineer | Tạo yêu cầu (`request_text` tối đa 4000 ký tự) → `202` + `run_id`. Qua cửa kiểm tra đầu vào trước: rỗng, quá ngắn/dài, vô nghĩa, tấn công prompt hoặc lạc đề → `422` + `detail` tiếng Việt kèm ví dụ hợp lệ, không tạo lần chạy. Quá giới hạn lần chạy/ngày → `429` |
 | GET | `/api/v1/runs/{run_id}` | đăng nhập | Trạng thái, câu hỏi đang chờ, tiến trình từng bước, đặc tả, bằng chứng, báo cáo tối ưu |
 | GET | `/api/v1/runs/{run_id}/files` | đăng nhập | Code + test hiện tại và bản vòng trước (để xem diff) |
 | GET | `/api/v1/runs/{run_id}/download` | đăng nhập | Gói `.zip` code dbt + test + DAG (không kèm dữ liệu sandbox) |
 | POST | `/api/v1/runs/{run_id}/answers` | engineer | Trả lời câu hỏi làm rõ J1 (`answers`: id câu → lựa chọn nguyên văn) |
+| POST | `/api/v1/runs/{run_id}/input` | engineer | Cửa kiểm tra đầu vào hỏi bổ sung / xin viết lại: `action` = `send` (kèm `text`) hoặc `abort` |
 | POST | `/api/v1/runs/{run_id}/plan` | engineer | Duyệt kế hoạch J1b: `decision` = `approve` hoặc `revise` (kèm `note`) |
 | POST | `/api/v1/runs/{run_id}/schema` | engineer | Nguồn mất cột/nghi đổi tên: `action` = `continue` (kèm `renames`) hoặc `abort` |
 | POST | `/api/v1/runs/{run_id}/rescue` | engineer | Cứu hộ: `action` = `retry` (kèm `hint`) hoặc `abort` |

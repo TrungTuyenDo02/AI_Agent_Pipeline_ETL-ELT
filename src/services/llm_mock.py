@@ -11,7 +11,9 @@ from string import Template
 import sqlglot
 from sqlglot import exp
 
+from src.agents.tools.input_checks import normalize
 from src.models.schemas import LLMUsage
+from src.models.spec import TABULAR_KINDS
 from src.services.llm import LLMRequest, LLMResponse
 
 Q_STATUS = "q_status"
@@ -78,7 +80,7 @@ $unions
 ),
 
 deduped as (
-    select *
+    select source, order_id, order_date, status, amount_vnd
     from all_orders
     qualify row_number() over (
         partition by source, order_id
@@ -111,7 +113,13 @@ group by order_date
 order by order_date
 """)
 
-DAG = Template('''"""DAG Airflow chạy pipeline dbt `$target` hằng ngày (agent sinh, Engineer duyệt trước khi merge)."""
+SCHEDULES = {
+    "daily": ('"@daily"', "hằng ngày"),
+    "hourly": ('"@hourly"', "hằng giờ"),
+    "event": ("None", "khi được kích hoạt từ bên ngoài"),
+}
+
+DAG = Template('''"""DAG Airflow chạy pipeline dbt `$target` $cadence (agent sinh, Engineer duyệt trước khi merge)."""
 
 from datetime import datetime
 
@@ -123,14 +131,15 @@ DBT_CMD = "cd {{ var.value.p113_dbt_project_dir }} && dbt"
 with DAG(
     dag_id="p113_$target",
     start_date=datetime(2026, 1, 1),
-    schedule="@daily",
+    schedule=$schedule,
     catchup=False,
     tags=["p113", "dbt"],
 ) as dag:
+    preflight = BashOperator(task_id="check_source_schema", bash_command=DBT_CMD + " run-operation check_source_schema")
     build_models = BashOperator(task_id="dbt_run", bash_command=DBT_CMD + " run --select +$target")
     run_tests = BashOperator(task_id="dbt_test", bash_command=DBT_CMD + " test --select +$target")
 
-    build_models >> run_tests
+    preflight >> build_models >> run_tests
 ''')
 
 EXPECTED_DAILY = Template("""-- Kỳ vọng tính độc lập từ raw: mỗi ngày một dòng, số đơn hợp lệ và tổng tiền
@@ -181,7 +190,7 @@ def _choices(spec: dict) -> tuple[bool, bool]:
 
 
 def _spec_body(catalog: list[dict]) -> dict:
-    tabular = [s for s in catalog if s.get("kind") in ("csv", "json", "parquet", "sqlite")]
+    tabular = [s for s in catalog if s.get("kind") in TABULAR_KINDS]
     known = [s for s in tabular if s["name"] in STAGING]  # kho có nhiều hệ thống: kịch bản mẫu chỉ cần 3 nguồn đơn
     tabular = known or tabular
     return {
@@ -270,17 +279,19 @@ def mock_codegen(variables: dict[str, str]) -> dict:
     target, names = spec.get("target") or "fct_daily_revenue", _staging_names(spec)
     statuses = "'completed'" if completed_only else "'completed', 'refunded'"
     joiner = "\n    union\n" if dedup else "\n    union all\n"
-    unions = joiner.join(f"    select * from {{{{ ref('stg_{n}') }}}}" for n in names)
+    columns = "source, order_id, order_date, status, amount_vnd"  # cột tường minh: không SELECT * ở staging/mart
+    unions = joiner.join(f"    select {columns} from {{{{ ref('stg_{n}') }}}}" for n in names)
     mart = (MART_DEDUP if dedup else MART_KEEP_ALL).substitute(unions=unions, statuses=statuses)
     files = {f"models/staging/stg_{n}.sql": STAGING[n] for n in names}
     files[f"models/marts/{target}.sql"] = mart
-    files[f"dags/{target}_dag.py"] = DAG.substitute(target=target)
+    schedule = SCHEDULES[(spec.get("options") or {}).get("schedule", "daily")]  # lịch do DE chọn ở J1b
+    files[f"dags/{target}_dag.py"] = DAG.substitute(target=target, schedule=schedule[0], cadence=schedule[1])
     notes = [
         "Mỗi nguồn một model staging chuẩn hóa ngày, tiền VND và trạng thái về cùng một bộ giá trị.",
         "Model đích gộp 3 nguồn, "
         + ("bỏ trùng theo (nguồn, mã đơn)" if dedup else "giữ mọi dòng")
         + ", tính theo ngày.",
-        "DAG Airflow chạy dbt run rồi dbt test hằng ngày.",
+        f"DAG Airflow kiểm cấu trúc nguồn (preflight), chạy dbt run rồi dbt test {schedule[1]}.",
     ]
     return {"files": [{"path": k, "content": v} for k, v in files.items()], "notes": notes}
 
@@ -316,11 +327,49 @@ def mock_optimizer(variables: dict[str, str]) -> dict:
     return {"sql": tree.sql(dialect="duckdb", pretty=True), "explanation": explanation, "warehouse_hints": hints}
 
 
+# Bộ phân loại tầng 2 giả lập: luật từ khóa đơn giản nhưng quyết định được (CI chạy không cần khóa).
+GATE_OFF_TOPIC = (
+    "thoi tiet", "nau an", "nau pho", "cong thuc nau", "phim", "bong da", "am nhac", "chuyen cuoi", "tong thong",
+    "gia vang", "du lich", "giam can", "dich cau", "bai tho", "lam tho", "game", "xo so", "horoscope", "weather", "movie",
+    "joke", "recipe",
+)  # fmt: skip
+GATE_OPTIMIZE = ("truy van", "query", "sql", "toi uu", "cham", "nhanh hon", "hieu nang", "performance")
+GATE_DATA = (
+    "so lieu", "du lieu", "bao cao", "thong ke", "ban hang", "nhap hang", "xuat hang", "ti le", "ty le", "tang truong",
+    "bieu do", "dashboard", "chi so", "tuan truoc", "thang truoc", "tong so", "bao nhieu", "luong ban",
+)  # fmt: skip
+
+
+def mock_input_gate(variables: dict[str, str]) -> dict:
+    """Phân loại bằng luật từ khóa: lạc đề → off_topic; nói về truy vấn chậm → optimize; nói về số liệu → pipeline
+    (thiếu `source` nếu không nhắc tới bảng nào trong danh sách); còn lại → unclear."""
+    text = f" {normalize(variables.get('request', ''))} "
+    tables = [normalize(str(t)) for t in _load(variables, "tables", [])]
+    if any(f" {w} " in text or w in text for w in GATE_OFF_TOPIC):
+        return {"label": "off_topic", "confidence": 0.9, "missing": []}
+    if any(f" {w} " in text for w in GATE_OPTIMIZE):
+        return {"label": "optimize", "confidence": 0.8, "missing": []}
+    if any(w in text for w in GATE_DATA):
+        names_table = any(t and f" {t} " in text for t in tables)
+        return {"label": "pipeline", "confidence": 0.7, "missing": [] if names_table else ["source"]}
+    return {"label": "unclear", "confidence": 0.3, "missing": []}
+
+
+def mock_drift_advice(variables: dict[str, str]) -> dict:
+    """Lời diễn giải cố định cho CI/demo (không đọc ngữ cảnh)."""
+    return {
+        "summary": "Nguồn đã đổi cấu trúc; sửa các file được liệt kê rồi chạy lại sandbox và test trước khi duyệt.",
+        "extra_steps": ["Hỏi đội phụ trách nguồn xem thay đổi có chủ ý không."],
+    }
+
+
 HANDLERS: dict[str, Callable[[dict[str, str]], dict]] = {
     "planner": mock_planner,
     "codegen": mock_codegen,
     "testgen": mock_testgen,
     "optimizer": mock_optimizer,
+    "input_gate": mock_input_gate,
+    "drift_advice": mock_drift_advice,
 }
 
 

@@ -13,13 +13,35 @@ PLACEHOLDER_MARKERS = ("<", "your-", "sk-your", "-here")
 # Trần token đầu ra theo node: ≥ 5 lần mức cao nhất đo được ở golden thật 2026-10-02 (planner 1.104, codegen 1.638,
 # testgen 841, optimizer 295 — đã gồm token suy luận; trần 4.000 cũ từng bị dùng hết). Chỉnh lại sau khi có số đo mới.
 # Optimizer 16.000: trần rộng từ thời dùng Opus (suy luận tính vào trần); Haiku không suy luận nên thực tế dùng ít hơn nhiều.
-TASK_MAX_TOKENS = {"planner": 6000, "codegen": 12000, "testgen": 5000, "optimizer": 16000}
+# input_gate: JSON rất ngắn (nhãn + độ tin cậy + vài ô thiếu) nên trần thấp (CLAUDE.md bản 2, mục 2).
+TASK_MAX_TOKENS = {
+    "planner": 6000,
+    "codegen": 12000,
+    "testgen": 5000,
+    "optimizer": 16000,
+    "input_gate": 200,
+    "drift_advice": 600,
+}
 # Hạn chờ mỗi lượt gọi LLM (giây). Optimizer chỉ là bước tùy chọn nên hạn ngắn: treo thì bỏ qua sớm thay vì chờ nhiều phút.
-TASK_TIMEOUT_SEC = {"planner": 120, "codegen": 180, "testgen": 120, "optimizer": 60}
+TASK_TIMEOUT_SEC = {
+    "planner": 120,
+    "codegen": 180,
+    "testgen": 120,
+    "optimizer": 60,
+    "input_gate": 30,
+    "drift_advice": 30,
+}
 DEFAULT_TIMEOUT_SEC = 120
 CODEGEN_MAX_TEMPERATURE = 0.2
 MODELS_FILE = Path(__file__).resolve().parent.parent / "config" / "models.yaml"
+INPUT_GATE_FILE = Path(__file__).resolve().parent.parent / "config" / "input_gate.yaml"
+DRIFT_RULES_FILE = Path(__file__).resolve().parent.parent / "config" / "drift_rules.yaml"
+GLOSSARY_SEED_FILE = Path(__file__).resolve().parent.parent / "config" / "glossary_seed.yaml"
 TASKS = ("planner", "codegen", "testgen", "optimizer")
+ADVICE_TASK = (
+    "drift_advice"  # diễn giải đề xuất sửa pipeline khi nguồn đổi cấu trúc: model rẻ (Gemini), chỉ gọi khi người bấm
+)
+GATE_TASK = "input_gate"  # bộ phân loại tầng 2 của cửa kiểm tra đầu vào: model riêng, rẻ nhất, không dùng model của planner/optimizer
 
 
 def is_real_secret(value: str | None) -> bool:
@@ -44,7 +66,7 @@ class ModelTable(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    models: dict[Literal["planner", "codegen", "testgen", "optimizer"], ModelChoice]
+    models: dict[Literal["planner", "codegen", "testgen", "optimizer", "input_gate", "drift_advice"], ModelChoice]
     fallback: ModelChoice
 
 
@@ -52,7 +74,9 @@ class ModelTable(BaseModel):
 def load_model_table(path: Path = MODELS_FILE) -> ModelTable:
     """Đọc và kiểm tra `config/models.yaml` (thiếu bước nào thì báo lỗi ngay, không đoán model)."""
     table = ModelTable.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
-    missing = [task for task in TASKS if task not in table.models]
+    missing = [
+        task for task in TASKS if task not in table.models
+    ]  # `input_gate` tùy chọn: thiếu thì dùng model dự phòng
     if missing:
         raise ValueError(f"{path} thiếu model cho bước: {', '.join(missing)}")
     return table
@@ -131,6 +155,53 @@ class Settings(BaseSettings):
     max_active_runs_per_user: int = Field(default=2, ge=1)
     llm_daily_budget_usd: float = Field(default=1.0, ge=0.0)
 
+    # Cửa kiểm tra đầu vào (tầng 0–2) + trần chi phí toàn hệ thống (CLAUDE.md bản 2, mục 1). Đặt 0 = không chặn.
+    input_min_chars: int = Field(default=10, ge=1)
+    input_max_chars: int = Field(default=2000, ge=10)
+    input_gate_file: Path = INPUT_GATE_FILE
+    input_gate_cache_size: int = Field(
+        default=512, ge=0
+    )  # số kết quả kiểm tra nhớ lại cho câu giống hệt (đã chuẩn hóa + băm)
+    max_clarify_rounds: int = Field(
+        default=2, ge=0
+    )  # tối đa số vòng hỏi làm rõ mỗi lần chạy (J1 và hỏi bổ sung đầu vào)
+    run_token_budget: int = Field(default=200_000, ge=0)  # trần token (vào + ra) mỗi lần chạy; vượt thì dừng và báo rõ
+    user_daily_run_limit: int = Field(
+        default=30, ge=0
+    )  # số lần chạy tối đa mỗi người mỗi ngày (không tính lần bị chặn ở cửa kiểm tra)
+
+    # Mức truy cập dữ liệu của LLM (CLAUDE.md bản 2, giai đoạn 3). Mặc định `profile` (thống kê, không dòng thật); đặt `schema_only`
+    # để quay về quyết định ban đầu "chỉ cho xem schema". Nguồn `high` luôn bị ép về schema_only, `medium` tối đa profile.
+    llm_access_default: Literal["schema_only", "profile", "masked_sample"] = "profile"
+    llm_sample_max_rows: int = Field(default=5, ge=1, le=20)  # trần số dòng đã che ở mức masked_sample
+    require_separate_reviewer: bool = True  # true: người tạo yêu cầu không tự duyệt được (ADR 0006, thay ADR 0004)
+    secrets_dir: Path | None = None  # thư mục chứa bí mật dạng file (mỗi file một tên tham chiếu), tùy chọn
+
+    # Bộ nạp nguồn (giai đoạn 4): thời hạn kết nối/truy vấn, số dòng tối đa mỗi bảng nạp vào sandbox, băm cột nhạy cảm của sandbox
+    connector_timeout_sec: int = Field(default=15, ge=1, le=300)
+    sandbox_load_max_rows: int = Field(default=100_000, ge=100)  # bảng lớn hơn chỉ nạp một tập con (hạt giống cố định)
+    # auto: băm cột nhạy cảm (tên gợi ý PII hoặc admin đánh dấu) khi nạp nguồn độ nhạy cảm `high`; always: mọi nguồn; never: không băm
+    sandbox_hash_sensitive: Literal["auto", "always", "never"] = "auto"
+    sandbox_hash_salt: str = (
+        ""  # muối băm cột nhạy cảm; đặt giá trị bí mật khi triển khai (trống: muối mặc định, đủ cho demo)
+    )
+
+    # Giám sát thay đổi cấu trúc nguồn (giai đoạn 5)
+    glossary_max_terms: int = Field(
+        default=3, ge=0, le=20
+    )  # số thuật ngữ nghiệp vụ tối đa đưa vào prompt Planner (chọn theo khớp từ khóa)
+    drift_gate_enabled: bool = True  # tắt = bỏ bước G1 (chỉ dùng cho test/demo; bản chuẩn luôn bật)
+    drift_check_token: str = ""  # khóa nội bộ cho POST /sources/check-drift (lịch GitHub Actions); trống = tắt endpoint
+    drift_null_pct_delta: float = Field(
+        default=20.0, ge=0.0
+    )  # % rỗng của cột tăng hơn chừng này điểm phần trăm → cảnh báo
+    drift_rowcount_ratio: float = Field(
+        default=3.0, gt=1.0
+    )  # số dòng lệch hơn chừng này lần (tăng hoặc giảm) → cảnh báo
+    cast_fail_threshold: float = Field(
+        default=0.01, ge=0.0, le=1.0
+    )  # tỷ lệ dòng không ép được kiểu tối đa của pipeline sinh ra
+
     # Dữ liệu thử (E2)
     seed: int = 42
     mock_small_rows: int = Field(default=200, ge=10)
@@ -178,8 +249,13 @@ class Settings(BaseSettings):
         """Nhà cung cấp + model của một bước; LLM_PROVIDER=google thì mọi bước dùng model dự phòng."""
         if self.llm_provider == "google":
             return self.model_table.fallback
-        models = self.model_table.models
-        return models.get(task, models["planner"])
+        table = self.model_table
+        if task in (
+            GATE_TASK,
+            ADVICE_TASK,
+        ):  # bộ phân loại của cửa kiểm tra: model riêng, không mượn model của planner/optimizer
+            return table.models.get(task, table.fallback)
+        return table.models.get(task, table.models["planner"])
 
     def model_for(self, task: str, provider: str | None = None) -> str:
         """Tên model dùng cho một bước (planner/codegen/testgen/optimizer)."""
@@ -190,7 +266,7 @@ class Settings(BaseSettings):
     @property
     def providers_in_use(self) -> set[str]:
         """Các nhà cung cấp mà bảng model đang cần (để kiểm tra khóa)."""
-        return {self.choice_for(task).provider for task in TASKS}
+        return {self.choice_for(task).provider for task in (*TASKS, GATE_TASK)}
 
     def max_tokens_for(self, task: str) -> int:
         """Trần token đầu ra (gồm token suy luận ẩn) của một bước, không vượt LLM_MAX_TOKENS."""

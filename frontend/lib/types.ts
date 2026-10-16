@@ -2,13 +2,16 @@
 
 export type RunStatus =
   | "running"
+  | "waiting_input"
+  | "waiting_drift"
   | "waiting_clarification"
   | "waiting_plan_review"
   | "waiting_schema"
   | "waiting_rescue"
   | "waiting_review"
   | "approved"
-  | "failed";
+  | "failed"
+  | "rejected_input";
 
 export interface RunSummary {
   target?: string | null;
@@ -85,9 +88,14 @@ export interface PlanPending {
   spec: Spec;
   sources: string[];
   next_steps: string;
+  time_columns?: string[];
+  drift_warnings?: SchemaChange[];
+  option_choices?: { load_mode: OptionChoice[]; schedule: OptionChoice[] };
 }
 
 export type Pending =
+  | { kind: "input"; code: string; message: string; missing: string[]; examples: string[] }
+  | { kind: "drift"; message: string; changes: SchemaChange[] }
   | { kind: "clarify"; unknowns: string[]; questions: ClarifyQuestion[] }
   | PlanPending
   | { kind: "schema"; report: SchemaReport }
@@ -113,6 +121,23 @@ export interface Spec {
   assumptions?: string[];
   plan_summary?: string;
   plan?: PlanStep[];
+  options?: PipelineOptions;
+  glossary_used?: { term: string; definition: string }[];
+}
+
+/** Lựa chọn pipeline do code đề xuất kèm lý do; DE chọn hoặc chấp nhận mặc định ở J1b. */
+export interface PipelineOptions {
+  load_mode: "full" | "incremental";
+  load_reason: string;
+  incremental_column: string;
+  schedule: "hourly" | "daily" | "event";
+  schedule_reason: string;
+  connections: { source: string; kind: string; via: string }[];
+}
+
+export interface OptionChoice {
+  value: string;
+  label: string;
 }
 
 export interface MeasuredItem {
@@ -188,6 +213,7 @@ export interface RunDetail {
   schema_decision?: { by?: string; renames?: Record<string, string> };
   value_filters?: ValueFilter[];
   reconciliation?: RowReconciliation[];
+  drift?: RunDrift;
 }
 
 /** Mục 8: một đề xuất sửa do code dựng (Reviewer quyết, agent không tự áp dụng). */
@@ -428,6 +454,7 @@ export interface CurrentUser {
   name: string;
   display_name: string;
   role: Role;
+  department_id?: number | null;
 }
 
 /** Tài khoản trong màn quản trị (không có mật khẩu/chuỗi băm). */
@@ -436,6 +463,142 @@ export interface AdminUser {
   username: string;
   display_name: string;
   role: Role;
+  department_id?: number | null;
   is_active: boolean;
   last_login_at: string | null;
+}
+
+/** Sổ nguồn dữ liệu (giai đoạn 3). `secret_ref` chỉ Admin thấy và chỉ là TÊN tham chiếu, không bao giờ là giá trị bí mật. */
+export type SourceKind = "file" | "duckdb" | "postgres";
+export type Sensitivity = "low" | "medium" | "high";
+export type LLMAccess = "schema_only" | "profile" | "masked_sample";
+
+export interface Department {
+  id: number;
+  name: string;
+}
+
+export interface SourceView {
+  id: number;
+  name: string;
+  department_id: number;
+  department_name: string;
+  kind: SourceKind;
+  secret_ref: string;
+  allowed_tables: string[];
+  sensitivity: Sensitivity;
+  llm_access: LLMAccess;
+  llm_access_effective: LLMAccess;
+  access_text: string;
+  restricted_columns: string[];
+  enabled: boolean;
+}
+
+/** Giai đoạn 5: thay đổi cấu trúc nguồn. Chỉ cấu trúc và số đếm, không có giá trị dữ liệu. */
+export type DriftSeverity = "info" | "warning" | "breaking";
+
+export interface SchemaChange {
+  id: number;
+  source_id: number;
+  source_name?: string;
+  table: string;
+  change_type: string;
+  severity: DriftSeverity;
+  detail: string;
+  hint?: string;
+  from_version?: number;
+  to_version?: number;
+  detected_at?: string;
+  status?: "open" | "acknowledged" | "resolved";
+  acknowledged_by?: string;
+  affected_pipelines?: { run_id: string }[];
+}
+
+export interface RunDrift {
+  checked?: boolean;
+  warnings?: SchemaChange[];
+  recheck?: { blocked: boolean; breaking: SchemaChange[]; warnings: SchemaChange[] };
+}
+
+export interface DriftReport {
+  checked_sources: number;
+  unreachable: string[];
+  new_changes: SchemaChange[];
+  open_breaking: SchemaChange[];
+  warnings: SchemaChange[];
+}
+
+/** Thuật ngữ trong từ điển nghiệp vụ (department_id trống = dùng chung). */
+export interface GlossaryTerm {
+  id: number;
+  term: string;
+  synonyms: string[];
+  definition: string;
+  maps_to: string;
+  department_id: number | null;
+}
+
+export interface DiffRow {
+  name: string;
+  before_type: string;
+  after_type: string;
+  status: "same" | "added" | "removed" | "changed" | "renamed_from" | "renamed_to";
+  note: string;
+}
+
+/** Hình trước/sau của một thay đổi cấu trúc (chỉ tên cột và kiểu). */
+export interface ChangeDiff {
+  change_id: number;
+  source_name: string;
+  table: string;
+  column: string;
+  change_type: string;
+  severity: DriftSeverity;
+  before_version: number;
+  after_version: number;
+  rows: DiffRow[];
+}
+
+export interface AdviceFile {
+  path: string;
+  role: "staging" | "mart" | "sources" | "test" | "dag";
+  impact: "direct" | "indirect";
+}
+
+/** Đề xuất sửa pipeline: file nào, sửa gì; `ai_text` là lời diễn giải tùy chọn của Gemini. */
+export interface Advice {
+  change_id: number;
+  needs_pipeline_change: boolean;
+  headline: string;
+  run_id: string;
+  files: AdviceFile[];
+  actions: { where: string; what: string }[];
+  ai_text: string;
+  ai_source: "" | "gemini" | "mock" | "unavailable";
+}
+
+export type PatchAction = "none" | "code" | "llm" | "ask" | "blocked";
+
+export interface PatchItem {
+  change_id: number;
+  source_id: number;
+  change_type: string;
+  table: string;
+  column: string;
+  action: PatchAction;
+  summary: string;
+  files: string[];
+  question: { id: string; text: string; options: { value: string; label: string }[] } | null;
+}
+
+/** Kế hoạch bản vá dựng bằng code trước khi tạo run: cái gì tự sửa, cái gì cần AI, cái gì cần người chọn. */
+export interface PatchPlan {
+  run_id: string;
+  items: PatchItem[];
+  ready: boolean;
+  code_fixes: number;
+  llm_items: number;
+  questions: number;
+  blocked: number;
+  estimate: string;
 }

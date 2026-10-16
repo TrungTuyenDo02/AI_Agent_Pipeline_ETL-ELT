@@ -64,6 +64,73 @@ Trạng thái: chờ Reviewer duyệt (run_id: 8ff0c55055)
 Xem bằng chứng và duyệt: python -m src.cli review 8ff0c55055
 ```
 
+#### Cửa kiểm tra đầu vào (G0)
+
+Yêu cầu qua cửa trước khi tạo lần chạy: luật cố định (rỗng, quá ngắn/dài, lặp ký tự, gõ bừa, mẫu tấn công prompt) rồi đối chiếu danh mục nghiệp vụ (tên bảng/cột có bỏ dấu và đồng nghĩa).
+Bị chặn: web/API trả `422` kèm 2–3 ví dụ hợp lệ lấy từ danh mục thật; CLI in khung "Yêu cầu chưa dùng được" và thoát mã 2; không tạo lần chạy, không tốn token, không tính hạn mức.
+Câu mà tầng 1 chưa chắc (không thấy từ khóa nghiệp vụ nào) đi tiếp vào graph, node `input_gate` hỏi **bộ phân loại tầng 2** (model riêng `input_gate` ở [config/models.yaml](../config/models.yaml), ≈ 400 token vào, ≤ 30 ra):
+`off_topic` chắc ≥ 0,8 → từ chối kèm ví dụ (trạng thái `rejected_input`); `pipeline`/`optimize` còn thiếu ô → hỏi bổ sung bằng **mẫu câu cố định** (LLM không soạn câu hỏi); `unclear`/độ tin cậy thấp → xin viết lại kèm ví dụ, không từ chối thẳng.
+Bước hỏi bổ sung dừng ở trạng thái `waiting_input` (web: khung ở bước 1; CLI: nhắc nhập; API: `POST /runs/{id}/input`), tối đa `MAX_CLARIFY_ROUNDS` vòng rồi chuyển cho kỹ sư dữ liệu. Chi phí tầng 2 hiện thành một dòng "Kiểm tra đầu vào" ở bảng token/chi phí.
+Chạy thử không cần khóa: tầng 2 dùng luật từ khóa giả lập (`LLM_PROVIDER=mock`); đo bằng model thật: `LLM_PROVIDER=openai python eval/run_input_gate.py` (tốn vài xu).
+Cập nhật mẫu chặn: sửa [config/input_gate.yaml](../config/input_gate.yaml). Đo lại: `python eval/run_input_gate.py` (ghi `eval/results/input_gate.md`).
+Trần chi phí: `MAX_CLARIFY_ROUNDS`, `RUN_TOKEN_BUDGET`, `USER_DAILY_RUN_LIMIT` (xem [CONFIG](CONFIG.md)); chạm trần thì lần chạy dừng với thông báo tiếng Việt nêu đúng tên biến.
+
+#### Sổ nguồn dữ liệu và mức truy cập của AI
+
+- **Cập nhật cơ sở dữ liệu trước:** `alembic upgrade head` (migration `0005_source_registry` tạo phòng ban, nguồn, quyền xem thêm; seed phòng "Mặc định" và nguồn "P113 Retail" để demo cũ chạy; người dùng cũ vào phòng mặc định). Có Neon: chạy bằng `MIGRATION_DATABASE_URL`.
+- **Đăng ký nguồn (Admin, web "Nguồn dữ liệu" hoặc `POST /api/v1/sources`):** chọn phòng ban, loại nguồn, bảng được phép (`*` = mọi bảng), độ nhạy cảm, mức AI được xem. Người thường chỉ thấy nguồn của phòng ban mình; Admin cấp thêm quyền qua `grants`. Gán phòng ban cho người dùng ở trang "Người dùng".
+- **Mức AI được xem:** `schema_only` (cấu trúc) < `profile` (thống kê + dạng giá trị, mặc định) < `masked_sample` (vài dòng đã che, chỉ nguồn độ nhạy cảm thấp, Admin bật rõ ràng). Nguồn độ nhạy cảm cao luôn `schema_only`, trung bình tối đa `profile`. Quay về "chỉ cấu trúc" cho nguồn đã đăng ký: `PATCH /sources/{id}` với `llm_access`; cho nguồn mới: `LLM_ACCESS_DEFAULT=schema_only`.
+- **Bí mật nguồn:** sổ nguồn chỉ lưu tên tham chiếu (`secret_ref`, vd `conn_orders_db`). Đặt giá trị thật trên máy chủ: biến `P113_SECRET_CONN_ORDERS_DB` (hoặc file cùng tên trong `SECRETS_DIR`). Thiếu thì nguồn đó tạm bị bỏ qua kèm cảnh báo log (các nguồn khác vẫn chạy).
+- **Nhật ký truy cập:** `GET /api/v1/admin/audit` (hoặc bảng `audit_log`): `source.list`, `source.create/update/grant/revoke`, `source.ingest`, `llm.context`, `llm_access.downgraded`, `catalog.profile`.
+- **Đo:** `python eval/run_llm_access.py` (số token ngữ cảnh từng mức + kiểm rò rỉ, 0 token LLM) ghi `eval/results/llm_access.md`.
+- **Người duyệt khác người tạo:** mặc định bật (`REQUIRE_SEPARATE_REVIEWER`); tắt khi demo cá nhân.
+
+#### Thử nguồn PostgreSQL (PostgresConnector, chỉ đọc)
+
+1. Bật PostgreSQL thử: đặt `P113_SOURCES_ADMIN_PASSWORD` trong `.env`, rồi `docker compose --profile dev-sources up -d sources-db` (cổng 127.0.0.1:5434, KHÔNG bật mặc định).
+2. Nạp bộ dữ liệu P113 Retail và tạo tài khoản chỉ có quyền SELECT:
+   `python scripts/seed_pg_sources.py --dsn postgresql://postgres:<mật khẩu quản trị>@127.0.0.1:5434/p113_retail --reader p113_reader --reader-password <mật khẩu đọc>`.
+3. Đặt chuỗi kết nối cho sổ nguồn ở MÁY CHỦ (không nhập vào web): `P113_SECRET_CONN_RETAIL_PG=postgresql://p113_reader:<mật khẩu đọc>@127.0.0.1:5434/p113_retail`, rồi Admin đăng ký nguồn kind=postgres với `secret_ref=conn_retail_pg`, `allowed_tables` (vd `shopee_orders, tiki_orders`) và độ nhạy cảm.
+4. Bộ nạp đọc bằng phiên `BEGIN READ ONLY`, kiểm mọi câu lệnh bằng sqlglot trước khi chạy (chỉ một câu SELECT, chỉ bảng được phép), có `statement_timeout` và giới hạn số dòng; dữ liệu chỉ vào sandbox DuckDB của lần chạy (tập con có hạt giống cố định, cột nhạy cảm của nguồn `high` đã băm).
+5. Kiểm thử với PostgreSQL thật (CI mặc định bỏ qua): `RUN_PG_TESTS=1 PG_SOURCE_DSN=postgresql://postgres:<mật khẩu>@127.0.0.1:5434/p113_retail python -m pytest tests/test_connectors.py` (không có `PG_SOURCE_DSN` thì dùng `TEST_DATABASE_URL`; tài khoản không được tạo schema thì tạm dùng bảng `customers`/`orders` trong `public` rồi xóa).
+
+#### Từ điển nghiệp vụ (giai đoạn 6)
+
+- **Cập nhật cơ sở dữ liệu:** `alembic upgrade head` (migration `0007_glossary` tạo bảng và seed 17 thuật ngữ P113 Retail từ `config/glossary_seed.yaml`, dùng chung mọi phòng ban).
+- **Quản lý:** Admin thêm/sửa ở web "Nguồn dữ liệu" → tab "Từ điển nghiệp vụ" (hoặc `POST/PATCH /api/v1/glossary`). Người khác chỉ đọc. Thuật ngữ gắn phòng ban chỉ người của phòng đó thấy.
+- **Viết định nghĩa:** ngắn, rõ, nói điều kiện lọc cụ thể (vd "doanh thu = đơn hoàn tất, không tính đơn hủy/hoàn tiền"). Không ghi giá trị dữ liệu thật. Nếu phần "ứng với" nhắc một bảng người dùng không được thấy thì phần đó bị ẩn (định nghĩa chữ vẫn giữ).
+- **Cách dùng:** (1) cửa kiểm tra đầu vào tầng 1 nhận thuật ngữ và từ đồng nghĩa (cụm nhiều chữ hoặc từ đơn ≥ 5 ký tự) làm từ khóa; (2) Planner nhận tối đa `GLOSSARY_MAX_TERMS` thuật ngữ khớp yêu cầu, màn Duyệt kế hoạch (J1b) hiện "Thuật ngữ đã dùng". Tắt: `GLOSSARY_MAX_TERMS=0`.
+- **Đo:** `python eval/run_glossary.py` (0 token) ghi `eval/results/glossary.md`: thuật ngữ cần thiết tới được Planner ở 5 ca golden mới (g13–g17), mức tăng token prompt. Độ đúng trước/sau cần LLM thật nên chưa đo; lệnh ở cuối báo cáo.
+
+#### Giám sát thay đổi cấu trúc nguồn (giai đoạn 5)
+
+Hệ thống **phát hiện** khi backend đổi kiểu dữ liệu, đổi tên cột, xóa cột mà không báo; nó **không ngăn được** việc đổi và không tự sửa. Thỏa thuận hợp đồng dữ liệu giữa các đội vẫn là việc của tổ chức.
+
+- **Cập nhật cơ sở dữ liệu:** `alembic upgrade head` (migration `0006_schema_drift`: ảnh chụp cấu trúc, thay đổi, thống kê cơ sở, phụ thuộc pipeline).
+- **Bản chuẩn:** lần kiểm đầu tiên của một nguồn (khi có người chạy, bấm "Kiểm tra lại cấu trúc", hoặc lịch định kỳ) đặt cấu trúc lúc đó làm bản chuẩn. Từ đó mọi lệch được ghi thành thay đổi `info` / `warning` / `breaking`.
+- **Trước mỗi run (cửa G1, 0 token):** có thay đổi `breaking` đang mở → run dừng ở trạng thái "Chờ xác nhận cấu trúc"; Engineer chọn "Tôi đã biết, dùng cấu trúc mới" (đặt bản chuẩn mới, ghi AuditLog) hoặc dừng. `warning`/`info` cho chạy tiếp và hiện ở màn Duyệt kế hoạch.
+- **Trước khi duyệt J2:** kiểm lại; nguồn đổi `breaking` sau lúc sinh code thì cảnh báo đỏ và nút Duyệt bị chặn tới khi chạy lại.
+- **Chuông và nút đỏ:** số thay đổi mức "Chặn" đang mở hiện bằng hình oval đỏ trên chuông và cạnh tiêu đề trang "Thay đổi cấu trúc". Mỗi thay đổi có hình so sánh trước/sau (bảng nào, cột nào, đổi gì) và nút "Pipeline cần sửa gì?" chỉ ra file cần sửa (do code phân tích). Nút "Hỏi AI diễn giải thêm" gọi Gemini (`drift_advice`, rẻ, chỉ khi bấm; cần `GOOGLE_API_KEY`, không có thì chỉ hiện phần của code).
+- **Số đỏ trên tab:** "Thay đổi cấu trúc" hiện số thay đổi mức Chặn đang mở, "Nguồn dữ liệu" hiện số nguồn có thay đổi chặn (cùng nguồn số liệu với chuông, làm mới mỗi 30 giây). Số chỉ xuất hiện SAU khi hệ thống đã kiểm cấu trúc nguồn (nút "Kiểm tra lại cấu trúc", workflow định kỳ, hoặc cửa G1 trước một lần chạy); hệ thống không tự biết nguồn đổi ngay lúc backend đổi.
+- **Trang web "Thay đổi cấu trúc":** danh sách thay đổi, pipeline bị ảnh hưởng, nút "Đề xuất bản vá" mở **kế hoạch vá** (0 token): mỗi thay đổi là một trong "Không cần sửa", "Tự sửa bằng code", "Cần AI", "Cần bạn chọn" (chọn cột thay cho cột đã mất, hoặc bỏ cột khỏi pipeline), "Không vá được" (bảng bị xóa). Bấm "Tạo bản vá" mới tạo run mới; hệ thống không bao giờ tự tạo, tự chạy hay tự merge.
+- **Run vá khác run thường ở đâu:** không qua cửa kiểm tra, Planner, hỏi làm rõ, duyệt kế hoạch hay tối ưu; mang đặc tả, câu trả lời và code đã duyệt của lần chạy gốc. Đường ống tiến trình ghi các bước đó "dùng lại từ lần chạy gốc". Bằng chứng ở J2 có hai dòng đo bằng code: số thay đổi đã xử lý (sửa bằng code hay AI, số token) và "So với lần chạy gốc" (so tên, thứ tự, kiểu cột và số lần xuất hiện từng dòng; đổi cấu trúc được ghi rõ ngay cả khi giá trị chưa đổi). Reviewer duyệt xong thì các thay đổi đã vá thành "đã xác nhận" và cấu trúc mới thành bản chuẩn (số đỏ giảm).
+- **Thử trên bản deploy:** đăng ký một nguồn PostgreSQL thử (chỉ đọc), tạo và chạy xong một pipeline dùng bảng đó, rồi đổi cấu trúc bảng ở nguồn (`ALTER TABLE ... RENAME COLUMN ...`, `ALTER COLUMN ... TYPE text`, `DROP COLUMN ...`). Bấm "Kiểm tra lại cấu trúc" (hoặc chạy tay workflow `drift-check`), rồi xem số đỏ, hình so sánh và kế hoạch vá. Cần `DRIFT_GATE_ENABLED=true` nếu muốn cửa G1 chặn run mới.
+- **Xem thử cục bộ không cần nguồn thật:** `python demo/seed_drift.py` (khi demo đang chạy) tạo 5 thay đổi giả trên nguồn "P113 Retail" để xem số đỏ, hình so sánh và kế hoạch vá; kiểm tra lại cấu trúc sẽ đánh dấu chúng là đã hết vì file nguồn thật không đổi.
+- **Đo bản vá nhanh:** `python eval/run_patch.py` (mock, 0 token, ghi `eval/results/patch.md`); thêm `--with-llm` để Codegen/Testgen của kịch bản cần AI gọi LLM thật (khoảng 8 nghìn token, dưới 0,01 USD với `gpt-6-luna`; cần khóa trong `.env`), ghi `eval/results/patch_llm.md`.
+- **Kiểm tra định kỳ:** đặt `DRIFT_CHECK_TOKEN` (chuỗi ngẫu nhiên dài) ở máy chủ API, và hai secret của repo GitHub: `DRIFT_CHECK_URL` (vd `https://api.congty.vn`) cùng `DRIFT_CHECK_TOKEN` (cùng giá trị). Workflow `.github/workflows/drift-check.yml` gọi `POST /api/v1/sources/check-drift` hằng ngày (cũng chạy tay được); có thể thay bằng bộ lập lịch khác gọi cùng endpoint với header `X-Drift-Token`.
+- **Pipeline sinh ra tự phòng thủ:** khai báo nguồn dbt (`models/sources.yml`: cột, kiểu, `not_null`/`unique`/`accepted_values`/`freshness`), macro `check_source_schema` chạy trước mọi task (DAG có task đầu tiên gọi nó), không `SELECT *` ở staging/mart, test đếm dòng không ép được kiểu (ngưỡng `CAST_FAIL_THRESHOLD`).
+- **Mô phỏng 6 kịch bản "backend đổi không báo":** `python scripts/simulate_drift.py` (0 token, ghi `eval/results/drift.md`).
+
+### Đánh giá Extract bằng dataset riêng
+
+Chạy `python scripts/tasks.py eval-extract` (hoặc `python eval/run_extract.py`): 21 ca, không LLM, không mạng. Bộ này dùng file nguồn và oracle đã đóng băng riêng ở [extract_v1](../eval/datasets/extract_v1/README.md), dựng SQLite/DuckDB/Parquet trong thư mục tạm, đăng ký nguồn và gọi bộ nạp thật. DB và secret của dev/prod không được sử dụng.
+
+Kết quả nằm ở [extract.md](../eval/results/extract.md) và [extract.json](../eval/results/extract.json): nguồn/bảng được chọn, hash đầu vào, schema, số dòng, digest đầu ra/đáp án và điểm từng ca. Ca tráo nguồn cùng tên/cùng số dòng, mất dòng trùng hoặc sai schema phải bị chấm trượt; CLI trả mã 1 nếu có ca trượt. Có kiểm tra nguồn bị tắt sau lập danh mục, quyền khác phòng và file ngoài quyền sai cú pháp.
+
+Discovery của nguồn file lọc `allowed_tables` trước khi đọc cấu trúc/dòng mẫu; cache tách theo phạm vi bảng. Với SQLite vẫn cần liệt kê tên bảng (metadata) để xác định bảng được phép, rồi mới đọc nội dung bảng đó. Các lệnh gọi `discover_sources` không truyền phạm vi vẫn giữ cách quét thư mục cũ.
+
+Điểm này chỉ đánh giá Extract trên dataset tổng hợp nhỏ; chưa chấm PostgreSQL thật, API đối tác, CDC/incremental hoặc snapshot giao dịch. Receipt hiện là bằng chứng eval; chưa có receipt bất biến của từng run trong API/giao diện. Khi nhiều nguồn có cùng tên bảng, các ca eval chọn source_id tường minh; lựa chọn tự động của Planner chưa nằm trong điểm này.
+
 ### 2.3 Duyệt (bước con người J2)
 
 ```powershell

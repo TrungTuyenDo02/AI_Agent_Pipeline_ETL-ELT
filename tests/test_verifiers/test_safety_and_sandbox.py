@@ -6,7 +6,11 @@ from src.agents.nodes.safety import check_dag, check_models, safety_node
 from src.agents.nodes.sandbox_run import sandbox_run_node
 
 MART = "models/marts/fct_daily_revenue.sql"
-GOOD_DAG = "from airflow import DAG\nwith DAG(dag_id='x') as dag:\n    a = 1\n    b = 2\n    a >> b\n"
+GOOD_DAG = (
+    "from airflow import DAG\nwith DAG(dag_id='x') as dag:\n"
+    "    pre = Op(task_id='check_source_schema', bash_command='dbt run-operation check_source_schema')\n"
+    "    build = Op(task_id='build')\n    pre >> build\n"
+)
 
 
 def test_generated_code_passes_safety(pipeline_state: dict):
@@ -56,8 +60,16 @@ def test_safety_rejects_mart_columns_different_from_spec(pipeline_state: dict):
         (GOOD_DAG, []),
         ("def f(:\n", ["cú pháp"]),
         ("x = 1\n", ["DAG(...)"]),
-        ("with DAG('x') as dag:\n    t = BashOperator(task_id='build')\n", []),  # 1 task: không cần >>
-        ("with DAG('x') as dag:\n    a = Op(task_id='a')\n    b = Op(task_id='b')\n", ["thứ tự"]),
+        ("with DAG('x') as dag:\n    t = BashOperator(task_id='build')\n", ["check_source_schema"]),  # thiếu preflight
+        (  # preflight không đứng đầu → vẫn thiếu
+            "with DAG('x') as dag:\n    a = Op(task_id='build')\n"
+            "    p = Op(bash_command='dbt run-operation check_source_schema')\n    a >> p\n",
+            ["check_source_schema"],
+        ),
+        (
+            "with DAG('x') as dag:\n    a = Op(task_id='a')\n    b = Op(task_id='b')\n",
+            ["thứ tự", "check_source_schema"],
+        ),
         (GOOD_DAG + "conn = 'postgres://u:pw@host/db'\n", ["ghi cứng"]),
     ],
 )

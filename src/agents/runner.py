@@ -23,14 +23,17 @@ from src.agents.progress import NodeStart, StepEvent, describe, node_started
 from src.config import get_settings
 from src.models.evidence import ReviewDecision
 from src.models.schemas import RunStatus
-from src.services.llm import LLMCallError, LLMConfigError
+from src.services import schema_drift
+from src.services.llm import LLMCallError, LLMConfigError, run_budget
 from src.services.store import get_store
 
 logger = logging.getLogger(__name__)
 EventCallback = Callable[[StepEvent | NodeStart], None]  # NodeStart: node bắt đầu; StepEvent: node xong
 INTERRUPT_STATUS = {
+    "input": RunStatus.WAITING_INPUT,
     "clarify": RunStatus.WAITING_CLARIFICATION,
     "plan": RunStatus.WAITING_PLAN,
+    "drift": RunStatus.WAITING_DRIFT,
     "schema": RunStatus.WAITING_SCHEMA,
     "rescue": RunStatus.WAITING_RESCUE,
     "review": RunStatus.WAITING_REVIEW,
@@ -105,6 +108,13 @@ def _config(run_id: str) -> dict:
 
 def _stream(run_id: str, payload: object, on_event: EventCallback | None) -> str:
     """Chạy graph tới điểm dừng kế tiếp; trả về thông báo lỗi (rỗng nếu không lỗi)."""
+    used = sum(u.get("input_tokens", 0) + u.get("output_tokens", 0) for u in get_values(run_id).get("llm_usage", []))
+    with run_budget(get_settings().run_token_budget, used):  # trần token mỗi lần chạy (kể cả các lượt chạy tiếp)
+        return _consume(run_id, payload, on_event)
+
+
+def _consume(run_id: str, payload: object, on_event: EventCallback | None) -> str:
+    """Chạy graph và phát sự kiện từng bước (tách khỏi `_stream` để bọc trần token)."""
     last = time.perf_counter()
     try:
         for mode, chunk in get_graph().stream(payload, _config(run_id), stream_mode=["updates", "tasks"]):
@@ -155,8 +165,19 @@ def summarize(values: dict, error: str) -> dict:
         "cost_usd": round(sum(u.get("cost_usd", 0.0) for u in usage), 6),
         "simulated": any(u.get("simulated") for u in usage),
         "workspace": values.get("workspace"),
+        "sources": [s.get("name") for s in values.get("spec", {}).get("sources", []) if s.get("name")],
         "error": error or values.get("error", ""),
     }
+
+
+def record_dependencies(run_id: str, values: dict) -> None:
+    """Pipeline dùng cột nào của nguồn nào (phân tích SQL đã sinh bằng sqlglot): để biết thay đổi cấu trúc nào làm hỏng pipeline nào."""
+    try:
+        used = {s.get("name") for s in values.get("spec", {}).get("sources", [])}
+        catalog = [i for i in values.get("source_catalog", []) if i["name"] in used]
+        schema_drift.save_dependencies(run_id, schema_drift.extract_dependencies(values.get("code_files", {}), catalog))
+    except Exception:  # noqa: BLE001 — lỗi ghi phụ thuộc không được làm hỏng lần chạy
+        logger.exception("pipeline dependencies not saved", extra={"run_id": run_id})
 
 
 def _finish(run_id: str, error: str) -> RunOutcome:
@@ -170,6 +191,7 @@ def _finish(run_id: str, error: str) -> RunOutcome:
     get_store().update_run(run_id, status, summarize(values, error))
     if status is RunStatus.WAITING_REVIEW:
         remember_fixes(run_id, values)
+        record_dependencies(run_id, values)
     return RunOutcome(run_id=run_id, status=status, pending=pending, error=error or values.get("error", ""))
 
 
@@ -184,6 +206,21 @@ def run_created(run_id: str, on_event: EventCallback | None = None) -> RunOutcom
     if record is None:
         raise RunStateError(f"Không tìm thấy lần chạy {run_id}.")
     payload = {"run_id": run_id, "request_text": record.request_text, "requester": record.requester, "llm_usage": []}
+    return _finish(run_id, _stream(run_id, payload, on_event))
+
+
+def run_patch(run_id: str, seed: dict, on_event: EventCallback | None = None) -> RunOutcome:
+    """Chạy run vá: trạng thái khởi đầu (`seed`) mang đặc tả, câu trả lời và code của lần chạy gốc nên graph vào thẳng `patch_start`."""
+    record = get_store().get_run(run_id)
+    if record is None:
+        raise RunStateError(f"Không tìm thấy lần chạy {run_id}.")
+    payload = {
+        "run_id": run_id,
+        "request_text": record.request_text,
+        "requester": record.requester,
+        "llm_usage": [],
+        **seed,
+    }
     return _finish(run_id, _stream(run_id, payload, on_event))
 
 
@@ -235,13 +272,19 @@ def resume_run(request: ResumeRequest, on_event: EventCallback | None = None) ->
     return _finish(request.run_id, _stream(request.run_id, Command(resume=request.value), on_event))
 
 
-def review_permission_error(role: str) -> str:
+SELF_REVIEW = "Người tạo yêu cầu không được tự duyệt hoặc từ chối. Hãy nhờ một Reviewer khác."
+
+
+def review_permission_error(role: str, reviewer: str = "", requester: str = "") -> str:
     """Luật duyệt J2 (dùng chung cho CLI và API); chuỗi rỗng = được phép.
 
-    Chỉ vai trò Reviewer được duyệt hoặc từ chối; Reviewer được duyệt cả yêu cầu do chính mình tạo (người dùng chọn
-    ngày 2026-10-08, xem docs/adr/0004). Không có đường tắt: Engineer/Admin đều bị chặn.
+    Chỉ vai trò Reviewer được duyệt hoặc từ chối. REQUIRE_SEPARATE_REVIEWER (mặc định bật, ADR 0006 thay ADR 0004): người tạo
+    yêu cầu không tự duyệt được; tắt công tắc khi chạy demo cá nhân. Không có đường tắt: Engineer/Admin đều bị chặn.
     """
-    return "" if role == "reviewer" else "Chỉ vai trò Reviewer mới được duyệt hoặc từ chối."
+    if role != "reviewer":
+        return "Chỉ vai trò Reviewer mới được duyệt hoặc từ chối."
+    same_person = bool(reviewer) and reviewer == requester
+    return SELF_REVIEW if same_person and get_settings().require_separate_reviewer else ""
 
 
 def check_review(decision: ReviewDecision, role: str) -> None:
@@ -249,7 +292,7 @@ def check_review(decision: ReviewDecision, role: str) -> None:
     record = get_store().get_run(decision.run_id)
     if record is None:
         raise RunStateError(f"Không tìm thấy lần chạy {decision.run_id}.")
-    problem = review_permission_error(role)
+    problem = review_permission_error(role, decision.reviewer, record.requester)
     if problem:
         raise PermissionDeniedError(problem)
     check_resumable(decision.run_id, "review")

@@ -78,6 +78,8 @@ def run_step(args: list[str]) -> str:
     done = subprocess.run(args, cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace")
     output = done.stdout + done.stderr
     print(output[-1500:], flush=True)
+    if done.returncode != 0:
+        raise SystemExit(done.returncode)
     return output
 
 
@@ -132,6 +134,19 @@ def _cache_rate(rows: list[dict]) -> str:
         return "— (lần chạy này chưa ghi cached_tokens)"
     total = sum(r["input_tokens"] for r in rows)
     return f"{sum(r['cached_tokens'] for r in rows) / total:.1%}" if total else "—"
+
+
+def extract_lines() -> list[str]:
+    """Điểm Extract có phạm vi và bộ chấm riêng; chưa chạy thì không tự điền điểm."""
+    result = load("extract")
+    if not result:
+        return ["| Extract: đúng nguồn, đúng bảng và kết quả nạp | — | — (chưa đo) |"]
+    summary = result["summary"]
+    state = "đạt" if summary["accepted"] else "chưa đạt"
+    return [
+        f"| Extract: đúng nguồn, đúng bảng và kết quả nạp | code, dataset tổng hợp {result['dataset_id']} | "
+        f"{summary['passed']}/{summary['total']} ca, {state}; chưa đo PostgreSQL thật • [extract.md](extract.md) |"
+    ]
 
 
 def metric_lines(tests: dict, mutation: dict | None) -> list[str]:
@@ -208,6 +223,7 @@ def write_report(tests: dict) -> None:
         "## 1. Chỉ số",
         "",
         *metric_lines(tests, load("mutation")),
+        *extract_lines(),
         *golden,
         *eltbench_line(),
         *baseline_metrics,
@@ -245,6 +261,7 @@ def main() -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     tests = {} if args.skip_tests else pytest_summary(run_step([PY, "-m", "pytest", "-q", "-p", "no:cacheprovider"]))
+    run_step([PY, "eval/run_extract.py"])
     run_step([PY, "eval/golden/run_golden.py", "--mode", "reference"])
     run_step([PY, "eval/mutation/run_mutation.py"])
     if args.with_llm:

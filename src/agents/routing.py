@@ -1,7 +1,45 @@
 """Hàm rẽ nhánh của graph (thuần, dễ test bằng parametrize)."""
 
+from langgraph.graph import END
+
 from src.agents.state import PipelineState
 from src.config import get_settings
+
+
+def start_route(state: PipelineState) -> str:
+    """Điểm vào: run vá (có `patch_of`) bỏ qua cửa kiểm tra, Planner và các bước hỏi; run thường vào cửa G0."""
+    return "patch_start" if state.get("patch_of") else "input_gate"
+
+
+def after_patch_start(state: PipelineState) -> str:
+    """Chụp cấu trúc xong → nạp nguồn mới vào sandbox."""
+    return "fail" if state.get("error") else "ingest"
+
+
+def after_profiler(state: PipelineState) -> str:
+    """Run vá không qua Vs (chính bản vá là sự xác nhận cấu trúc mới); run thường soát cấu trúc so với bản đã duyệt."""
+    return "patch_apply" if state.get("patch_of") else "schema_guard"
+
+
+def after_patch_apply(state: PipelineState) -> str:
+    """Còn phần cần AI (đổi tên không chắc, bỏ cột...) → Codegen có giới hạn file; sửa xong bằng code → thẳng Testgen."""
+    return "codegen" if (state.get("patch") or {}).get("llm_items") else "testgen"
+
+
+def after_input_gate(state: PipelineState) -> str:
+    """G0: bị chặn → kết thúc luồng; cần bổ sung thông tin → hỏi người dùng; đạt → Planner."""
+    status = state.get("input_gate", {}).get("status")
+    return END if status == "rejected" else "input_info" if status == "needs_info" else "drift_gate"
+
+
+def after_input_info(state: PipelineState) -> str:
+    """Người dùng đã bổ sung → kiểm tra lại; hết vòng hoặc dừng → fail (chuyển cho người xử lý)."""
+    return "fail" if state.get("error") else "input_gate"
+
+
+def after_drift_gate(state: PipelineState) -> str:
+    """G1: Engineer chọn dừng khi nguồn đổi cấu trúc kiểu breaking → fail; còn lại → Planner."""
+    return "fail" if state.get("error") else "planner"
 
 
 def after_planner(state: PipelineState) -> str:
@@ -15,7 +53,7 @@ def after_spec_check(state: PipelineState) -> str:
         return "plan_review"
     spec, rounds, limit = state.get("spec", {}), state.get("plan_rounds", 0), get_settings().max_plan_rounds
     if spec.get("unknowns") and spec.get("questions") and rounds <= limit:
-        return "clarify"
+        return "fail" if state.get("clarify_rounds", 0) >= get_settings().max_clarify_rounds else "clarify"
     return "fail" if rounds >= limit else "planner"
 
 
@@ -26,7 +64,7 @@ def after_plan_review(state: PipelineState) -> str:
         return "plan_review"
     if review.get("decision") == "approve":
         return "ingest"
-    return "fail" if state.get("plan_reviews", 0) > get_settings().max_review_rounds else "planner"
+    return "fail" if state.get("plan_reviews", 0) >= get_settings().max_review_rounds else "planner"
 
 
 def after_ingest(state: PipelineState) -> str:
@@ -49,15 +87,23 @@ def fix_route(state: PipelineState) -> str:
     return "codegen"
 
 
+def failure_route(state: PipelineState) -> str:
+    """V1/V2 không đạt: bản tối ưu đang thử → khôi phục bản gốc đã đạt (không tốn token); còn lại → vòng sửa."""
+    return "opt_revert" if state.get("opt_baseline") else fix_route(state)
+
+
 def after_safety(state: PipelineState) -> str:
-    """V1 đạt → sandbox; không đạt → vòng sửa."""
-    return "sandbox_run" if state.get("safety", {}).get("passed") else fix_route(state)
+    """V1 đạt → sandbox; không đạt → khôi phục bản gốc hoặc vòng sửa."""
+    return "sandbox_run" if state.get("safety", {}).get("passed") else failure_route(state)
 
 
 def after_sandbox(state: PipelineState) -> str:
-    """V2 đạt → tối ưu (nếu chưa) hoặc đóng gói; không đạt → vòng sửa."""
+    """V2 đạt → tối ưu (nếu chưa) hoặc đóng gói; không đạt → khôi phục bản gốc hoặc vòng sửa. Run vá không tối ưu lại: so với
+    lần chạy gốc rồi đóng gói."""
     if not state.get("sandbox", {}).get("passed"):
-        return fix_route(state)
+        return failure_route(state)
+    if state.get("patch_of"):
+        return "patch_verify"
     return "package" if state.get("optimization") else "optimizer"
 
 
@@ -72,7 +118,7 @@ def after_optimizer(state: PipelineState) -> str:
 
 
 def after_compare(state: PipelineState) -> str:
-    """Lệch → thử lại E4; áp dụng → kiểm tra lại V1+V2 với code mới; giữ nguyên → đóng gói."""
+    """Lệch → thử lại E4; áp dụng → kiểm tra lại V1+V2 với code mới (V2 so bảng đích với bản gốc); giữ nguyên → đóng gói."""
     report = state.get("optimization")
     if not report:
         return "optimizer"

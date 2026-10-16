@@ -10,7 +10,7 @@ from src.models.schemas import RunRecord
 class CreateRunBody(BaseModel):
     """Yêu cầu nghiệp vụ bằng lời."""
 
-    request_text: str = Field(min_length=5, max_length=4000, examples=["Gộp đơn hàng 3 nguồn, tính doanh thu ngày"])
+    request_text: str = Field(max_length=4000, examples=["Gộp đơn hàng 3 nguồn, tính doanh thu ngày"])
 
 
 class AnswerBody(BaseModel):
@@ -19,11 +19,27 @@ class AnswerBody(BaseModel):
     answers: dict[str, str | list[str]] = Field(min_length=1)
 
 
+class DriftBody(BaseModel):
+    """Trả lời khi nguồn đổi cấu trúc kiểu breaking: dùng cấu trúc mới (`continue`) hoặc dừng (`abort`)."""
+
+    action: Literal["continue", "abort"]
+
+
+class InputBody(BaseModel):
+    """Trả lời cửa kiểm tra đầu vào: gửi thông tin bổ sung / yêu cầu viết lại, hoặc dừng."""
+
+    action: Literal["send", "abort"] = "send"
+    text: str = Field(default="", max_length=2000)
+
+
 class PlanBody(BaseModel):
     """Quyết định J1b: đồng ý kế hoạch, hoặc yêu cầu sửa kèm ghi chú cho Planner."""
 
     decision: Literal["approve", "revise"]
     note: str = Field(default="", max_length=2000)
+    options: dict[str, str] | None = Field(
+        default=None, max_length=8
+    )  # lựa chọn pipeline: load_mode, schedule, incremental_column
 
 
 class ReviewBody(BaseModel):
@@ -86,6 +102,8 @@ class RunDetail(BaseModel):
     value_filters: list[dict] = []  # mục 9: điều kiện cứng theo giá trị (tô sáng ở màn duyệt)
     reconciliation: list[dict] = []  # mục 9: số dòng vào → ra từng model staging
     retryable: bool = False  # lần chạy lỗi nhưng còn checkpoint: có nút "Chạy lại từ bước lỗi"
+    patch: dict = {}  # run vá: {parent, plan, applied, llm_files, regression}; rỗng với run thường
+    drift: dict = {}  # cảnh báo cấu trúc nguồn: {warnings (lúc bắt đầu), recheck: {blocked, breaking, warnings} (ngay trước J2)}
 
 
 class RunFiles(BaseModel):

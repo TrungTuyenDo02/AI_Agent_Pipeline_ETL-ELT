@@ -10,6 +10,7 @@ import re
 from pathlib import Path
 
 from src.agents.nodes.common import all_files, mart_path, register_failure, sandbox_db, spec_of
+from src.agents.nodes.testgen import cast_tests
 from src.agents.state import PipelineState
 from src.agents.tools.dbt_tools import is_allowed_path
 from src.agents.tools.duckdb_tools import explain_error, read_catalog
@@ -24,7 +25,9 @@ from src.agents.tools.sql_tools import (
     parse_single_select,
     readable_columns,
     render_dbt_sql,
+    select_star_issues,
 )
+from src.config import get_settings
 from src.models.contracts import SafetyResult, hand_off
 
 Catalog = dict[str, dict[str, dict[str, str]]]
@@ -47,6 +50,46 @@ def check_sql(sql: str, catalog: Catalog) -> tuple[list[str], list[str]]:
         return [explain_column_error(str(exc), rendered, readable_columns(tree, catalog, str(exc)))], []
 
 
+PREFLIGHT_TASK = "check_source_schema"
+
+
+def _leftmost(node: ast.AST) -> ast.AST:
+    while isinstance(node, ast.BinOp) and isinstance(node.op, ast.RShift):
+        node = node.left
+    return node
+
+
+def _preflight_issues(tree: ast.AST) -> list[str]:
+    """DAG phải bắt đầu bằng task chạy macro `check_source_schema` (preflight) trước mọi task biến đổi: chuỗi `>>` ngoài cùng
+    phải mở đầu bằng biến của task đó."""
+    tasks = {
+        target.id: node.value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        for target in node.targets
+        if isinstance(target, ast.Name)
+    }
+
+    def is_preflight(leaf: ast.AST) -> bool:
+        call = tasks.get(leaf.id) if isinstance(leaf, ast.Name) else None
+        texts = (
+            [c.value for c in ast.walk(call) if isinstance(c, ast.Constant) and isinstance(c.value, str)]
+            if call
+            else []
+        )
+        return any(PREFLIGHT_TASK in text for text in texts)
+
+    chains = [n for n in ast.walk(tree) if isinstance(n, ast.BinOp) and isinstance(n.op, ast.RShift)]
+    inner = {id(n.left) for n in chains if isinstance(n.left, ast.BinOp) and isinstance(n.left.op, ast.RShift)}
+    outer = [n for n in chains if id(n) not in inner]
+    if any(is_preflight(_leftmost(n)) for n in outer):
+        return []
+    return [
+        f"DAG phải có task đầu tiên chạy `dbt run-operation {PREFLIGHT_TASK}` (kiểm cấu trúc nguồn) trước mọi task biến đổi, "
+        f"ví dụ: preflight >> build_models >> run_tests."
+    ]
+
+
 def check_dag(source: str) -> list[str]:
     """Kiểm tra DAG Airflow bằng AST (không cần cài Airflow)."""
     try:
@@ -61,7 +104,8 @@ def check_dag(source: str) -> list[str]:
         issues.append("DAG có nhiều task nhưng chưa khai báo thứ tự (toán tử >>).")
     if SECRET_RE.search(source):
         issues.append("DAG có vẻ ghi cứng mật khẩu/chuỗi kết nối — dùng Airflow Connection/Variable.")
-    return issues + dangerous_dag_code(tree)
+    preflight = _preflight_issues(tree) if "DAG" in calls else []
+    return issues + preflight + dangerous_dag_code(tree)
 
 
 # Airflow chạy code cấp module của DAG mỗi lần đọc file: chặn lệnh hệ thống, mạng, chạy code động, đọc file
@@ -159,6 +203,8 @@ def check_models(sql_files: dict[str, str], catalog: Catalog) -> tuple[list[str]
             errors, columns = check_sql(sql, catalog)
             if errors and any("không có trong danh mục" in e for e in errors) and len(pending) > 1:
                 continue
+            if path.startswith(("models/staging/", "models/marts/")):
+                errors = errors + select_star_issues(sql)
             pending.pop(path)
             progressed = True
             issues.extend(f"{path}: {e}" for e in errors)
@@ -219,6 +265,13 @@ def compile_issues(sql_files: dict[str, str], db: Path) -> list[str]:
     ]  # bỏ lỗi dây chuyền ở file gọi tới model đã lỗi
 
 
+def _defensive_test_issues(state: PipelineState, files: dict[str, str]) -> list[str]:
+    """Phòng thủ chống đổi cấu trúc: mỗi cột nguồn đọc bằng biểu thức ép kiểu phải có test đếm dòng không ép được (ngưỡng
+    CAST_FAIL_THRESHOLD). Thiếu = ép kiểu thất bại có thể âm thầm thành rỗng mà không ai biết."""
+    expected = cast_tests(state.get("profile", {}), get_settings().cast_fail_threshold)
+    return [f"Thiếu test ép kiểu bắt buộc: {path}." for path in expected if path not in files]
+
+
 def run_safety_checks(state: PipelineState) -> list[str]:
     """Toàn bộ kiểm tra V1 cho code + test hiện tại."""
     files = all_files(state)
@@ -229,17 +282,21 @@ def run_safety_checks(state: PipelineState) -> list[str]:
     tests = {p: s for p, s in files.items() if p.startswith("tests/") and p.endswith(".sql")}
     test_issues = [f"{p}: {e}" for p, s in tests.items() for e in check_sql(s, catalog)[0]]
     dag_issues = [f"{p}: {e}" for p, s in files.items() if p.startswith("dags/") for e in check_dag(s)]
-    all_issues = issues + model_issues + test_issues + dag_issues + _mart_columns_issue(state, outputs)
+    defensive = _defensive_test_issues(state, files)
+    all_issues = issues + model_issues + test_issues + dag_issues + _mart_columns_issue(state, outputs) + defensive
     if all_issues:
         return drop_cascading(all_issues, outputs)
     return compile_issues({**models, **tests}, sandbox_db(state))
 
 
 def safety_node(state: PipelineState) -> dict:
-    """Chặn code không an toàn/bịa tên; lỗi được ghi sổ lỗi và đếm vào vòng sửa."""
+    """Chặn code không an toàn/bịa tên; lỗi được ghi sổ lỗi và đếm vào vòng sửa.
+
+    Lỗi của bản tối ưu đang thử (`opt_baseline`) không ghi sổ lỗi, không tính lượt sửa: `opt_revert` khôi phục bản gốc.
+    """
     issues = run_safety_checks(state)
     result: dict = {"safety": hand_off(SafetyResult, {"passed": not issues, "issues": issues})}
-    if issues:
+    if issues and not state.get("opt_baseline"):
         result.update(
             register_failure(
                 state, "\n".join(issues), sql_before=state.get("code_files", {}).get(mart_path(spec_of(state)), "")

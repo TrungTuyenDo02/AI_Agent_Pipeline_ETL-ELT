@@ -18,6 +18,7 @@ export function DecisionForm() {
   const [error, setError] = useState("");
   const [confirming, setConfirming] = useState(false);
   if (!detail) return null;
+  const blocked = Boolean(detail.drift?.recheck?.blocked); // cấu trúc nguồn đã đổi sau lúc sinh code
   const waiting = detail.record.status === "waiting_review" && !detail.busy && reviewer;
 
   async function decide(decision: "approve" | "reject") {
@@ -48,6 +49,20 @@ export function DecisionForm() {
             </span>
           </div>
         )}
+        {blocked && (
+          <div className="alert danger" role="alert">
+            <span>
+              Cấu trúc nguồn đã đổi sau khi agent sinh code, nên chưa duyệt được bản này:
+              <ul className="plain">
+                {detail.drift?.recheck?.breaking.map((c) => (
+                  <li key={`${c.table}-${c.detail}`}>{c.detail}</li>
+                ))}
+              </ul>
+              Hãy từ chối kèm ghi chú, hoặc nhờ Engineer bấm &quot;Đề xuất bản vá&quot; ở trang Thay đổi cấu trúc để
+              chạy lại sandbox trên cấu trúc mới.
+            </span>
+          </div>
+        )}
         {detail.record.status === "waiting_review" && <RoleNote need="reviewer" />}
         <label htmlFor="review-note">Ghi chú (bắt buộc khi từ chối — agent sẽ sửa theo ghi chú)</label>
         <textarea
@@ -69,7 +84,12 @@ export function DecisionForm() {
           >
             Từ chối và ghi chú
           </button>
-          <button type="button" className="btn ok" disabled={!waiting || sending} onClick={() => setConfirming(true)}>
+          <button
+            type="button"
+            className="btn ok"
+            disabled={!waiting || sending || blocked}
+            onClick={() => setConfirming(true)}
+          >
             Duyệt
           </button>
           <ConfirmDialog

@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 
-import type { ClarifyQuestion, SchemaReport } from "@/lib/types";
+import type { ClarifyQuestion, SchemaChange, SchemaReport } from "@/lib/types";
 
 import { useHasRole } from "../AppContext";
 import { RoleNote } from "../Topbar";
@@ -82,6 +82,97 @@ export function ClarifyForm({ unknowns, questions }: { unknowns: string[]; quest
         </button>
       </div>
     </form>
+  );
+}
+
+/** Cửa kiểm tra đầu vào hỏi bổ sung (câu hỏi theo mẫu cố định) hoặc xin viết lại yêu cầu. */
+export function InputInfoForm({ message, rewrite }: { message: string; rewrite: boolean }) {
+  const { act } = useRun();
+  const engineer = useHasRole("engineer");
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [failure, setFailure] = useState("");
+
+  async function send(action: "send" | "abort") {
+    setSending(true);
+    setFailure(
+      await act(
+        "/input",
+        { action, text },
+        action === "send" ? "Đã gửi, agent kiểm tra lại yêu cầu." : "Đã dừng lần chạy.",
+      ),
+    );
+    setSending(false);
+  }
+
+  return (
+    <div className="stack" style={{ gap: 10 }}>
+      <RoleNote need="engineer" />
+      <div className="alert info" style={{ whiteSpace: "pre-line" }}>
+        <span>{message}</span>
+      </div>
+      <label htmlFor="input-info">{rewrite ? "Viết lại yêu cầu" : "Thông tin bổ sung"}</label>
+      <textarea id="input-info" value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} />
+      {failure && <ErrorBox message={failure} />}
+      <div className="row" style={{ justifyContent: "flex-end" }}>
+        <button type="button" className="btn danger" disabled={sending || !engineer} onClick={() => send("abort")}>
+          Dừng lần chạy
+        </button>
+        <button
+          type="button"
+          className="btn primary"
+          disabled={sending || !engineer || !text.trim()}
+          onClick={() => send("send")}
+        >
+          Gửi
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Nguồn đổi cấu trúc kiểu breaking: nêu rõ đổi gì ở đâu; Engineer dùng cấu trúc mới (đặt bản chuẩn mới) hoặc dừng. */
+export function DriftForm({ message, changes }: { message: string; changes: SchemaChange[] }) {
+  const { act } = useRun();
+  const engineer = useHasRole("engineer");
+  const [sending, setSending] = useState(false);
+  const [failure, setFailure] = useState("");
+
+  async function send(action: "continue" | "abort") {
+    setSending(true);
+    setFailure(
+      await act(
+        "/drift",
+        { action },
+        action === "continue" ? "Đã đặt cấu trúc mới làm bản chuẩn, agent chạy tiếp." : "Đã dừng lần chạy.",
+      ),
+    );
+    setSending(false);
+  }
+
+  return (
+    <div className="stack" style={{ gap: 10 }}>
+      <RoleNote need="engineer" />
+      <div className="alert danger" role="alert" style={{ whiteSpace: "pre-line" }}>
+        <span>{message}</span>
+      </div>
+      <ul className="schema-cols">
+        {changes.map((c) => (
+          <li key={c.id}>
+            <span className="badge danger">{c.table}</span> {c.detail}
+          </li>
+        ))}
+      </ul>
+      {failure && <ErrorBox message={failure} />}
+      <div className="row" style={{ justifyContent: "flex-end" }}>
+        <button type="button" className="btn danger" disabled={sending || !engineer} onClick={() => send("abort")}>
+          Dừng lần chạy
+        </button>
+        <button type="button" className="btn primary" disabled={sending || !engineer} onClick={() => send("continue")}>
+          Tôi đã biết, dùng cấu trúc mới
+        </button>
+      </div>
+    </div>
   );
 }
 

@@ -152,6 +152,15 @@ class Store:
                 total += float(summary.get("cost_usd") or 0.0)
         return round(total, 6)
 
+    def runs_today(self, requester: str) -> int:
+        """Số lần chạy người này tạo hôm nay (giờ VN); lần bị chặn ở cửa kiểm tra đầu vào KHÔNG tính vào hạn mức."""
+        start = datetime.now(VN_TZ).replace(hour=0, minute=0, second=0, microsecond=0).astimezone(UTC)
+        with self.engine.connect() as conn:
+            return conn.execute(
+                text("SELECT count(*) FROM runs WHERE requester=:r AND created_at>=:t AND status!=:s"),
+                {"r": requester, "t": start.isoformat(timespec="seconds"), "s": _value(RunStatus.REJECTED_INPUT)},
+            ).scalar_one()
+
     def get_run(self, run_id: str) -> RunRecord | None:
         """Lấy một lần chạy theo id; không có thì trả None."""
         with self.engine.connect() as conn:

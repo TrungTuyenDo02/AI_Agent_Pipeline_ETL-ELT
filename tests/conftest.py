@@ -49,6 +49,7 @@ os.environ.update(
         "SOURCES_DIR": str(_TMP / "sources"),
         "WORKSPACES_DIR": str(_TMP / "workspaces"),
         "TEMPLATE_DIR": str(REPO_ROOT / "pipelines" / "template"),
+        "DRIFT_GATE_ENABLED": "false",  # test của giai đoạn 5 bật lại bằng fixture `drift_on`
         "MOCK_LARGE_ROWS": "20000",
         "OPT_BENCH_RUNS": "3",
     }

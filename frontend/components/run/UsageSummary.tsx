@@ -10,6 +10,7 @@ import { useRun } from "./RunContext";
 // Mọi số lấy từ API (đo thật); lần chạy dùng LLM mô phỏng thì ghi "mô phỏng", chưa đo thì "—".
 
 const TASK_LABELS: Record<string, string> = {
+  input_gate: "Kiểm tra đầu vào",
   planner: "Lập kế hoạch",
   codegen: "Sinh code",
   testgen: "Sinh test",

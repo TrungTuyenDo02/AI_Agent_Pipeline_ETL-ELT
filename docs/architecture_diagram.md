@@ -21,6 +21,13 @@ graph TB
     Runner --> Graph[LangGraph<br/>17 node J-E-V]
     Runner --> Store[(SQLite<br/>runs, reviews, sổ lỗi)]
     Graph --> Ckpt[(SQLite checkpointer<br/>state theo run_id)]
+    API --> Gate[Cửa kiểm tra đầu vào<br/>tầng 0-1 code, tầng 2 model nhỏ]
+    Graph --> Registry[Sổ nguồn + phân quyền phòng ban<br/>get_visible_sources]
+    Registry --> Ctx[build_llm_context<br/>schema_only / profile / masked_sample]
+    Ctx --> LLM
+    Registry --> Drift[Giám sát cấu trúc<br/>schema_drift, bản chuẩn, cảnh báo thống kê]
+    Cron[GitHub Actions<br/>drift-check hằng ngày] --> API
+    Drift --> PG
     Graph --> LLM[LLM service<br/>mock / OpenAI]
     Graph --> Sandbox[(Sandbox DuckDB<br/>dbt build, bộ dữ liệu thử)]
     Graph --> WS[Workspace<br/>dbt project + DAG + PULL_REQUEST.md]
@@ -31,7 +38,13 @@ graph TB
 
 ```mermaid
 graph LR
-    NL([Yêu cầu NL]) --> E1[E1 Planner]
+    NL([Yêu cầu NL]) --> G0{G0 Cửa kiểm tra đầu vào}
+    G0 -->|vô nghĩa / lạc đề / tấn công| X([Từ chối, kèm ví dụ hợp lệ])
+    G0 -->|thiếu thông tin| G0
+    G0 -->|đạt| G1{G1 Kiểm tra cấu trúc nguồn}
+    G1 -->|breaking đang mở| JD[/Engineer xác nhận cấu trúc mới/]
+    JD --> E1
+    G1 -->|không đổi, info, warning| E1[E1 Planner]
     E1 --> V0{V0 Soát spec}
     V0 -->|còn điểm chưa rõ| J1[/J1 Làm rõ/]
     J1 --> E1
@@ -57,6 +70,7 @@ graph LR
     PR --> J2[/J2 Reviewer/]
     J2 -->|từ chối + ghi chú| E3
     J2 -->|duyệt| CI[CI/CD]
+    J2 -.->|kiểm lại cấu trúc: breaking mới thì chặn nút Duyệt| G1
 ```
 
 Ký hiệu: hình chữ nhật = agent (LLM) hoặc bước dữ liệu; hình thoi = kiểm chứng bằng code (0 token);

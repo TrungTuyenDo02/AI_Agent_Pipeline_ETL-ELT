@@ -1,0 +1,8 @@
+order_id,department_code,partner_code,amount,note
+S-001,SALES,PARTNER-A,125000,"Giao, buổi sáng"
+S-002,SALES,PARTNER-A,0,
+S-003,SALES,PARTNER-B,-5000,"Hàng trả"
+S-003,SALES,PARTNER-B,-5000,"Hàng trả"
+S-004,SALES,PARTNER-B,00125.50,"Giao sau
+18h"
+S-005,SALES,PARTNER-A,999999,"Khách nói ""đã nhận"""

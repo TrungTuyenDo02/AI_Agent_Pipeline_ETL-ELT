@@ -1,0 +1,6 @@
+id: g14_gloss_refunds
+expect_questions: false
+score: result
+trap: thuật ngữ 'hoàn tiền' (status refunded của website)
+expected_mode: ELT
+glossary: [hoàn tiền]

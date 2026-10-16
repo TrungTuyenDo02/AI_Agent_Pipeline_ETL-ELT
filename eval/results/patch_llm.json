@@ -1,0 +1,177 @@
+{
+ "summary": {
+  "date": "2026-10-16",
+  "cases": 6,
+  "need_change": 5,
+  "fixed_by_code": 5,
+  "same_as_original": 5,
+  "needs_ai_or_person": 0,
+  "failed": 0,
+  "patch_tokens": 8327,
+  "old_way_tokens": 6918,
+  "old_way_usd": 0.0045
+ },
+ "rows": [
+  {
+   "key": "rename_column",
+   "title": "Đổi tên cột order_date → ordered_at (shopee_orders)",
+   "changes": [
+    "breaking: possible_rename"
+   ],
+   "actions": [
+    "code"
+   ],
+   "choice": "chọn cột nghi đổi tên",
+   "code_fixes": 1,
+   "llm_items": 0,
+   "questions": 0,
+   "estimate": "0 token: sửa hoàn toàn bằng code, không gọi AI.",
+   "tokens": 0,
+   "outcome": "passed_same",
+   "detail": "",
+   "files": [
+    "models/staging/stg_shopee_orders.sql",
+    "tests/assert_fct_daily_revenue_reconciles.sql"
+   ],
+   "already_ok": [],
+   "seconds": 12.7,
+   "llm_files": [],
+   "cost_usd": 0,
+   "llm_calls": 0
+  },
+  {
+   "key": "rename_and_retype",
+   "title": "Đổi tên cột VÀ đổi kiểu (website_orders.amount_vnd → amount, số → chuỗi)",
+   "changes": [
+    "breaking: column_removed",
+    "info: column_added"
+   ],
+   "actions": [
+    "code",
+    "none"
+   ],
+   "choice": "chọn cột amount thay amount_vnd",
+   "code_fixes": 1,
+   "llm_items": 0,
+   "questions": 0,
+   "estimate": "0 token: sửa hoàn toàn bằng code, không gọi AI.",
+   "tokens": 0,
+   "outcome": "passed_same",
+   "detail": "",
+   "files": [
+    "models/staging/stg_website_orders.sql",
+    "tests/assert_fct_daily_revenue_reconciles.sql"
+   ],
+   "already_ok": [],
+   "seconds": 12.9,
+   "llm_files": [],
+   "cost_usd": 0,
+   "llm_calls": 0
+  },
+  {
+   "key": "money_to_number",
+   "title": "Cột tiền từ chuỗi sang số (shopee_orders.total_amount)",
+   "changes": [
+    "breaking: type_incompatible"
+   ],
+   "actions": [
+    "code"
+   ],
+   "choice": "",
+   "code_fixes": 1,
+   "llm_items": 0,
+   "questions": 0,
+   "estimate": "0 token: sửa hoàn toàn bằng code, không gọi AI.",
+   "tokens": 0,
+   "outcome": "passed_same",
+   "detail": "",
+   "files": [],
+   "already_ok": [
+    "models/staging/stg_shopee_orders.sql",
+    "tests/assert_fct_daily_revenue_reconciles.sql"
+   ],
+   "seconds": 12.6,
+   "llm_files": [],
+   "cost_usd": 0,
+   "llm_calls": 0
+  },
+  {
+   "key": "float_to_string",
+   "title": "Kiểu số thực đổi thành chuỗi (tiki_orders.grand_total)",
+   "changes": [
+    "breaking: type_incompatible"
+   ],
+   "actions": [
+    "code"
+   ],
+   "choice": "",
+   "code_fixes": 1,
+   "llm_items": 0,
+   "questions": 0,
+   "estimate": "0 token: sửa hoàn toàn bằng code, không gọi AI.",
+   "tokens": 0,
+   "outcome": "passed_same",
+   "detail": "",
+   "files": [
+    "models/staging/stg_tiki_orders.sql",
+    "tests/assert_fct_daily_revenue_reconciles.sql"
+   ],
+   "already_ok": [],
+   "seconds": 12.8,
+   "llm_files": [],
+   "cost_usd": 0,
+   "llm_calls": 0
+  },
+  {
+   "key": "add_column",
+   "title": "Thêm cột mới (website_orders.channel)",
+   "changes": [
+    "info: column_added"
+   ],
+   "actions": [
+    "none"
+   ],
+   "choice": "",
+   "code_fixes": 0,
+   "llm_items": 0,
+   "questions": 0,
+   "estimate": "0 token: sửa hoàn toàn bằng code, không gọi AI.",
+   "tokens": 0,
+   "outcome": "passed_same",
+   "detail": "",
+   "files": [],
+   "already_ok": [],
+   "seconds": 12.6,
+   "llm_files": [],
+   "cost_usd": 0,
+   "llm_calls": 0
+  },
+  {
+   "key": "drop_used_column",
+   "title": "Xóa cột đang dùng (tiki_orders.grand_total)",
+   "changes": [
+    "breaking: column_removed"
+   ],
+   "actions": [
+    "llm"
+   ],
+   "choice": "chọn bỏ cột khỏi pipeline",
+   "code_fixes": 0,
+   "llm_items": 1,
+   "questions": 0,
+   "estimate": "1 thay đổi cần AI sửa file (một lần gọi Codegen có giới hạn file); phần còn lại 0 token.",
+   "tokens": 8327,
+   "outcome": "passed_different",
+   "detail": "60 dòng khác (30 → 30)",
+   "files": [],
+   "already_ok": [],
+   "seconds": 68.8,
+   "llm_files": [
+    "models/staging/stg_tiki_orders.sql",
+    "tests/assert_fct_daily_revenue_reconciles.sql"
+   ],
+   "cost_usd": 0.00269,
+   "llm_calls": 2
+  }
+ ]
+}

@@ -5977,10 +5977,15 @@ body:has(.login-page)::after {
 
 /* ----- Canvas: bảng có lưới chấm, các thẻ nằm sẵn trên bảng ----- */
 .canvas {
+  --k-agent: #8ab4ff;
+  --k-code: #6ee7a0;
+  --k-human: #fcd34d;
+  --k-ink: #0b1220;
+
   display: flex;
   flex-direction: column;
   gap: 14px;
-  max-width: 660px;
+  max-width: 680px;
   margin-top: 6px;
   padding: 18px;
   border: 1px solid var(--login-hero-edge);
@@ -5990,10 +5995,11 @@ body:has(.login-page)::after {
   background-size: 18px 18px;
 }
 
+/* luồng làm việc: 5 nút hàng trên, 4 nút hàng dưới; màu cho biết ai làm bước đó */
 .canvas-flow {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 22px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px 18px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -6003,132 +6009,189 @@ body:has(.login-page)::after {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 12px;
+  gap: 6px;
+  align-items: flex-start;
+  padding: 10px 10px 11px;
   border: 1px solid var(--login-hero-edge);
   border-radius: 14px;
   background: var(--login-hero-card-solid);
   box-shadow: 0 6px 18px rgb(0 0 0 / 28%);
   font-size: 13px;
+  line-height: 1.25;
+  animation: canvas-glow 4.2s ease-in-out infinite;
 }
 
-.canvas-node small {
-  color: var(--login-hero-muted);
-  font-size: 12px;
-  line-height: 1.4;
+.canvas-node strong {
+  font-weight: 700;
 }
 
-/* mũi tên nối các nút */
-.canvas-node:not(:last-child)::after {
+.canvas-code {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--k-code);
+  color: var(--k-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.canvas-node.agent .canvas-code {
+  background: var(--k-agent);
+}
+
+.canvas-node.human .canvas-code {
+  background: var(--k-human);
+}
+
+/* mũi tên nối các nút trong cùng hàng */
+.canvas-node:not(:nth-child(5n))::after {
   content: "";
   position: absolute;
-  top: 24px;
+  top: 22px;
   left: 100%;
-  width: 22px;
+  width: 18px;
   height: 2px;
   background: var(--login-hero-muted);
 }
 
-.canvas-node:not(:last-child)::before {
+.canvas-node:not(:nth-child(5n)):not(:last-child)::before {
   content: "";
   position: absolute;
-  top: 20px;
-  right: -23px;
+  top: 18px;
+  right: -19px;
   z-index: 1;
   border: 5px solid transparent;
   border-left: 7px solid var(--login-hero-muted);
 }
 
-.canvas-rule {
+.canvas-node:last-child::after,
+.canvas-node:last-child::before {
+  display: none;
+}
+
+@keyframes canvas-glow {
+  0%,
+  22%,
+  100% {
+    box-shadow: 0 6px 18px rgb(0 0 0 / 28%);
+  }
+
+  10% {
+    box-shadow:
+      0 0 0 2px var(--k-agent),
+      0 6px 18px rgb(0 0 0 / 28%);
+  }
+}
+
+.canvas-legend,
+.canvas-tools {
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.canvas-legend li {
+  display: inline-flex;
+  gap: 6px;
   align-items: center;
-  gap: 8px;
-  margin: 0;
-  color: var(--login-hero-ink);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.canvas-cards {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.canvas-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px 16px;
-  border: 1px solid var(--login-hero-edge);
-  border-radius: 16px;
-  background: var(--login-hero-card-solid);
-  box-shadow: 0 8px 22px rgb(0 0 0 / 30%);
-  font-size: 13px;
-}
-
-.canvas-card-wide {
-  grid-column: 1 / -1;
-}
-
-.canvas-card h3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-size: 14px;
-  letter-spacing: 0.01em;
-}
-
-.canvas-card p {
-  margin: 0;
-}
-
-.canvas-steps,
-.canvas-data {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding-left: 18px;
   color: var(--login-hero-muted);
 }
 
-.canvas-data {
-  padding-left: 0;
+.canvas-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--k-code);
+}
+
+.canvas-legend .agent i {
+  background: var(--k-agent);
+}
+
+.canvas-legend .human i {
+  background: var(--k-human);
+}
+
+.canvas-tools li {
+  padding: 2px 8px;
+  border: 1px solid var(--login-hero-edge);
+  border-radius: 999px;
+  color: var(--login-hero-ink);
+  font-weight: 600;
+}
+
+/* bốn con số đo được: "bước ăn điểm" */
+.canvas-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
   list-style: none;
 }
 
-.canvas-data strong {
-  display: block;
+.canvas-stats li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--login-hero-edge);
+  border-radius: 14px;
+  background: var(--login-hero-card-solid);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 28%);
+}
+
+.canvas-stats b {
+  color: var(--k-human);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.canvas-stats span {
   color: var(--login-hero-ink);
-}
-
-.canvas-data small {
   font-size: 12px;
+  line-height: 1.3;
 }
 
-.canvas-card .hero-cmd {
-  margin-top: auto;
-}
-
-.canvas-card .hero-cmd code {
-  overflow-wrap: anywhere;
+.canvas-accounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
   font-size: 12px;
+  font-weight: 600;
+}
+
+.canvas-accounts > span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas-node {
+    animation: none;
+  }
 }
 
 @media (max-width: 720px) {
   .canvas-flow {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .canvas-node:nth-child(2n)::after,
-  .canvas-node:nth-child(2n)::before {
+  .canvas-node::after,
+  .canvas-node::before {
     display: none;
   }
 
-  .canvas-cards {
-    grid-template-columns: minmax(0, 1fr);
+  .canvas-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -6199,4 +6262,266 @@ body:has(.login-page)::after {
 
 .memory-row p {
   margin: 0;
+}
+
+/* ----- Thay đổi cấu trúc nguồn: nút đỏ, thẻ, hình so sánh trước/sau, đề xuất sửa pipeline ----- */
+
+.bell-count.danger {
+  background: var(--fail);
+  color: #fff;
+}
+
+.count-oval {
+  display: inline-block;
+  min-width: 26px;
+  margin-left: 10px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: var(--fail);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 26px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.count-oval.small {
+  min-width: 20px;
+  margin-left: 0;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.drift-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--muted);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.drift-card.breaking {
+  border-left-color: var(--fail);
+}
+
+.drift-card.warning {
+  border-left-color: var(--warn);
+}
+
+.drift-card.info {
+  border-left-color: var(--primary);
+}
+
+.drift-card[data-inactive] {
+  opacity: 0.7;
+}
+
+.drift-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.drift-status {
+  margin-left: auto;
+}
+
+.diff {
+  display: grid;
+  gap: 4px;
+  max-width: 640px;
+}
+
+.diff-head,
+.diff-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.diff-head {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.diff-cell {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.diff-cell.empty {
+  border-style: dashed;
+  background: transparent;
+}
+
+.diff-name {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.diff-type {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.diff-mark {
+  font-weight: 800;
+}
+
+.diff-cell.removed,
+.diff-cell.renamed_from {
+  border-color: var(--fail);
+  background: var(--fail-soft);
+}
+
+.diff-cell.added,
+.diff-cell.renamed_to {
+  border-color: var(--ok);
+  background: var(--ok-soft);
+}
+
+.diff-cell.changed {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.diff-cell.removed .diff-name,
+.diff-cell.renamed_from .diff-name {
+  text-decoration: line-through;
+}
+
+.diff-note {
+  grid-column: 1 / -1;
+  margin: -2px 0 2px 4px;
+}
+
+.advice {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.advice.needs {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.advice.fine {
+  background: var(--ok-soft);
+  border-color: var(--ok);
+}
+
+.advice-files,
+.advice-actions {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.advice-files {
+  list-style: none;
+  padding-left: 0;
+}
+
+.advice-files li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.advice-ai p {
+  margin: 4px 0 0;
+}
+
+/* Số đỏ trên tab điều hướng (thay đổi cấu trúc nguồn đang chặn) */
+.nav-badge {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--fail);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.bottom-item {
+  position: relative;
+}
+
+.bottom-item .nav-badge {
+  position: absolute;
+  top: 2px;
+  right: calc(50% - 22px);
+}
+
+/* Kế hoạch bản vá: cái gì tự sửa bằng code, cái gì cần AI, cái gì cần bạn chọn */
+.patch-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.patch-items {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.patch-item {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--muted);
+  border-radius: 8px;
+}
+
+.patch-item.code {
+  border-left-color: var(--ok);
+}
+
+.patch-item.llm {
+  border-left-color: var(--warn);
+}
+
+.patch-item.ask {
+  border-left-color: var(--primary);
+}
+
+.patch-item.blocked {
+  border-left-color: var(--fail);
+}
+
+.patch-item p {
+  margin: 0;
+}
+
+.patch-question {
+  margin: 4px 0 0;
+  padding: 0;
+  border: 0;
 }

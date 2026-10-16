@@ -1,8 +1,13 @@
 """Graph LangGraph của luồng P-113 (khớp sơ đồ kiến trúc):
 
-NL → E1 planner ⇄ J1 clarify → V0 spec_check → J1b plan_review (DE duyệt kế hoạch) → E0 ingest → P profiler → Vs schema_guard (so cấu trúc với bản đã duyệt;
+Bản vá nhanh (nút "Đề xuất bản vá"): START → patch_start → ingest → profiler → patch_apply → testgen (codegen chỉ khi còn phần cần AI)
+→ V1 → V2 → patch_verify → package → J2; bỏ qua G0–J1b và E4.
+
+NL → G0 input_gate (chặn vô nghĩa/lạc đề, 0 token) → G1 drift_gate (nguồn đổi cấu trúc kiểu breaking → chờ xác nhận) → E1 planner ⇄ J1 clarify → V0 spec_check → J1b plan_review (DE duyệt kế hoạch) → E0 ingest → P profiler → Vs schema_guard (so cấu trúc với bản đã duyệt;
 xóa/đổi tên cột → Engineer xác nhận) → E2 mock_data → E3 codegen → E3b testgen
 → V1 safety → V2 sandbox_run (≤3 lần sửa, lỗi lặp → cứu hộ) → E4 optimizer ⇄ V3 compare → package → J2 review.
+Bản tối ưu được áp dụng → V1 → V2 kiểm lại (bảng đích phải giống hệt bản gốc trên sandbox); lỗi/lệch → opt_revert khôi phục
+bản gốc → V1 → V2 (không quay về Codegen).
 """
 
 from langgraph.graph import END, START, StateGraph
@@ -13,10 +18,14 @@ from src.agents import routing
 from src.agents.nodes.clarify import clarify_node
 from src.agents.nodes.codegen import codegen_node
 from src.agents.nodes.compare import compare_node
+from src.agents.nodes.drift_gate import drift_gate_node
 from src.agents.nodes.ingest import ingest_node
+from src.agents.nodes.input_gate import input_gate_node, input_info_node
 from src.agents.nodes.mock_data import mock_data_node
+from src.agents.nodes.opt_revert import opt_revert_node
 from src.agents.nodes.optimizer import optimizer_node
 from src.agents.nodes.package import package_node
+from src.agents.nodes.patch import patch_apply_node, patch_start_node, patch_verify_node
 from src.agents.nodes.plan_review import plan_review_node
 from src.agents.nodes.planner import planner_node
 from src.agents.nodes.profiler import profiler_node
@@ -30,6 +39,12 @@ from src.agents.nodes.testgen import testgen_node
 from src.agents.state import PipelineState
 
 NODES = {
+    "input_gate": input_gate_node,
+    "input_info": input_info_node,
+    "patch_start": patch_start_node,
+    "patch_apply": patch_apply_node,
+    "patch_verify": patch_verify_node,
+    "drift_gate": drift_gate_node,
     "planner": planner_node,
     "clarify": clarify_node,
     "spec_check": spec_check_node,
@@ -45,12 +60,20 @@ NODES = {
     "rescue": rescue_node,
     "optimizer": optimizer_node,
     "compare": compare_node,
+    "opt_revert": opt_revert_node,
     "package": package_node,
     "review": review_node,
     "finalize": finalize_node,
     "fail": fail_node,
 }
 CONDITIONAL = {
+    START: routing.start_route,
+    "patch_start": routing.after_patch_start,
+    "patch_apply": routing.after_patch_apply,
+    "profiler": routing.after_profiler,
+    "input_gate": routing.after_input_gate,
+    "input_info": routing.after_input_info,
+    "drift_gate": routing.after_drift_gate,
     "planner": routing.after_planner,
     "spec_check": routing.after_spec_check,
     "plan_review": routing.after_plan_review,
@@ -64,12 +87,12 @@ CONDITIONAL = {
     "review": routing.after_review,
 }
 EDGES = [
-    (START, "planner"),
     ("clarify", "planner"),
-    ("profiler", "schema_guard"),
     ("mock_data", "codegen"),
     ("codegen", "testgen"),
     ("testgen", "safety"),
+    ("opt_revert", "safety"),
+    ("patch_verify", "package"),
     ("package", "review"),
     ("finalize", END),
     ("fail", END),

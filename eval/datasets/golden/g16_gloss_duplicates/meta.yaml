@@ -1,0 +1,6 @@
+id: g16_gloss_duplicates
+expect_questions: false
+score: result
+trap: thuật ngữ 'trùng đơn' + 'doanh thu'; yêu cầu không nêu trạng thái
+expected_mode: ELT
+glossary: [trùng đơn, doanh thu]

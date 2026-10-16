@@ -7,6 +7,7 @@ import { useEffect, type ReactNode } from "react";
 
 import { useApp } from "./AppContext";
 import type { Role } from "@/lib/types";
+import { useDriftAlerts } from "@/lib/useDriftAlerts";
 
 import { BottomNav, Dock, type NavLinkItem } from "./Dock";
 import { Icon, SparkIcon } from "./icons";
@@ -20,21 +21,30 @@ type NavItem = NavLinkItem;
 const HOME: NavItem = { href: "/", label: "Trang chủ", icon: "home" };
 const RUNS: NavItem = { href: "/runs", label: "Lần chạy", icon: "runs" };
 const SOURCES: NavItem = { href: "/catalog", label: "Dữ liệu nguồn", icon: "sources" };
+const REGISTRY: NavItem = { href: "/sources", label: "Nguồn dữ liệu", icon: "registry" };
 const ERRORS: NavItem = { href: "/errors", label: "Sổ lỗi", icon: "errors" };
+const DRIFT: NavItem = { href: "/schema-changes", label: "Thay đổi cấu trúc", icon: "drift" };
 // Mỗi vai trò thấy trước việc của mình (ẩn mục chỉ để gọn; quyền thật kiểm ở backend).
 const NAV: Record<Role, NavItem[]> = {
-  engineer: [HOME, RUNS, SOURCES, ERRORS],
-  reviewer: [{ ...HOME, label: "Hàng đợi" }, RUNS, ERRORS, SOURCES],
-  admin: [HOME, { href: "/admin", label: "Người dùng", icon: "users" }, RUNS, SOURCES],
+  engineer: [HOME, RUNS, SOURCES, REGISTRY, DRIFT, ERRORS],
+  reviewer: [{ ...HOME, label: "Hàng đợi" }, RUNS, ERRORS, SOURCES, REGISTRY, DRIFT],
+  admin: [HOME, { href: "/admin", label: "Người dùng", icon: "users" }, RUNS, SOURCES, REGISTRY, DRIFT],
 };
 function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
+/** Gắn số đỏ: Thay đổi cấu trúc = số thay đổi chặn đang mở; Nguồn dữ liệu = số nguồn đang có thay đổi chặn. */
+function useNavItems(role: Role): NavItem[] {
+  const { breaking, sources } = useDriftAlerts();
+  const badges: Record<string, number> = { [DRIFT.href]: breaking.length, [REGISTRY.href]: sources };
+  return NAV[role].map((item) => ({ ...item, badge: badges[item.href] || undefined }));
+}
+
 function TopBar() {
   const pathname = usePathname();
   const { user } = useApp();
-  const nav = NAV[user?.role ?? "engineer"];
+  const nav = useNavItems(user?.role ?? "engineer");
   return (
     <header className="topbar">
       <Link href="/" className="brand">
@@ -42,7 +52,7 @@ function TopBar() {
         <span>P-113 Agent Studio</span>
       </Link>
       <nav className="nav-pills" aria-label="Điều hướng chính">
-        {nav.map(({ href, label, icon }) => {
+        {nav.map(({ href, label, icon, badge }) => {
           const active = isActive(pathname, href);
           return (
             <Link
@@ -55,6 +65,11 @@ function TopBar() {
               {active && <motion.span layoutId="active-pill" className="nav-pill-bg" aria-hidden />}
               <Icon name={icon} size={16} weight={active ? "fill" : "regular"} />
               <span>{label}</span>
+              {badge ? (
+                <span className="nav-badge" role="status" aria-label={`${badge} cần xử lý`}>
+                  {badge}
+                </span>
+              ) : null}
             </Link>
           );
         })}
@@ -113,6 +128,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { auth, user } = useApp();
   const onLogin = pathname.startsWith("/login");
+  const navItems = useNavItems(user?.role ?? "engineer");
 
   // Mọi trang (trừ đăng nhập) cần phiên; hết phiên → về đăng nhập, quay lại đúng trang sau khi đăng nhập
   useEffect(() => {
@@ -143,7 +159,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <Footer />
       </div>
-      <BottomNav items={NAV[user?.role ?? "engineer"]} isActive={(href) => isActive(pathname, href)} />
+      <BottomNav items={navItems} isActive={(href) => isActive(pathname, href)} />
     </div>
   );
 }

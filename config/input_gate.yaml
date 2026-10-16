@@ -1,0 +1,171 @@
+# Cấu hình cửa kiểm tra đầu vào (tầng 0 và tầng 1). Mọi mẫu viết KHÔNG DẤU, chữ thường: yêu cầu được
+# chuẩn hóa (bỏ dấu tiếng Việt, đ -> d, ký tự lạ thành khoảng trắng) trước khi so khớp.
+# Sửa file này là đủ để cập nhật; không cần sửa code. Đây chỉ là lớp chặn cơ bản, không thay V1/V2.
+
+# ---- Tầng 0: mẫu tấn công prompt đơn giản (regex trên chuỗi đã chuẩn hóa) ----
+attack_patterns:
+  - 'bo qua (tat ca |moi )?(huong dan|chi dan|quy tac|lenh) (truoc|o tren|ban dau)'
+  - 'quen (het |di )?(huong dan|chi dan|quy tac) (truoc|ban dau)'
+  - 'ignore (all |any )?(the )?(previous|prior|above|earlier) (instructions?|prompts?|rules?)'
+  - 'disregard (all |any )?(the )?(previous|prior|above) (instructions?|prompts?)'
+  - 'system prompt'
+  - 'prompt he thong'
+  - 'developer message'
+  - 'jailbreak'
+  - 'do anything now'
+  - 'ban dang o che do (nha phat trien|developer|admin)'
+  - 'you are now (in )?(developer|dan|admin|root)'
+  - '(in ra|hien thi|cho toi xem|cho xem|tiet lo|lo ra|doc ra|liet ke|show|print|reveal|display|dump|leak|echo|cat) .{0,40}(api key|apikey|khoa api|secret|mat khau|password|token|bien moi truong|environment variable|env var|\.env|connection string|chuoi ket noi)'
+  - '(api key|apikey|khoa api|mat khau|password|bien moi truong|connection string|chuoi ket noi) .{0,20}(la gi|la bao nhieu|cua ban|cua he thong|cua ung dung)'
+
+# ---- Tầng 0: từ viết tắt kỹ thuật không có nguyên âm (không bị coi là chuỗi vô nghĩa) ----
+vowelless_ok:
+  - sql
+  - dbt
+  - etl
+  - elt
+  - dwh
+  - cdc
+  - tphcm
+  - hcm
+  - vnd
+  - kpi
+  - rfm
+  - cgs
+  - pk
+  - fk
+  - sku
+  - dag
+  - cte
+  - ctr
+  - cpc
+  - cpm
+  - gmv
+  - sdk
+  - nvl
+  - tmdt
+  - ngtk
+
+# ---- Tầng 1: động từ nghiệp vụ (đủ để cho qua dù chưa khớp tên bảng/cột) ----
+business_verbs:
+  - gop
+  - tong hop
+  - bao cao
+  - toi uu
+  - noi bang
+  - noi cac
+  - noi hai
+  - noi du lieu
+  - loc
+  - lam sach
+  - khu trung
+  - chuan hoa
+  - trich xuat
+  - chuyen doi
+  - nap du lieu
+  - tinh
+  - dem
+  - thong ke
+  - phan tich
+  - doi soat
+  - kiem tra du lieu
+  - pipeline
+  - etl
+  - elt
+  - dbt
+  - airflow
+  - dag
+  - join
+  - merge
+  - aggregate
+  - group by
+  - clean
+  - dedup
+  - deduplicate
+  - transform
+  - load
+  - optimize
+  - report
+  - summarize
+  - calculate
+  - compute
+  - count
+
+# ---- Tầng 1: từ vựng nghiệp vụ luôn được coi là từ khóa (dù danh mục chưa có cột trùng tên) ----
+always_keywords:
+  - don hang
+  - doanh thu
+  - doanh so
+  - khach hang
+  - san pham
+  - hoan tien
+  - ton kho
+  - cua hang
+  - nhan vien
+  - thanh toan
+  - giao hang
+  - quang cao
+  - order
+  - orders
+  - revenue
+  - customer
+  - customers
+  - product
+  - products
+  - refund
+  - inventory
+  - gmv
+
+# ---- Tầng 1: bảng đồng nghĩa (mỗi nhóm: mọi từ trong nhóm coi như nhau) ----
+synonyms:
+  - [don hang, order, orders, don, giao dich, transaction, transactions]
+  - [doanh thu, revenue, sales, doanh so, gmv]
+  - [khach hang, customer, customers, khach, client, nguoi mua]
+  - [san pham, product, products, mat hang, hang hoa, sku, item, items]
+  - [hoan tien, refund, refunds, tra hang, hoan hang, return, returns]
+  - [ton kho, inventory, stock, kho]
+  - [cua hang, store, stores, chi nhanh, branch]
+  - [nhan vien, employee, employees, staff]
+  - [thanh toan, payment, payments]
+  - [giao hang, shipping, shipment, delivery, van chuyen]
+  - [quang cao, ads, ad, campaign, chien dich]
+  - [ngay, day, daily, theo ngay, hang ngay]
+  - [thang, month, monthly, theo thang, hang thang]
+  - [bang, table, tables]
+  - [cot, column, columns]
+  - [nguon, source, sources, nguon du lieu]
+  - [du lieu, data, dataset]
+
+# ---- Tầng 1: từ quá chung chung ở tên cột, KHÔNG tự đủ để coi là từ khóa nghiệp vụ ----
+generic_tokens:
+  - id
+  - ids
+  - name
+  - type
+  - status
+  - date
+  - time
+  - value
+  - code
+  - key
+  - note
+  - notes
+  - text
+  - created
+  - updated
+  - at
+  - on
+  - by
+  - is
+  - no
+  - num
+  - number
+  - flag
+  - raw
+  - src
+  - tmp
+  - dim
+  - fct
+  - stg
+  - mart
+  - col

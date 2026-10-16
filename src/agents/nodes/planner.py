@@ -1,5 +1,6 @@
 """E1 Planner: yêu cầu NL + danh mục nguồn thật → PipelineSpec (LLM rút thông tin, code quyết định mode)."""
 
+import json
 import logging
 import re
 
@@ -7,13 +8,15 @@ from pydantic import ValidationError
 
 from src.agents.nodes.common import memory_notes, usage_of
 from src.agents.state import PipelineState
-from src.agents.tools.duckdb_tools import discover_sources
-from src.agents.tools.source_stats import column_values, with_stats
+from src.agents.tools.source_stats import column_values, source_stats
 from src.config import get_settings
 from src.models.schemas import RunStatus
-from src.models.spec import ModeSignals, PipelineSpec, decide_mode, signals_from_sources
+from src.models.sources import DataSource
+from src.models.spec import GlossaryUse, ModeSignals, PipelineSpec, decide_mode, decide_options, signals_from_sources
+from src.services import secrets, source_registry
+from src.services.connectors import ConnectorError, get_connector
 from src.services.llm import LLMOutputError, call_llm, parse_json_output, to_json
-from src.services.prompt_context import compact_catalog
+from src.services.llm_context import LLMContext, context_for_state
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +58,32 @@ def build_spec(data: dict, request_text: str, answers: dict[str, str]) -> Pipeli
     return spec.model_copy(update={"signals": signals, "mode": mode, "mode_reason": reason})
 
 
+def _row_counts(items: list[dict]) -> dict[str, int | None]:
+    """Số dòng từng nguồn được chọn, do CODE đo qua bộ nạp (không gửi LLM); không đo được thì None."""
+    sources: dict[int, DataSource] = {}
+    counts: dict[str, int | None] = {}
+    for item in items:
+        counts[item["name"]] = None
+        try:
+            if item.get("source_id") is None:
+                counts[item["name"]] = source_stats(item).get("rows")
+                continue
+            if not sources:
+                sources.update({s.id: s for s in source_registry.list_sources()})
+            if source := sources.get(item["source_id"]):
+                counts[item["name"]] = get_connector(source).row_count(item["name"])
+        except (ConnectorError, secrets.SecretError, OSError) as exc:  # nguồn tạm lỗi: nạp toàn bộ cho chắc
+            logger.warning("row count unavailable", extra={"table": item["name"], "reason": str(exc)[:150]})
+    return counts
+
+
+def with_pipeline_options(spec: PipelineSpec, catalog: list[dict], overrides: dict[str, str]) -> PipelineSpec:
+    """Điền `options` (nạp toàn bộ/phần mới, lịch chạy, kết nối) bằng luật cố định; lựa chọn DE đã đặt ở J1b được giữ lại."""
+    chosen = [i for i in catalog if i["name"] in {s.name for s in spec.sources}]
+    options = decide_options(spec.request_text, chosen, _row_counts(chosen), overrides)
+    return spec.model_copy(update={"options": options})
+
+
 def with_value_options(spec: PipelineSpec, catalog: list[dict]) -> PipelineSpec:
     """Câu hỏi về giá trị một cột: code thay lựa chọn của LLM bằng giá trị thật để người tick (LLM không thấy).
 
@@ -68,19 +97,14 @@ def with_value_options(spec: PipelineSpec, catalog: list[dict]) -> PipelineSpec:
     return spec.model_copy(update={"questions": questions})
 
 
-def _catalog(state: PipelineState) -> list[dict]:
-    """Danh mục nguồn kèm `stats` do code đếm (thay dòng mẫu khi gửi LLM)."""
-    if state.get("source_catalog"):
-        return with_stats(state["source_catalog"])
-    return with_stats([info.model_dump() for info in discover_sources(get_settings().sources_dir)])
-
-
-def planner_variables(state: PipelineState, catalog: list[dict], last_round: bool) -> dict[str, str]:
+def planner_variables(state: PipelineState, context: LLMContext, last_round: bool) -> dict[str, str]:
     """Biến điền vào prompt planner."""
     answers = state.get("answers", {})
+    glossary = context.glossary_for(state["request_text"])  # cửa duy nhất; tối đa N thuật ngữ khớp yêu cầu
     return {
         "request_text": state["request_text"],
-        "source_catalog": to_json(compact_catalog(catalog)),
+        "source_catalog": to_json(context.planner_catalog()),  # cửa duy nhất: mức truy cập theo từng nguồn
+        "glossary": to_json(glossary) if glossary else "(không có)",
         "answers": to_json(answers) if answers else "(chưa có)",  # không có trong prompt; LLM mock đọc
         "answered_questions": to_json(state.get("answered", [])) if state.get("answered") else "(chưa có)",
         "spec_errors": to_json(state.get("spec_errors", [])),
@@ -90,22 +114,36 @@ def planner_variables(state: PipelineState, catalog: list[dict], last_round: boo
     }
 
 
+def used_terms(variables: dict[str, str]) -> list[GlossaryUse]:
+    """Thuật ngữ đã đưa vào prompt (code ghi lại, không nhờ LLM kể) để hiện ở màn Duyệt kế hoạch."""
+    raw = variables.get("glossary", "")
+    if not raw.startswith("["):
+        return []
+    return [GlossaryUse(term=item["term"], definition=item.get("definition", "")) for item in json.loads(raw)]
+
+
 def planner_node(state: PipelineState) -> dict:
     """Gọi LLM lập đặc tả; lỗi định dạng được trả về `spec_errors` để V0 cho làm lại."""
-    catalog = _catalog(state)
+    context = context_for_state(
+        state, audit=not state.get("source_catalog"), glossary=True
+    )  # lần đầu: ghi AuditLog nguồn nào, mức nào
+    catalog = context.catalog
     rounds = state.get("plan_rounds", 0) + 1
     if not catalog:
         return {
             "status": RunStatus.FAILED.value,
-            "error": "Chưa có nguồn dữ liệu trong data/sources. Chạy: python -m src.cli seed",
+            "error": "Bạn chưa được cấp quyền xem nguồn dữ liệu nào hoặc chưa có dữ liệu (quản trị viên đăng ký nguồn; demo: python -m src.cli seed).",
         }
     answers = state.get("answers", {})
     last_round = rounds >= get_settings().max_plan_rounds
-    response = call_llm("planner", planner_variables(state, catalog, last_round))
+    variables = planner_variables(state, context, last_round)
+    response = call_llm("planner", variables)
     base = {"source_catalog": catalog, "plan_rounds": rounds, "llm_usage": usage_of(response)}
     try:
         data = fill_sources(drop_answered(parse_json_output(response.text), state.get("answered", [])), catalog)
         spec = with_value_options(build_spec(data, state["request_text"], answers), catalog)
+        spec = with_pipeline_options(spec, catalog, state.get("plan_options", {}))
+        spec = spec.model_copy(update={"glossary_used": used_terms(variables)})
     except (LLMOutputError, ValidationError) as exc:
         logger.warning("planner output invalid", extra={"error": str(exc)[:300]})
         return {**base, "spec": {}, "spec_errors": [f"Planner trả về đặc tả sai định dạng: {str(exc)[:200]}"]}
