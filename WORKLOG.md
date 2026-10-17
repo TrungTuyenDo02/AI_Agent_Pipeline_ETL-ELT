@@ -132,7 +132,7 @@
 | TrungTuyenDo02 | Nâng Neon lên head; migration 0009 cấp quyền glossary_terms mà 0007 bỏ sót | ✅ Done | Neon ở 0009, p113_app đủ quyền; demo trên Neon đạt; test quét GRANT mọi bảng | — |
 | TrungTuyenDo02 | Giả lập deploy Vercel trên máy: build có BACKEND_URL, gọi API qua rewrite | ✅ Done | Đăng nhập, cookie HttpOnly, lần chạy mock tới approved, tải zip 200; chưa deploy Vercel thật | — |
 | TrungTuyenDo02 | Xử lý review PR #8: scrub_error che giá trị không nháy, chụp cấu trúc chịu tranh chấp, cột tên lạ | ✅ Done | 13 test mới tái hiện lỗi trước khi sửa; 2 điểm bot báo nhầm (SQL injection, ReDoS) đã kiểm và ghi lý do | — |
-| TrungTuyenDo02 | Chế độ khách bằng dữ liệu mẫu, chỉ ở frontend (nút ở màn đăng nhập + `/demo`, ADR 0015); dữ liệu mẫu chụp từ luồng mock thật (`scripts/demo_fixtures.py`) | ✅ Done | Trình duyệt headless: Engineer → Reviewer duyệt trọn luồng, 0 request tới backend; đăng nhập thường không đổi; CI 1205 đạt, phủ 92,03%; 5 test mới | — |
+| TrungTuyenDo02 | Chế độ khách bằng dữ liệu mẫu, chỉ ở frontend (`/demo`, ADR 0015) | ✅ Done | Headless: luồng Engineer → Reviewer trọn vẹn, 0 request tới backend; đăng nhập thường không đổi; CI 1205 đạt | — |
 
 ---
 
@@ -140,8 +140,7 @@
 
 | Member | Task | Status | Output | Time |
 |--------|------|--------|--------|------|
-| TrungTuyenDo02 | Hướng dẫn nhúng sẵn trong chế độ khách: dải thông báo, quy trình 4 bước theo trạng thái thật, khung giải thích từng giai đoạn, từ điển nhanh, thẻ hoàn tất | ✅ Done | Trình duyệt headless: 4 bước đổi đúng 8 giai đoạn của luồng khách, lần chạy dừng báo đúng bước; đăng nhập thường không có phần tử hướng dẫn; tương phản xanh ngọc ≥ 5,47:1 cả sáng/tối | — |
-
+| TrungTuyenDo02 | Hướng dẫn nhúng sẵn trong chế độ khách: quy trình 4 bước, giải thích từng giai đoạn, từ điển | ✅ Done | Headless: 4 bước đổi đúng 8 giai đoạn, lần chạy dừng báo đúng bước; người dùng thường không thấy hướng dẫn | — |
 ---
 
 <!-- Format: copy khối trên cho mỗi ngày làm việc. Status: ✅ Done · 🔄 Doing · ⚠️ Chưa sửa · ⏳ Chưa làm -->
