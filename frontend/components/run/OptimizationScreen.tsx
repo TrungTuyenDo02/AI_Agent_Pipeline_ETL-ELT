@@ -5,6 +5,7 @@ import type { Optimization } from "@/lib/types";
 
 import { CodeDiff } from "../CodeDiff";
 import { SampleTag } from "../GuestBar";
+import { GuideNote } from "../guide/Guide";
 import { Card, Empty, PassMark } from "../ui";
 import { useRun } from "./RunContext";
 
@@ -143,13 +144,17 @@ export function OptimizationScreen() {
   const report = detail.optimization;
   if (!report.original_sql) {
     return (
-      <Card title="Tối ưu query">
-        <Empty>Chưa tới bước tối ưu (E4 chạy sau khi code qua sandbox).</Empty>
-      </Card>
+      <>
+        <GuideNote id="optimize" />
+        <Card title="Tối ưu query">
+          <Empty>Chưa tới bước tối ưu (E4 chạy sau khi code qua sandbox).</Empty>
+        </Card>
+      </>
     );
   }
   return (
     <>
+      <GuideNote id="optimize" />
       <BeforeAfter report={report} />
       <div className="grid-2">
         <Equivalence report={report} />

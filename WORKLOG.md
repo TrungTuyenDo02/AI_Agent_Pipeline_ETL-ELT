@@ -136,4 +136,12 @@
 
 ---
 
+## 2026-10-18
+
+| Member | Task | Status | Output | Time |
+|--------|------|--------|--------|------|
+| TrungTuyenDo02 | Hướng dẫn nhúng sẵn trong chế độ khách: dải thông báo, quy trình 4 bước theo trạng thái thật, khung giải thích từng giai đoạn, từ điển nhanh, thẻ hoàn tất | ✅ Done | Trình duyệt headless: 4 bước đổi đúng 8 giai đoạn của luồng khách, lần chạy dừng báo đúng bước; đăng nhập thường không có phần tử hướng dẫn; tương phản xanh ngọc ≥ 5,47:1 cả sáng/tối | — |
+
+---
+
 <!-- Format: copy khối trên cho mỗi ngày làm việc. Status: ✅ Done · 🔄 Doing · ⚠️ Chưa sửa · ⏳ Chưa làm -->

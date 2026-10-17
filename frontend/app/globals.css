@@ -6606,3 +6606,347 @@ body:has(.login-page)::after {
   font-size: 13px;
   text-align: center;
 }
+
+/* ---------- Hướng dẫn trong chế độ khách (xanh ngọc; chỉ hiện khi là khách) ---------- */
+
+.dash-wide {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.guide-btn {
+  min-height: 44px;
+  padding: 10px 16px;
+}
+
+.btn.guide-btn.primary {
+  border-color: var(--guide);
+  background: var(--guide);
+  color: var(--guide-on);
+}
+
+.guide-btn:focus-visible,
+.guide-steps a:focus-visible {
+  outline: 3px solid var(--guide);
+  outline-offset: 2px;
+}
+
+.guide-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* 1. Dải thông báo dưới thanh trên */
+.guide-banner,
+.guide-done {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  margin-top: 14px;
+  padding: 14px 18px;
+  border: 1px solid color-mix(in srgb, var(--guide) 40%, transparent);
+  border-radius: var(--radius-md);
+  background: var(--guide-soft);
+  color: var(--text);
+}
+
+.guide-banner-icon,
+.guide-done-icon,
+.guide-note-icon {
+  flex: none;
+  color: var(--guide-ink);
+}
+
+.guide-banner-text {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.guide-banner-text h2 {
+  margin: 0;
+  color: var(--guide-ink);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.guide-banner-text p {
+  margin: 2px 0 0;
+}
+
+.guide-done {
+  margin-top: 0;
+  border-width: 2px;
+}
+
+/* 2. Quy trình 4 bước */
+.guide-steps {
+  padding: 18px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+}
+
+.run-head .guide-steps {
+  margin-bottom: 14px;
+}
+
+.guide-steps-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  margin-bottom: 12px;
+}
+
+.guide-steps-head h2 {
+  margin: 0;
+  color: var(--guide-ink);
+  font-size: 18px;
+}
+
+.guide-steps-caption {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.guide-steps-caption a {
+  color: var(--guide-ink);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.guide-step-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guide-step {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+}
+
+.guide-step[data-current] {
+  border: 2px solid var(--guide);
+  background: var(--guide-soft);
+}
+
+.guide-step-mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.guide-step[data-state="done"] .guide-step-mark {
+  border-color: var(--guide);
+  background: var(--guide);
+  color: var(--guide-on);
+}
+
+.guide-step[data-current] .guide-step-mark {
+  border-color: var(--guide);
+  color: var(--guide-ink);
+}
+
+.guide-step[data-current][data-state="failed"] {
+  border-color: var(--fail);
+  background: var(--fail-soft);
+}
+
+.guide-step[data-current][data-state="failed"] .guide-step-body strong {
+  color: var(--text);
+}
+
+.guide-step[data-state="failed"] .guide-step-mark {
+  border-color: var(--fail);
+  background: var(--fail-soft);
+  color: var(--fail);
+}
+
+.guide-step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.guide-step-body strong {
+  font-weight: 600;
+}
+
+.guide-step[data-current] .guide-step-body strong {
+  font-weight: 800;
+  color: var(--guide-ink);
+}
+
+.guide-step-state {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.guide-step[data-current] .guide-step-state {
+  color: var(--guide-ink);
+}
+
+.guide-step[data-state="failed"] .guide-step-state {
+  color: var(--fail);
+}
+
+.guide-step-text {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* 4. Khung giải thích ở từng giai đoạn */
+.guide-note {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  border-left: 4px solid var(--guide);
+  border-radius: var(--radius-sm);
+  background: var(--guide-soft);
+  color: var(--text);
+}
+
+.guide-note strong {
+  color: var(--guide-ink);
+}
+
+.guide-note p {
+  margin: 2px 0 0;
+  line-height: 1.5;
+}
+
+.guide-note-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.studio-flow > .guide-note,
+.content > .guide-note {
+  margin-bottom: 14px;
+}
+
+/* 5. Dòng giải thích theo trạng thái, dưới ô thống kê */
+.guide-status-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--guide-soft);
+  color: var(--guide-ink);
+  font-weight: 600;
+}
+
+.guide-stat-note {
+  display: block;
+  margin-top: 4px;
+  color: var(--guide-ink);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* 3. Khung "Bước 1" trong thẻ Yêu cầu mới */
+.guide-try {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--guide-soft);
+  color: var(--text);
+}
+
+.guide-try strong {
+  color: var(--guide-ink);
+}
+
+.guide-try p {
+  margin: 0;
+}
+
+/* 6. Từ điển nhanh */
+.guide-glossary {
+  padding: 18px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+}
+
+.guide-glossary h2 {
+  margin: 0 0 12px;
+  color: var(--guide-ink);
+  font-size: 18px;
+}
+
+.guide-glossary dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 18px;
+  margin: 0;
+}
+
+.guide-glossary dt {
+  color: var(--guide-ink);
+  font-weight: 700;
+}
+
+.guide-glossary dd {
+  margin: 2px 0 0;
+  line-height: 1.45;
+}
+
+@media (max-width: 960px) {
+  .guide-step-list,
+  .guide-glossary dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .guide-note-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .guide-step-list,
+  .guide-glossary dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .guide-actions,
+  .guide-actions .guide-btn {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-btn {
+    transition: none;
+  }
+}

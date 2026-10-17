@@ -19,7 +19,7 @@ const STATE_TEXT: Record<StageState, string> = {
 const ACTOR: Record<Stage["kind"], string> = { E: "Agent", V: "Tự động", J: "Bạn" };
 
 /** 13 bước gom thành 4 giai đoạn dễ hiểu (id bước khớp src/agents/stages.py). */
-const PHASES: { id: string; label: string; stages: string[] }[] = [
+export const PHASES: { id: string; label: string; stages: string[] }[] = [
   { id: "understand", label: "Hiểu yêu cầu", stages: ["planner", "clarify", "spec_check", "plan_review"] },
   { id: "build", label: "Soạn code", stages: ["prepare", "schema", "codegen", "testgen"] },
   { id: "verify", label: "Kiểm tra", stages: ["safety", "sandbox", "rescue", "optimizer", "compare"] },

@@ -3,7 +3,7 @@
 // Không có lệnh gọi mạng nào ở đây. Nạp bằng import() động từ lib/api.ts nên không làm nặng trang khi đăng nhập thường.
 
 import { ApiError } from "../api";
-import { GUEST_USERS, guestRole, type GuestRole } from "../guest";
+import { GUEST_RUN_PREFIX, GUEST_USERS, guestRole, type GuestRole } from "../guest";
 import type { Accepted, RunRecord, TableProfile } from "../types";
 
 import {
@@ -177,7 +177,7 @@ function route(state: DemoState, method: string, url: URL, body: Record<string, 
       if (request.length < 5) fail(422, "Yêu cầu quá ngắn. Hãy mô tả bảng số liệu bạn cần (nguồn, chỉ số, điều kiện).");
       state.seq += 1;
       const run: DemoRun = {
-        id: `mau-moi-${state.seq}`,
+        id: `${GUEST_RUN_PREFIX}${state.seq}`,
         kind: "main",
         request: request.slice(0, 4000),
         requester: GUEST_USERS.engineer.name,

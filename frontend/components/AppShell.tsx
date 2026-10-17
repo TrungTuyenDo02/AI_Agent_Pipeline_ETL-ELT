@@ -11,6 +11,7 @@ import { useDriftAlerts } from "@/lib/useDriftAlerts";
 
 import { BottomNav, Dock, type NavLinkItem } from "./Dock";
 import { GuestStrip } from "./GuestBar";
+import { GuideBanner } from "./guide/Guide";
 import { Icon, SparkIcon } from "./icons";
 import { NotificationBell } from "./NotificationBell";
 import { RunSearch } from "./RunSearch";
@@ -154,6 +155,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Dock />
       <div className="frame">
         <TopBar />
+        <GuideBanner />
         <div className="body">
           <main id="main" className="content">
             <BackButton />

@@ -59,6 +59,9 @@ export const GUEST_USERS: Record<GuestRole, CurrentUser> = {
   reviewer: { id: -2, name: "khach-duyet", display_name: "Khách", role: "reviewer", department_id: 1 },
 };
 
+/** Mã lần chạy do khách tự tạo (khác bộ mẫu dựng sẵn): để biết khách đã tự đi hết quy trình chưa. */
+export const GUEST_RUN_PREFIX = "mau-moi-";
+
 export const GUEST_NOTE = "Kết quả là mẫu dựng sẵn, không do AI chạy thật. Đăng nhập để chạy thật.";
 
 let guarded = false;

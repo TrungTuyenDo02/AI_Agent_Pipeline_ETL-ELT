@@ -80,6 +80,11 @@ const PAIRS = [
   ["login-cta-b", "login-glass-solid", "viền ô đang nhập, vòng focus trên thẻ đăng nhập"],
   ["login-error", "login-error-bg", "lỗi đăng nhập"],
   ["warn", "warn-soft", "nhãn vai trò Admin"],
+  ["guide-ink", "guide-soft", "chữ trong khung hướng dẫn (chế độ khách)"],
+  ["text", "guide-soft", "chữ thường trong khung hướng dẫn"],
+  ["guide-on", "guide", "chữ trên nút / dấu bước hướng dẫn nền đặc"],
+  ["guide", "card", "viền, chữ nhấn hướng dẫn trên thẻ trắng"],
+  ["guide-ink", "card", "tiêu đề bước hướng dẫn trên thẻ trắng"],
 ];
 
 function parseTokens(css) {

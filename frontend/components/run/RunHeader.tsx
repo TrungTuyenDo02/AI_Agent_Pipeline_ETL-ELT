@@ -7,6 +7,7 @@ import { downloadUrl } from "@/lib/api";
 import { formatTime } from "@/lib/format";
 
 import { useApp } from "../AppContext";
+import { RunGuideDone, RunGuideSteps, StatusExplain } from "../guide/Guide";
 import { ErrorBox, Loading, StatusBadge } from "../ui";
 import { PipelineTrack } from "./PipelineTrack";
 import { RetryBanner } from "./RetryBanner";
@@ -96,6 +97,9 @@ export function RunHeader() {
             ))}
         </div>
       </div>
+      <StatusExplain status={record.status} />
+      <RunGuideDone />
+      <RunGuideSteps />
       <PipelineTrack />
       <RetryBanner />
       {error && <ErrorBox message={`Mất kết nối, đang thử lại… (${error})`} />}

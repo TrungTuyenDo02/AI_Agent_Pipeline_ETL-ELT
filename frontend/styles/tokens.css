@@ -40,6 +40,11 @@
   /* Nhãn "Code AI sinh" ở màn hồ sơ dữ liệu (bảng staging/mart do code AI viết) */
   --ai: light-dark(#5143c9, #a8a6ff);
   --ai-soft: light-dark(#eeedfb, #1f1e45);
+  /* Hướng dẫn trong chế độ khách: xanh ngọc (nền đặc, nền nhạt, chữ đậm trên nền nhạt, chữ trên nền đặc) */
+  --guide: light-dark(#0f766e, #2dd4bf);
+  --guide-soft: light-dark(#e0f5f1, #0f2e2b);
+  --guide-ink: light-dark(#0b4f49, #a7f3e4);
+  --guide-on: light-dark(#ffffff, #0b0b0f);
   --shadow-color: light-dark(rgb(0 0 0 / 7%), rgb(0 0 0 / 50%));
 
   /* Khung trang + màu nhấn (xanh dương hiện tại) + console tối */

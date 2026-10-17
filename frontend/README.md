@@ -13,6 +13,11 @@ Dùng thử toàn bộ giao diện mà không cần tài khoản, không gọi b
 - **Lưu ở đâu:** `sessionStorage` (`p113.guest`, `p113.demo.state`). Tải lại trang vẫn giữ; đóng tab là hết.
 - **Mã nguồn:** `lib/guest.ts` (cờ, người dùng khách, lưới chặn `fetch`), `lib/demo/router.ts` (thay API), `lib/demo/engine.ts`
   (trạng thái, tiến trình), `lib/demo/fixtures.ts` (dữ liệu mẫu, **sinh tự động**), `components/GuestBar.tsx` (dải khách, nhãn số liệu mẫu).
+- **Hướng dẫn nhúng sẵn** (chỉ ở chế độ khách, không có tour lớp phủ): dải "Bạn đang ở Chế độ khách", khối "Quy trình 4 bước"
+  đi theo trạng thái thật của lần chạy (cùng cách gom 4 giai đoạn với thanh tiến trình), khung "Bước 1" + nút "Thử ngay với ví dụ"
+  (chỉ điền sẵn), khung giải thích ở từng giai đoạn, dòng giải thích theo trạng thái và dưới ô thống kê, "Từ điển nhanh", thẻ
+  "Bạn vừa đi hết quy trình". Mã: `components/guide/Guide.tsx`; **toàn bộ chữ ở `lib/guideText.ts`**; màu xanh ngọc `--guide*`
+  trong `styles/tokens.css`.
 - **Sinh lại dữ liệu mẫu** khi API đổi khuôn (typecheck sẽ báo): từ gốc repo chạy `python scripts/demo_fixtures.py` (chạy luồng thật với
   `LLM_PROVIDER=mock` trong thư mục tạm, không dùng `.env`/DB dev, ~1–2 phút). Không sửa tay `fixtures.ts`.
 

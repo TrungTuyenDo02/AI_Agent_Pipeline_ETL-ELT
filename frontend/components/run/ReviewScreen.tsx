@@ -6,6 +6,7 @@ import type { RowReconciliation, RunFiles, SchemaReport, ValueFilter } from "@/l
 import { usePoll } from "@/lib/usePoll";
 
 import { CodeDiff, type LineHighlight } from "../CodeDiff";
+import { ReviewGuide } from "../guide/Guide";
 import { Card, Empty, ErrorBox, Loading } from "../ui";
 import { DecisionForm } from "./DecisionForm";
 import { EvidencePanel } from "./EvidencePanel";
@@ -252,6 +253,7 @@ export function ReviewScreen() {
   const files = usePoll<RunFiles>(detail ? `/runs/${runId}/files?v=${encodeURIComponent(version)}` : null, null);
   return (
     <>
+      <ReviewGuide />
       <EvidencePanel />
       <div className="grid-2 review-top">
         <div className="decision">
