@@ -79,6 +79,9 @@ function TopBar() {
       <div className="topbar-tools">
         <RunSearch />
         <RoleChip />
+        <Link href="/docs" className="icon-btn" aria-label="Tài liệu dự án" title="Tài liệu dự án">
+          <Icon name="docs" size={20} />
+        </Link>
         <ThemeToggle />
         <NotificationBell />
         <AvatarMenu />
@@ -130,8 +133,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { auth, user, guest } = useApp();
-  // Trang công khai: đăng nhập, và /demo (tự bật chế độ khách rồi về trang chủ)
-  const onPublic = pathname.startsWith("/login") || pathname.startsWith("/demo");
+  // Trang công khai: đăng nhập, /demo (tự bật chế độ khách rồi về trang chủ), /docs (tài liệu dự án)
+  const onPublic = ["/login", "/demo", "/docs"].some((path) => pathname.startsWith(path));
   const navItems = useNavItems(user?.role ?? "engineer");
 
   // Mọi trang (trừ trang công khai) cần phiên; hết phiên → về đăng nhập, quay lại đúng trang sau khi đăng nhập

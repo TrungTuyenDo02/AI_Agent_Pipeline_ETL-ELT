@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAnimate, useReducedMotion } from "framer-motion";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -282,6 +283,9 @@ export default function LoginPage() {
   return (
     <main className="login-page">
       <div className="login-tools">
+        <Link href="/docs" className="login-docs-link">
+          <Icon name="docs" size={18} /> {t.docs}
+        </Link>
         <div className="login-lang" role="group" aria-label={t.langLabel}>
           {(["vi", "en"] as const).map((value) => (
             <button key={value} type="button" aria-pressed={lang === value} onClick={() => chooseLang(value)}>

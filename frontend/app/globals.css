@@ -6950,3 +6950,372 @@ body:has(.login-page)::after {
     transition: none;
   }
 }
+
+/* ---------- Liên kết "Tài liệu" trên màn đăng nhập ---------- */
+
+.login-docs-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 999px;
+  background: var(--glass-strong);
+  color: var(--text);
+  box-shadow: var(--shadow-1);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.login-docs-link:hover {
+  color: var(--primary);
+}
+
+.login-docs-link:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Trang /docs (công khai) ---------- */
+
+.docs-page {
+  min-height: 100vh;
+  padding: 18px 22px 48px;
+  background: var(--bg-page);
+  color: var(--text);
+}
+
+.docs-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 1180px;
+  margin: 0 auto 24px;
+  padding: 10px 14px 10px 18px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+}
+
+.docs-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.docs-top-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.docs-link,
+.docs-btn,
+.docs-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.docs-icon-btn {
+  width: 44px;
+  padding: 0;
+}
+
+.docs-btn.primary {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-ink);
+}
+
+.docs-link:hover,
+.docs-icon-btn:hover {
+  color: var(--primary);
+}
+
+.docs-link:focus-visible,
+.docs-btn:focus-visible,
+.docs-icon-btn:focus-visible,
+.docs-toc a:focus-visible,
+.docs-brand:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.docs-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 28px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.docs-toc {
+  position: sticky;
+  top: 18px;
+  align-self: start;
+  padding: 16px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+}
+
+.docs-toc-title {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.docs-toc ol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.docs-toc a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.docs-toc a:hover {
+  background: var(--surface-2);
+  color: var(--primary);
+}
+
+.docs-main {
+  min-width: 0;
+  max-width: 760px;
+}
+
+.docs-main h1 {
+  margin: 0 0 18px;
+  font-size: 34px;
+  letter-spacing: -0.02em;
+}
+
+.docs-main section {
+  margin-bottom: 26px;
+  padding: 22px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+  scroll-margin-top: 18px;
+}
+
+.docs-main h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+}
+
+.docs-main h3 {
+  margin: 16px 0 8px;
+  font-size: 16px;
+}
+
+.docs-main p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.docs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.docs-steps {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.docs-steps li::marker {
+  font-weight: 700;
+}
+
+.docs-steps p,
+.docs-cards p {
+  margin-top: 2px;
+}
+
+.docs-cards {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.docs-cards li {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
+.docs-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.docs-progress-bar {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.docs-progress-bar span {
+  display: block;
+  height: 100%;
+  background: var(--ok);
+}
+
+.docs-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.docs-items li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+}
+
+.docs-item-title {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.docs-item-note {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.docs-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.docs-status[data-status="done"] {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.docs-status[data-status="doing"] {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.docs-status[data-status="todo"] {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.docs-status[data-status="unknown"] {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.docs-tech {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 20px;
+  margin: 0;
+}
+
+.docs-tech dt {
+  font-weight: 700;
+}
+
+.docs-tech dd {
+  margin: 2px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.docs-team {
+  margin: 0;
+  padding-left: 20px;
+}
+
+@media (max-width: 860px) {
+  .docs-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .docs-toc {
+    position: static;
+  }
+
+  .docs-tech {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .docs-page {
+    padding: 12px 16px 36px;
+  }
+
+  .docs-main section {
+    padding: 16px;
+  }
+
+  .docs-main h1 {
+    font-size: 28px;
+  }
+}

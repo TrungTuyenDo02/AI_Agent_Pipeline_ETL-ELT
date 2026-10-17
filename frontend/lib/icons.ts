@@ -50,6 +50,7 @@ import {
   Plus,
   PlusCircle,
   Pulse,
+  Question,
   Robot,
   Rows,
   SealCheck,
@@ -101,6 +102,7 @@ export const ICONS = {
   awaitingReview: HourglassMedium,
   requestChanges: ArrowUUpLeft,
   skipped: MinusCircle,
+  unknown: Question,
   // Nghiệp vụ pipeline
   pipeline: TreeStructure,
   model: Cube,

@@ -3,6 +3,7 @@
 // Chế độ khách: dải cố định trong thanh trên (huy hiệu + chú thích + đổi vai + làm lại + đăng nhập) và nhãn "số liệu mẫu"
 // đặt cạnh mọi số thời gian/chi phí. Chỉ hiện khi đang là khách; đăng nhập thường không thấy gì khác.
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { GUEST_NOTE, type GuestRole } from "@/lib/guest";
@@ -38,6 +39,9 @@ export function GuestStrip() {
             </button>
           ))}
         </div>
+        <Link href="/docs" className="btn small">
+          Tài liệu
+        </Link>
         <button type="button" className="btn small" onClick={() => setConfirm(true)}>
           Làm lại từ đầu
         </button>

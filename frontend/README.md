@@ -1,5 +1,15 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Trang tài liệu `/docs` (công khai)
+
+Trang giới thiệu cho người không rành kỹ thuật, mở được khi chưa đăng nhập (AppShell bỏ qua kiểm tra phiên cho `/login`,
+`/demo`, `/docs`). Có liên kết "Tài liệu" ở thanh trên, màn đăng nhập và dải chế độ khách.
+
+- **Tiến độ và nhóm:** sửa `lib/projectStatus.ts`. Mỗi mục có `title`, `group`, `status` (`done` · `doing` · `todo` · `unknown`)
+  và `note`. Thanh "x/y mục đã xong" tự tính; `unknown` hiện "Chưa cập nhật". Tên thành viên ở `PROJECT_TEAM`.
+- **Nội dung chữ** (sản phẩm, dùng thử 3 bước, giới hạn, công nghệ): ở đầu `app/docs/page.tsx`. Mỗi ý tối đa 60 từ, không nêu
+  địa chỉ API, cấu hình hay chi tiết nội bộ.
+
 ## Chế độ khách (dữ liệu mẫu)
 
 Dùng thử toàn bộ giao diện mà không cần tài khoản, không gọi backend, không gọi AI (ADR 0015).

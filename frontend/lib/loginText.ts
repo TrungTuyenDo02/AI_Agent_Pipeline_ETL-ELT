@@ -22,6 +22,7 @@ export interface LoginText {
   forgotAction: string;
   guestTry: string;
   guestHint: string;
+  docs: string;
   contactText: string;
   contactMail: string;
   heroTitle: string;
@@ -62,6 +63,7 @@ export const LOGIN_TEXT: Record<Lang, LoginText> = {
     forgot: "Quên mật khẩu?",
     forgotAction: "Liên hệ quản trị viên",
     guestTry: "Dùng thử với dữ liệu mẫu",
+    docs: "Tài liệu",
     guestHint: "Không cần tài khoản. Kết quả là mẫu dựng sẵn, không do AI chạy thật.",
     contactText:
       "Tài khoản do quản trị viên của công ty cấp, không tự đăng ký. Gửi cho quản trị viên tên đăng nhập và vai trò cần dùng (Engineer hoặc Reviewer); họ sẽ cấp hoặc đặt lại mật khẩu cho bạn.",
@@ -152,6 +154,7 @@ export const LOGIN_TEXT: Record<Lang, LoginText> = {
     forgot: "Forgot password?",
     forgotAction: "Contact your administrator",
     guestTry: "Try it with sample data",
+    docs: "Docs",
     guestHint: "No account needed. Results are prebuilt samples, not produced by a live AI run.",
     contactText:
       "Accounts are issued by your company administrator; there is no self-signup. Send them your username and the role you need (Engineer or Reviewer) and they will issue or reset your password.",

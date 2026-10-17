@@ -141,6 +141,7 @@
 | Member | Task | Status | Output | Time |
 |--------|------|--------|--------|------|
 | TrungTuyenDo02 | Hướng dẫn nhúng sẵn trong chế độ khách: quy trình 4 bước, giải thích từng giai đoạn, từ điển | ✅ Done | Headless: 4 bước đổi đúng 8 giai đoạn, lần chạy dừng báo đúng bước; người dùng thường không thấy hướng dẫn | — |
+| TrungTuyenDo02 | Trang `/docs` công khai, tiến độ đọc từ `lib/projectStatus.ts`, liên kết Tài liệu | ✅ Done | Mở được khi chưa đăng nhập; ý dài nhất 54 từ; đổi 2 mục → thanh 1/10 đúng; CI 1205 đạt | — |
 ---
 
 <!-- Format: copy khối trên cho mỗi ngày làm việc. Status: ✅ Done · 🔄 Doing · ⚠️ Chưa sửa · ⏳ Chưa làm -->
