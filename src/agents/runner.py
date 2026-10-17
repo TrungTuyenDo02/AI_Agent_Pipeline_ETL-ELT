@@ -24,6 +24,7 @@ from src.config import get_settings
 from src.models.evidence import ReviewDecision
 from src.models.schemas import RunStatus
 from src.services import schema_drift
+from src.services.cost_ledger import llm_caller
 from src.services.llm import LLMCallError, LLMConfigError, run_budget
 from src.services.store import get_store
 
@@ -109,7 +110,9 @@ def _config(run_id: str) -> dict:
 def _stream(run_id: str, payload: object, on_event: EventCallback | None) -> str:
     """Chạy graph tới điểm dừng kế tiếp; trả về thông báo lỗi (rỗng nếu không lỗi)."""
     used = sum(u.get("input_tokens", 0) + u.get("output_tokens", 0) for u in get_values(run_id).get("llm_usage", []))
-    with run_budget(get_settings().run_token_budget, used):  # trần token mỗi lần chạy (kể cả các lượt chạy tiếp)
+    record = get_store().get_run(run_id)
+    owner = record.requester if record else ""  # sổ chi phí: tiền của lượt gọi tính cho người tạo lần chạy
+    with run_budget(get_settings().run_token_budget, used), llm_caller(owner, run_id):  # trần token + trần tiền
         return _consume(run_id, payload, on_event)
 
 

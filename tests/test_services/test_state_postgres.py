@@ -72,3 +72,44 @@ def test_postgres_checkpointer_persists_graph_state(postgres_backend, monkeypatc
     graph = runner.get_graph()
     config = {"configurable": {"thread_id": f"t{uuid.uuid4().hex[:8]}"}}
     assert graph.get_state(config).values == {}  # đọc được bảng checkpoint (đã có quyền)
+
+
+def test_cost_ledger_reservation_is_atomic_on_postgres(postgres_backend, monkeypatch: pytest.MonkeyPatch):
+    """READ COMMITTED: hai job cùng đọc "còn tiền" vẫn không được giữ quá trần (UPDATE có điều kiện, ADR 0014)."""
+    import threading
+
+    from src.services import cost_ledger
+    from src.services.cost_ledger import BudgetDeniedError, CostLedger
+
+    limits = Settings(llm_daily_budget_usd=0.5)
+    monkeypatch.setattr(cost_ledger, "get_settings", lambda: limits)
+    book = CostLedger(postgres_backend.store_path)
+    owner = f"u{uuid.uuid4().hex[:8]}"
+    ok, denied = [], []
+
+    def worker() -> None:
+        try:
+            ok.append(
+                book.reserve(
+                    owner=owner,
+                    run_id="",
+                    task="codegen",
+                    provider="openai",
+                    model="gpt-6-luna",
+                    estimate_usd=0.1,
+                    ttl_sec=60,
+                )  # fmt: skip
+            )
+        except BudgetDeniedError:
+            denied.append(1)
+
+    threads = [threading.Thread(target=worker) for _ in range(10)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(ok) == 5 and len(denied) == 5
+    assert book.spent_today(owner) == pytest.approx(0.5)
+    for call_id in ok:
+        book.release(call_id)
+    assert book.spent_today(owner) == 0.0

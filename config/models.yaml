@@ -17,6 +17,9 @@
 # - 2026-10-13: planner/codegen/testgen → gpt-6-luna (chủ dự án chọn: $0,10/$0,50 so với $0,20/$1,20 mỗi triệu token).
 #   Model này từ chối temperature=0 nên đặt `temperature: false`.
 # - 2026-10-15: thêm `input_gate` (tầng 2 của cửa kiểm tra đầu vào) = claude-haiku-5-5; đầu ra ≤ ~100 token, chỉ gọi khi code không đủ kết luận.
+# - 2026-10-17: đo input_gate bằng API thật (eval/run_input_gate.py, 50 câu, 10 lượt gọi tầng 2/model, 1 lần, đo từ máy dev):
+#   claude-haiku-5-5 vs gpt-6-luna cùng 0 chặn nhầm / 0 lọt; độ trễ TB 1,87 s vs 2,94 s, p50 1,55 s vs 2,14 s, max 5,41 s vs 7,66 s;
+#   chi phí ước tính như nhau (≈0,000055 USD/lượt). Giữ Haiku: nhanh hơn ở bước gọi nhiều nhất. Mẫu nhỏ, chỉ câu lạc đề tới tầng 2.
 
 models:
   planner:   { provider: openai,    name: gpt-6-luna, temperature: false }
@@ -27,7 +30,7 @@ models:
   # KHÔNG dùng model của planner/optimizer. Thay cho biến MODEL_GATE vì dự án cấm tên model ở biến môi trường.
   input_gate: { provider: anthropic, name: claude-haiku-5-5 }
 
-  # Diễn giải đề xuất sửa pipeline khi nguồn đổi cấu trúc: Gemini rẻ nhất, chỉ gọi khi người bấm "Hỏi AI".
+  # Diễn giải đề xuất sửa pipeline khi nguồn đổi cấu trúc: Gemini Flash-Lite (cùng model dự phòng), chỉ gọi khi người bấm "Hỏi AI".
   drift_advice: { provider: google, name: gemini-3.1-flash-lite }
 
 # Dự phòng khi gọi model chính THẤT BẠI (mạng, hạn mức, từ chối); tắt bằng LLM_FALLBACK=none.

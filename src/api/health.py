@@ -13,10 +13,11 @@ router = APIRouter(tags=["health"])
 
 
 @router.get("/health", response_model=HealthResponse)
-async def health() -> HealthResponse:
+def health() -> HealthResponse:
     """Trạng thái dịch vụ; `status` luôn là "ok" khi tiến trình còn sống, `database` báo riêng.
 
     `database` = kho lần chạy + (khi đã cấu hình) PostgreSQL của đăng nhập.
+    Hàm thường (không async): ping DB là gọi chặn, FastAPI chạy nó trong threadpool để không chặn request khác.
     """
     settings = get_settings()
     db_ok = get_store().ping() and (not settings.database_url or auth.ping())

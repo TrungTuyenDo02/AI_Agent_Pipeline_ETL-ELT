@@ -124,6 +124,14 @@
 | TrungTuyenDo02 | Sửa xác thực trong hướng dẫn, đối chiếu bản vá và đồng bộ tài liệu | ✅ Done | CI: 1124 đạt, phủ 91.83%; frontend kiểm tra đạt; thêm 9 test hồi quy | — |
 | TrungTuyenDo02 | Thêm dataset và bộ chấm Extract độc lập, lọc nguồn trước khi đọc nội dung | ✅ Done | Eval 21/21; CI 1149 đạt, phủ 91.85%; chặn đọc ngoài quyền; 0 LLM | — |
 
+## 2026-10-17
+
+| Member | Task | Status | Output | Time |
+|--------|------|--------|--------|------|
+| TrungTuyenDo02 | Sổ chi phí LLM, giữ trước ngân sách mỗi lượt gọi, chặn model thiếu giá (ADR 0014) | ✅ Done | CI 1183 đạt, phủ 92.02%; 20 test mới, tranh chấp SQLite và PostgreSQL không vượt trần; 0 token | — |
+| TrungTuyenDo02 | Nâng Neon lên head; migration 0009 cấp quyền glossary_terms mà 0007 bỏ sót | ✅ Done | Neon ở 0009, p113_app đủ quyền; demo trên Neon đạt; test quét GRANT mọi bảng | — |
+| TrungTuyenDo02 | Giả lập deploy Vercel trên máy: build có BACKEND_URL, gọi API qua rewrite | ✅ Done | Đăng nhập, cookie HttpOnly, lần chạy mock tới approved, tải zip 200; chưa deploy Vercel thật | — |
+
 ---
 
 <!-- Format: copy khối trên cho mỗi ngày làm việc. Status: ✅ Done · 🔄 Doing · ⚠️ Chưa sửa · ⏳ Chưa làm -->

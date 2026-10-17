@@ -94,6 +94,13 @@ Trần chi phí: `MAX_CLARIFY_ROUNDS`, `RUN_TOKEN_BUDGET`, `USER_DAILY_RUN_LIMIT
 4. Bộ nạp đọc bằng phiên `BEGIN READ ONLY`, kiểm mọi câu lệnh bằng sqlglot trước khi chạy (chỉ một câu SELECT, chỉ bảng được phép), có `statement_timeout` và giới hạn số dòng; dữ liệu chỉ vào sandbox DuckDB của lần chạy (tập con có hạt giống cố định, cột nhạy cảm của nguồn `high` đã băm).
 5. Kiểm thử với PostgreSQL thật (CI mặc định bỏ qua): `RUN_PG_TESTS=1 PG_SOURCE_DSN=postgresql://postgres:<mật khẩu>@127.0.0.1:5434/p113_retail python -m pytest tests/test_connectors.py` (không có `PG_SOURCE_DSN` thì dùng `TEST_DATABASE_URL`; tài khoản không được tạo schema thì tạm dùng bảng `customers`/`orders` trong `public` rồi xóa).
 
+#### Sổ chi phí LLM (ADR 0014)
+
+- **Cập nhật cơ sở dữ liệu:** `alembic upgrade head` (migration `0008_llm_cost_ledger` tạo `llm_calls`, `budget_counters`; SQLite tự tạo; `0009_glossary_grants` cấp quyền `glossary_terms` cho tài khoản ứng dụng mà 0007 bỏ sót). Kiểm quyền: mọi bảng migration tạo phải có GRANT (`tests/test_services/test_migration_grants.py`).
+- **Cách chặn:** trước mỗi lượt gọi LLM thật, hệ thống giữ trước khoản dự toán xấu nhất (đầu ra tối đa × số lần SDK tự gọi lại) trên trần lần chạy (`RUN_COST_BUDGET_USD`), trần người/ngày (`LLM_DAILY_BUDGET_USD`) và trần toàn hệ thống/ngày (`LLM_GLOBAL_DAILY_BUDGET_USD`). Không đủ → "Không đủ ngân sách để giữ trước lượt gọi này", không gọi, không chuyển dự phòng. Model chưa có giá trong `src/services/cost.py` → dừng, kể cả model dự phòng: thêm giá trước khi đổi `config/models.yaml`.
+- **Lượt chưa rõ chi phí (`unknown`):** timeout/mất kết nối hoặc tiến trình chết khi đang gọi. Khoản dự toán vẫn tính vào hạn mức. Xem: `python -m src.cli cost`; đối soát bằng số trên trang usage của nhà cung cấp: `python -m src.cli cost --settle <mã> --usd <số> --as reviewer`.
+- **Xem theo trạng thái:** `python -m src.cli cost --status settled|reserved|released`. Số USD là ước tính theo bảng giá nội bộ, chưa phải hóa đơn.
+
 #### Từ điển nghiệp vụ (giai đoạn 6)
 
 - **Cập nhật cơ sở dữ liệu:** `alembic upgrade head` (migration `0007_glossary` tạo bảng và seed 17 thuật ngữ P113 Retail từ `config/glossary_seed.yaml`, dùng chung mọi phòng ban).

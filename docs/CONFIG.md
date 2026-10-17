@@ -96,7 +96,9 @@ Luật cố định (mẫu tấn công prompt, động từ nghiệp vụ, bản
 | `SANDBOX_THREADS` | Số luồng DuckDB | `2` | không |
 | `MAX_FIX_ATTEMPTS` | Số vòng sửa V1/V2 tối đa trước khi cứu hộ | `3` | không |
 | `MAX_ACTIVE_RUNS_PER_USER` | Số lần chạy đang chờ/đang chạy cùng lúc của một người tạo yêu cầu; vượt → 429 | `2` | không |
-| `LLM_DAILY_BUDGET_USD` | Trần chi phí LLM mỗi người mỗi ngày (giờ VN), tính từ `cost_usd` các lần chạy; `0` = không chặn | `1` | không |
+| `LLM_DAILY_BUDGET_USD` | Trần chi phí LLM mỗi người mỗi ngày (giờ VN), tính từ sổ chi phí theo ngày gọi (gồm khoản đang giữ trước và lượt `unknown`); kiểm cả lúc nhận việc lẫn trước mỗi lượt gọi; `0` = không chặn | `1` | không |
+| `RUN_COST_BUDGET_USD` | Trần chi phí LLM mỗi lần chạy (cộng dồn các lượt chạy tiếp), giữ trước trước mỗi lượt gọi (ADR 0014); `0` = tắt | `0` | không |
+| `LLM_GLOBAL_DAILY_BUDGET_USD` | Trần chi phí LLM toàn hệ thống mỗi ngày (giờ VN), gồm cả lượt gọi không gắn người (eval, script); `0` = tắt | `0` | không |
 | `MAX_PLAN_ROUNDS` | Số vòng lập kế hoạch/làm rõ tối đa | `5` | không |
 | `MAX_REVIEW_ROUNDS` | Số lần yêu cầu sửa kế hoạch tối đa | `3` | không |
 | `SEED` | Hạt giống dữ liệu thử | `42` | không |

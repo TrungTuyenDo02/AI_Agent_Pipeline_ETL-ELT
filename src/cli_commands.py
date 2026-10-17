@@ -10,6 +10,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from rich.prompt import Prompt
+from rich.table import Table
 
 from src.agents import runner
 from src.agents.runner import PermissionDeniedError, ResumeRequest, RunOutcome, RunStateError
@@ -259,6 +260,35 @@ def cmd_errors(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_cost(args: argparse.Namespace) -> int:
+    """Sổ chi phí LLM: liệt kê theo trạng thái; Reviewer đối soát tay lượt `unknown` (bước J: người chốt số tiền)."""
+    from src.services.cost_ledger import get_ledger, to_usd
+
+    ledger = get_ledger()
+    if args.settle:
+        if args.role != "reviewer":
+            console.print("[red]Chỉ Reviewer được đối soát chi phí (--as reviewer).[/]")
+            return 2
+        if args.usd is None or args.usd < 0:
+            console.print("[red]Cần --usd là số tiền thật (≥ 0) lấy từ trang usage/hóa đơn của nhà cung cấp.[/]")
+            return 2
+        ok = ledger.reconcile(args.settle, args.usd, note=f"đối soát tay bởi {args.user}")
+        console.print(
+            f"[green]Đã đối soát lượt {args.settle}.[/]" if ok else "[red]Không có lượt này hoặc đã quyết toán.[/]"
+        )
+    calls = ledger.list_calls(args.status)
+    table = Table(title=f"Lượt gọi LLM trạng thái '{args.status}'")
+    for column in ("Mã", "Ngày", "Người", "Run", "Bước", "Model", "Giữ trước (USD)", "Chi phí (USD)", "Ghi chú"):
+        table.add_column(column)
+    for c in calls:
+        table.add_row(
+            c["id"], c["day"], c["owner"], c["run_id"], c["task"], c["model"],
+            f"{to_usd(c['reserved_micros']):.6f}", f"{to_usd(c['cost_micros']):.6f}", c["note"][:60],
+        )  # fmt: skip
+    console.print(table if calls else f"[green]Không có lượt nào ở trạng thái '{args.status}'.[/]")
+    return 0
+
+
 def _datasets_for(run_id: str | None) -> dict[str, str]:
     runs = [get_store().get_run(run_id)] if run_id else get_store().list_runs(50)
     for record in runs:
@@ -421,6 +451,7 @@ COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     "review": cmd_review,
     "status": cmd_status,
     "errors": cmd_errors,
+    "cost": cmd_cost,
     "optimize": cmd_optimize,
     "eval": cmd_eval,
     "eval-verifiers": cmd_eval_verifiers,

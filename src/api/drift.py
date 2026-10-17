@@ -18,6 +18,7 @@ from src.models.drift import Advice, ChangeDiff, DriftReport, SchemaChangeView
 from src.models.sources import DataSource
 from src.services import auth, drift_advice, schema_drift
 from src.services import source_registry as registry
+from src.services.cost_ledger import llm_caller
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["drift"])
@@ -105,7 +106,8 @@ def suggest_fix(change_id: int, body: SuggestBody, user: LoggedIn) -> Advice:
     _need_database()
     _may_act(user)
     change = _visible_change(change_id, user)
-    return drift_advice.suggest(change, body.run_id, body.use_ai)
+    with llm_caller(user.name):  # "Hỏi AI" tính vào hạn mức tiền của người bấm (sổ chi phí)
+        return drift_advice.suggest(change, body.run_id, body.use_ai)
 
 
 @router.post("/sources/{source_id}/check-drift", response_model=DriftReport)

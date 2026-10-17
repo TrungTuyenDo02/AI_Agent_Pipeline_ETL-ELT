@@ -154,6 +154,9 @@ class Settings(BaseSettings):
     # Giới hạn theo người (CLAUDE.md mục 14): số lần chạy đang chờ/đang chạy; trần chi phí LLM mỗi ngày (0 = không chặn)
     max_active_runs_per_user: int = Field(default=2, ge=1)
     llm_daily_budget_usd: float = Field(default=1.0, ge=0.0)
+    # Trần tiền giữ trước mỗi lượt gọi LLM thật (sổ chi phí, ADR 0014). Mặc định 0 = tắt: người vận hành chọn mức rồi mới bật.
+    run_cost_budget_usd: float = Field(default=0.0, ge=0.0)  # mỗi lần chạy (cộng dồn mọi lượt chạy tiếp)
+    llm_global_daily_budget_usd: float = Field(default=0.0, ge=0.0)  # toàn hệ thống mỗi ngày (giờ VN)
 
     # Cửa kiểm tra đầu vào (tầng 0–2) + trần chi phí toàn hệ thống (CLAUDE.md bản 2, mục 1). Đặt 0 = không chặn.
     input_min_chars: int = Field(default=10, ge=1)
