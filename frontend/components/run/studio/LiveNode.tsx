@@ -6,6 +6,7 @@ import { plainStepLabel } from "@/lib/format";
 import type { CurrentNode } from "@/lib/types";
 import { useNow } from "@/lib/useNow";
 
+import { SampleTag } from "../../GuestBar";
 import { SpinningIcon } from "../../icons";
 import { useRun } from "../RunContext";
 
@@ -154,6 +155,7 @@ export function LiveNode({ current, compact = false }: { current: CurrentNode; c
           <span className="live-clock" aria-label={`Đã chạy ${formatSeconds(elapsed)}`}>
             {formatSeconds(elapsed)}
           </span>
+          <SampleTag />
           {!compact && <NotifyButton />}
         </span>
       </div>

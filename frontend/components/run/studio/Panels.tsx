@@ -7,6 +7,7 @@ import type { RunDetail } from "@/lib/types";
 
 import { ArrowRightIcon, ChartIcon, CpuIcon, DatabaseIcon, FlowIcon, LayersIcon } from "../../icons";
 import { useRun } from "../RunContext";
+import { SampleTag } from "../../GuestBar";
 import { formatSeconds } from "./LiveNode";
 
 // Ngăn "Chi tiết kỹ thuật" của màn Studio. Mọi số lấy từ API (đo thật); chưa đo → "—", LLM mock → "mô phỏng".
@@ -57,7 +58,7 @@ export function MetricsPanel({ detail }: { detail: RunDetail }) {
   ];
   return (
     <section className="card panel">
-      <PanelHead icon={<ChartIcon />} title="Chỉ số đo được" />
+      <PanelHead icon={<ChartIcon />} title="Chỉ số đo được" aside={<SampleTag />} />
       <div className="metric-grid">
         {stats.map((stat) => (
           <div key={stat.label} className="metric">

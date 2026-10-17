@@ -1,6 +1,8 @@
 // Gọi API backend. Địa chỉ lấy từ NEXT_PUBLIC_API_URL. Người dùng xác định bằng cookie phiên HttpOnly do backend đặt
 // khi đăng nhập (trang web không đọc được cookie này); mọi lời gọi gửi kèm cookie (credentials: "include").
 
+import { guestRole } from "./guest";
+
 // Không đặt NEXT_PUBLIC_API_URL: API cùng máy với trang web, cổng 8000 (mở bằng 127.0.0.1 hay IP mạng đều đúng).
 function defaultApiUrl(): string {
   if (typeof window === "undefined") return "http://localhost:8000";
@@ -32,6 +34,11 @@ async function errorMessage(response: Response): Promise<string> {
 }
 
 async function rawRequest(path: string, init?: RequestInit): Promise<string> {
+  // Chế độ khách: trả lời bằng dữ liệu mẫu trong trình duyệt, không gửi gì lên mạng (nạp bộ mẫu khi cần lần đầu)
+  if (guestRole()) {
+    const { demoRequest } = await import("./demo/router");
+    return demoRequest(init?.method ?? "GET", path, init?.body);
+  }
   let response: Response;
   try {
     response = await fetch(`${API_PREFIX}${path}`, {

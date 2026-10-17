@@ -10,6 +10,7 @@ import type { Role } from "@/lib/types";
 import { useDriftAlerts } from "@/lib/useDriftAlerts";
 
 import { BottomNav, Dock, type NavLinkItem } from "./Dock";
+import { GuestStrip } from "./GuestBar";
 import { Icon, SparkIcon } from "./icons";
 import { NotificationBell } from "./NotificationBell";
 import { RunSearch } from "./RunSearch";
@@ -81,6 +82,7 @@ function TopBar() {
         <NotificationBell />
         <AvatarMenu />
       </div>
+      <GuestStrip />
     </header>
   );
 }
@@ -126,16 +128,17 @@ function Splash({ text }: { text: string }) {
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { auth, user } = useApp();
-  const onLogin = pathname.startsWith("/login");
+  const { auth, user, guest } = useApp();
+  // Trang công khai: đăng nhập, và /demo (tự bật chế độ khách rồi về trang chủ)
+  const onPublic = pathname.startsWith("/login") || pathname.startsWith("/demo");
   const navItems = useNavItems(user?.role ?? "engineer");
 
-  // Mọi trang (trừ đăng nhập) cần phiên; hết phiên → về đăng nhập, quay lại đúng trang sau khi đăng nhập
+  // Mọi trang (trừ trang công khai) cần phiên; hết phiên → về đăng nhập, quay lại đúng trang sau khi đăng nhập
   useEffect(() => {
-    if (auth === "out" && !onLogin) router.replace(`/login?next=${encodeURIComponent(pathname)}`);
-  }, [auth, onLogin, pathname, router]);
+    if (auth === "out" && !onPublic) router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+  }, [auth, onPublic, pathname, router]);
 
-  if (onLogin) return <>{children}</>;
+  if (onPublic) return <>{children}</>;
   if (auth !== "in") {
     return (
       <div className="page">
@@ -144,7 +147,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     );
   }
   return (
-    <div className="page" data-role={user?.role}>
+    <div className="page" data-role={user?.role} data-guest={guest || undefined}>
       <a href="#main" className="skip-link">
         Bỏ qua tới nội dung
       </a>

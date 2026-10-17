@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { downloadUrl } from "@/lib/api";
 import { formatTime } from "@/lib/format";
 
+import { useApp } from "../AppContext";
 import { ErrorBox, Loading, StatusBadge } from "../ui";
 import { PipelineTrack } from "./PipelineTrack";
 import { RetryBanner } from "./RetryBanner";
@@ -40,6 +41,7 @@ function Tabs({ runId }: { runId: string }) {
 
 export function RunHeader() {
   const { runId, detail, error, loading, refresh } = useRun();
+  const { guest } = useApp();
   if (loading && !detail) return <Loading text="Đang tải lần chạy…" />;
   if (!detail) return <ErrorBox message={error || "Không tải được lần chạy."} onRetry={refresh} />;
   const { record } = detail;
@@ -55,7 +57,11 @@ export function RunHeader() {
             <span>·</span>
             <span>{formatTime(record.created_at)}</span>
             <span>·</span>
-            {record.provider === "mock" ? (
+            {guest ? (
+              <span className="badge warn" title="Chế độ khách: kết quả là mẫu dựng sẵn, không do AI chạy thật">
+                Dữ liệu mẫu
+              </span>
+            ) : record.provider === "mock" ? (
               <span className="badge muted" title="LLM mô phỏng: câu trả lời cố định, chạy trong sandbox">
                 Chạy thử (sandbox)
               </span>
@@ -72,11 +78,22 @@ export function RunHeader() {
             ) : (
               <span className="badge info">agent đang chạy…</span>
             ))}
-          {hasCode && (
-            <a className="btn primary" href={downloadUrl(runId)} download>
-              Tải gói code (.zip)
-            </a>
-          )}
+          {hasCode &&
+            (guest ? (
+              // Tải về là lời gọi tới máy chủ: chế độ khách không có, xem code ở tab "Duyệt code"
+              <button
+                type="button"
+                className="btn primary"
+                disabled
+                title="Chế độ khách không tải gói code. Đăng nhập để tải."
+              >
+                Tải gói code (.zip)
+              </button>
+            ) : (
+              <a className="btn primary" href={downloadUrl(runId)} download>
+                Tải gói code (.zip)
+              </a>
+            ))}
         </div>
       </div>
       <PipelineTrack />

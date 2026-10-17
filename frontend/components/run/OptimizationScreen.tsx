@@ -4,6 +4,7 @@ import { formatNumber, formatPct, formatUsd } from "@/lib/format";
 import type { Optimization } from "@/lib/types";
 
 import { CodeDiff } from "../CodeDiff";
+import { SampleTag } from "../GuestBar";
 import { Card, Empty, PassMark } from "../ui";
 import { useRun } from "./RunContext";
 
@@ -19,7 +20,9 @@ function BeforeAfter({ report }: { report: Optimization }) {
   return (
     <section className="card before-after" aria-labelledby="ba-title">
       <header className="card-head">
-        <h2 id="ba-title">So sánh trước / sau tối ưu</h2>
+        <h2 id="ba-title">
+          So sánh trước / sau tối ưu <SampleTag />
+        </h2>
         <span className={applied ? "badge ok" : "badge muted"}>{applied ? "Đã áp dụng bản mới" : "Giữ bản gốc"}</span>
       </header>
       <div className="ba-body">

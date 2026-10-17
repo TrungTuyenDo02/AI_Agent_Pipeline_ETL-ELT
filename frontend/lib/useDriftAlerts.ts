@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 
+import { useApp } from "@/components/AppContext";
+
 import type { SchemaChange } from "./types";
 import { usePoll } from "./usePoll";
 
@@ -14,7 +16,13 @@ export function notifyDriftChanged(): void {
 }
 
 export function useDriftAlerts(): { breaking: SchemaChange[]; sources: number } {
-  const { data, refresh } = usePoll<SchemaChange[]>("/schema-changes?status=open&severity=breaking", 30000);
+  // Chỉ hỏi khi đã có phiên: AppShell gọi hook này cả ở trang công khai (đăng nhập, /demo) — chưa đăng nhập thì
+  // chỉ nhận 401, còn ở /demo thì lần hỏi đầu có thể chạy trước khi chế độ khách kịp bật.
+  const { auth } = useApp();
+  const { data, refresh } = usePoll<SchemaChange[]>(
+    auth === "in" ? "/schema-changes?status=open&severity=breaking" : null,
+    30000,
+  );
   useEffect(() => {
     window.addEventListener(DRIFT_REFRESH_EVENT, refresh);
     return () => window.removeEventListener(DRIFT_REFRESH_EVENT, refresh);

@@ -1,5 +1,21 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Chế độ khách (dữ liệu mẫu)
+
+Dùng thử toàn bộ giao diện mà không cần tài khoản, không gọi backend, không gọi AI (ADR 0015).
+
+- **Vào:** nút "Dùng thử với dữ liệu mẫu" ở màn đăng nhập, hoặc mở `/demo` (liên kết chia sẻ được: tự bật chế độ khách rồi về trang chủ).
+- **Trên thanh trên:** dải "Chế độ khách · Dữ liệu mẫu" kèm chú thích, nút đổi vai Engineer/Reviewer, "Làm lại từ đầu" và "Đăng nhập"
+  (thoát chế độ khách, xóa sạch dữ liệu mẫu). Số thời gian/chi phí có nhãn "số liệu mẫu".
+- **Bộ mẫu ban đầu:** một lần chạy hoàn tất có tối ưu được áp dụng, một lần chờ duyệt, một lần đã dừng (`failed`), một lần đang chạy
+  (tiến độ đi theo thời gian, khoảng 35 giây tới bước chờ duyệt). Yêu cầu mới tạo ở chế độ khách đi đúng các bước: hỏi làm rõ → duyệt
+  kế hoạch → chạy → chờ duyệt (đổi sang Reviewer để duyệt).
+- **Lưu ở đâu:** `sessionStorage` (`p113.guest`, `p113.demo.state`). Tải lại trang vẫn giữ; đóng tab là hết.
+- **Mã nguồn:** `lib/guest.ts` (cờ, người dùng khách, lưới chặn `fetch`), `lib/demo/router.ts` (thay API), `lib/demo/engine.ts`
+  (trạng thái, tiến trình), `lib/demo/fixtures.ts` (dữ liệu mẫu, **sinh tự động**), `components/GuestBar.tsx` (dải khách, nhãn số liệu mẫu).
+- **Sinh lại dữ liệu mẫu** khi API đổi khuôn (typecheck sẽ báo): từ gốc repo chạy `python scripts/demo_fixtures.py` (chạy luồng thật với
+  `LLM_PROVIDER=mock` trong thư mục tạm, không dùng `.env`/DB dev, ~1–2 phút). Không sửa tay `fixtures.ts`.
+
 ## Getting Started
 
 First, run the development server:

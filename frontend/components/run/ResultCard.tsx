@@ -2,6 +2,7 @@
 
 import { formatNumber, formatPct, formatUsd } from "@/lib/format";
 
+import { SampleTag } from "../GuestBar";
 import { Card, Empty, Stat } from "../ui";
 import { useRun } from "./RunContext";
 
@@ -68,7 +69,13 @@ export function ResultCard() {
   const sandbox = detail.sandbox ?? {};
   const codeNotes = detail.code_notes ?? [];
   return (
-    <Card title="Kết quả chạy thử (sandbox)">
+    <Card
+      title={
+        <>
+          Kết quả chạy thử (sandbox) <SampleTag />
+        </>
+      }
+    >
       <Summary />
       {!sandbox.passed && <Empty>Chưa có kết quả chạy thử đạt.</Empty>}
       {sandbox.passed && (

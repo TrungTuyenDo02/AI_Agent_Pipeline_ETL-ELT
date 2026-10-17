@@ -8,6 +8,7 @@ import { filterRuns, isRunFilter, RUN_FILTERS } from "@/lib/runFilters";
 import type { RunRecord } from "@/lib/types";
 
 import { useApp } from "./AppContext";
+import { SampleTag } from "./GuestBar";
 import { NEEDS_ACTION, runHref } from "./NotificationBell";
 import { Icon } from "./icons";
 import { StatusPill } from "./StatusPill";
@@ -97,7 +98,9 @@ export function RunsTable() {
                 <th>Trạng thái</th>
                 <th>Bảng đích</th>
                 <th>Tối ưu</th>
-                <th className="num">Chi phí LLM</th>
+                <th className="num">
+                  Chi phí LLM <SampleTag />
+                </th>
                 <th>Cập nhật</th>
               </tr>
             </thead>

@@ -2,7 +2,16 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { apiGet, apiPost, UNAUTHORIZED_EVENT } from "@/lib/api";
+import { API_URL, apiGet, apiPost, UNAUTHORIZED_EVENT } from "@/lib/api";
+import {
+  clearGuest,
+  guestRole,
+  GUEST_USERS,
+  installNetworkGuard,
+  resetGuestData,
+  setGuestRole,
+  type GuestRole,
+} from "@/lib/guest";
 import type { AgentStatus, CurrentUser, Role, RunRecord } from "@/lib/types";
 import { usePoll } from "@/lib/usePoll";
 
@@ -23,6 +32,14 @@ interface AppState {
   auth: AuthState;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Chế độ khách: dữ liệu mẫu trong trình duyệt, không gọi backend (lib/guest.ts). */
+  guest: boolean;
+  enterGuest: () => void;
+  switchGuestRole: (role: GuestRole) => void;
+  /** "Làm lại từ đầu": xóa mọi thao tác trên dữ liệu mẫu rồi tải lại trang chủ. */
+  resetGuest: () => void;
+  /** Thoát chế độ khách (xóa sạch dữ liệu mẫu) rồi tải lại ở `to`. */
+  exitGuest: (to?: string) => void;
   theme: ThemeChoice;
   setTheme: (theme: ThemeChoice) => void;
   dark: boolean;
@@ -78,37 +95,69 @@ function useStoredTheme(): [ThemeChoice, (t: ThemeChoice) => void] {
   return [theme, setTheme];
 }
 
-/** Phiên đăng nhập: hỏi /auth/me một lần; API trả 401 ở bất kỳ đâu → về trạng thái chưa đăng nhập. */
+/** Tải lại HẲN trang (không dùng router): mọi dữ liệu mẫu đang giữ trong bộ nhớ (các lần hỏi định kỳ) biến mất. */
+function reloadAt(to: string): void {
+  window.location.assign(to);
+}
+
+/** Thoát chế độ khách: xóa cờ và dữ liệu mẫu rồi tải lại ở `to`. */
+function leaveGuest(to: string): void {
+  clearGuest();
+  reloadAt(to);
+}
+
+/**
+ * Phiên đăng nhập: hỏi /auth/me một lần; API trả 401 ở bất kỳ đâu → về trạng thái chưa đăng nhập.
+ * Chế độ khách (cờ trong sessionStorage, hoặc mở /demo): không hỏi /auth/me, dùng người dùng giả.
+ */
 function useSession() {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [auth, setAuth] = useState<AuthState>("checking");
+  const [guest, setGuest] = useState(false);
+  const activateGuest = useCallback((role: GuestRole) => {
+    setGuestRole(role);
+    installNetworkGuard(API_URL);
+    setUser(GUEST_USERS[role]);
+    setGuest(true);
+    setAuth("in");
+  }, []);
   useEffect(() => {
     let alive = true;
-    apiGet<CurrentUser>("/auth/me")
-      .then((me) => {
-        if (!alive) return;
-        setUser(me);
-        setAuth("in");
-      })
-      .catch(() => {
-        if (alive) setAuth("out");
-      });
     const signedOut = () => {
+      if (guestRole()) return; // khách không có phiên máy chủ để hết hạn
       setUser(null);
       setAuth("out");
     };
     window.addEventListener(UNAUTHORIZED_EVENT, signedOut);
+    const role = guestRole() ?? (window.location.pathname.startsWith("/demo") ? "engineer" : null);
+    const first = setTimeout(() => {
+      if (role) {
+        activateGuest(role);
+        return;
+      }
+      apiGet<CurrentUser>("/auth/me")
+        .then((me) => {
+          if (!alive || guestRole()) return; // đã vào chế độ khách trong lúc chờ
+          setUser(me);
+          setAuth("in");
+        })
+        .catch(() => {
+          if (alive && !guestRole()) setAuth("out");
+        });
+    }, 0);
     return () => {
       alive = false;
+      clearTimeout(first);
       window.removeEventListener(UNAUTHORIZED_EVENT, signedOut);
     };
-  }, []);
+  }, [activateGuest]);
   const login = useCallback(async (username: string, password: string) => {
     await apiPost("/auth/login", { username, password });
     setUser(await apiGet<CurrentUser>("/auth/me"));
     setAuth("in");
   }, []);
   const logout = useCallback(async () => {
+    if (guestRole()) return leaveGuest("/login");
     try {
       await apiPost("/auth/logout", {});
     } finally {
@@ -116,11 +165,22 @@ function useSession() {
       setAuth("out");
     }
   }, []);
-  return { user, auth, login, logout };
+  const enterGuest = useCallback(() => activateGuest(guestRole() ?? "engineer"), [activateGuest]);
+  const switchGuestRole = useCallback((role: GuestRole) => {
+    if (!guestRole()) return;
+    setGuestRole(role);
+    setUser(GUEST_USERS[role]);
+  }, []);
+  const resetGuest = useCallback(() => {
+    resetGuestData();
+    reloadAt("/");
+  }, []);
+  const exitGuest = useCallback((to = "/login") => leaveGuest(to), []);
+  return { user, auth, login, logout, guest, enterGuest, switchGuestRole, resetGuest, exitGuest };
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const { user, auth, login, logout } = useSession();
+  const { user, auth, login, logout, guest, enterGuest, switchGuestRole, resetGuest, exitGuest } = useSession();
   const signedIn = auth === "in";
   // Chưa đăng nhập thì không hỏi API (tránh loạt 401)
   const polled = usePoll<AgentStatus>(signedIn ? "/status" : null, 30000);
@@ -136,6 +196,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       auth,
       login,
       logout,
+      guest,
+      enterGuest,
+      switchGuestRole,
+      resetGuest,
+      exitGuest,
       theme,
       setTheme,
       dark,
@@ -143,7 +208,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
       runsError: runs.error,
       refreshRuns: runs.refresh,
     }),
-    [polled.data, polled.error, user, auth, login, logout, theme, setTheme, dark, runs.data, runs.error, runs.refresh],
+    [
+      polled.data,
+      polled.error,
+      user,
+      auth,
+      login,
+      logout,
+      guest,
+      enterGuest,
+      switchGuestRole,
+      resetGuest,
+      exitGuest,
+      theme,
+      setTheme,
+      dark,
+      runs.data,
+      runs.error,
+      runs.refresh,
+    ],
   );
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

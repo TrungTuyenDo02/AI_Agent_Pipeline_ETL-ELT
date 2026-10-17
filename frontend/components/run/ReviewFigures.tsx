@@ -5,6 +5,7 @@
 import { formatNumber, formatPct, formatUsd } from "@/lib/format";
 import type { Optimization, UsageRow } from "@/lib/types";
 
+import { SampleTag } from "../GuestBar";
 import { Card, Empty, Stat } from "../ui";
 import { useRun } from "./RunContext";
 
@@ -46,7 +47,11 @@ export function OptimizationFigures({ report }: { report: Optimization }) {
   const applied = report.decision === "applied";
   return (
     <Card
-      title="Tối ưu: trước và sau"
+      title={
+        <>
+          Tối ưu: trước và sau <SampleTag />
+        </>
+      }
       actions={
         report.decision && (
           <span className={applied ? "badge ok" : "badge muted"}>{applied ? "Đã áp dụng" : "Giữ nguyên"}</span>
@@ -142,7 +147,13 @@ export function CostFigures() {
   const sum = totals(rows);
   const show = (text: string) => (simulated ? "mô phỏng" : text);
   return (
-    <Card title="Chi phí và thời gian">
+    <Card
+      title={
+        <>
+          Chi phí và thời gian <SampleTag />
+        </>
+      }
+    >
       <div className="stack" style={{ gap: 12 }}>
         {simulated && (
           <div className="alert warn">

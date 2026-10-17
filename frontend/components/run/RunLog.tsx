@@ -14,6 +14,7 @@ import {
 } from "@/lib/runLog";
 import type { RunDetail } from "@/lib/types";
 
+import { SampleTag } from "../GuestBar";
 import { CopyIcon, TerminalIcon } from "../icons";
 
 type Filter = "all" | "warn" | "error";
@@ -87,7 +88,9 @@ export function RunLog({ detail }: { detail: RunDetail }) {
       <header className="run-log-head">
         <div className="run-log-title">
           <TerminalIcon size={16} />
-          <h2 id="run-log-title">Nhật ký chạy</h2>
+          <h2 id="run-log-title">
+            Nhật ký chạy <SampleTag />
+          </h2>
           <span className="run-log-now">
             {detail.busy && <span className="dot ok pulse" aria-hidden />}
             {headline(detail)}

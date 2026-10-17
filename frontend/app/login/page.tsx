@@ -49,7 +49,7 @@ function remember(username: string | null): void {
 }
 
 function LoginForm({ t, pick }: { t: LoginText; pick: { user: string; password: string; n: number } | null }) {
-  const { auth, login } = useApp();
+  const { auth, login, enterGuest } = useApp();
   const router = useRouter();
   const next = safeNext(useSearchParams().get("next"));
   const [keep, setKeep] = useState(false);
@@ -203,6 +203,21 @@ function LoginForm({ t, pick }: { t: LoginText; pick: { user: string; password: 
           </>
         )}
       </button>
+
+      {/* Chế độ khách: chạy giao diện bằng dữ liệu mẫu trong trình duyệt, không gọi máy chủ */}
+      <div className="login-guest">
+        <button
+          type="button"
+          className="btn login-guest-btn"
+          onClick={() => {
+            enterGuest();
+            router.replace("/");
+          }}
+        >
+          <Icon name="show" size={18} weight="bold" /> {t.guestTry}
+        </button>
+        <p className="login-guest-hint">{t.guestHint}</p>
+      </div>
 
       <p className="login-foot">
         {t.forgot}{" "}

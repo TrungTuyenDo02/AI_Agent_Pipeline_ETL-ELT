@@ -6525,3 +6525,84 @@ body:has(.login-page)::after {
   padding: 0;
   border: 0;
 }
+
+/* ---------- Chế độ khách (dữ liệu mẫu) ---------- */
+
+/* Dải cố định trong thanh trên: một hàng trải hết chiều ngang dưới tên, điều hướng và công cụ */
+.guest-strip {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 6px 8px 6px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
+  background: var(--warn-soft);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.guest-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--warn);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.guest-note {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.guest-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sample-tag {
+  margin-left: 6px;
+  vertical-align: middle;
+  font-weight: 600;
+}
+
+@media (max-width: 560px) {
+  .guest-strip {
+    grid-row: 4;
+  }
+}
+
+/* Nút "Dùng thử với dữ liệu mẫu" trên thẻ đăng nhập */
+.login-guest {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login-guest-btn {
+  height: 46px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--login-field-edge);
+  background: var(--login-field);
+  color: var(--login-ink);
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.login-guest-btn:focus-visible {
+  outline: 3px solid var(--login-cta-b);
+  outline-offset: 3px;
+}
+
+.login-guest-hint {
+  margin: 0;
+  color: var(--login-muted);
+  font-size: 13px;
+  text-align: center;
+}
