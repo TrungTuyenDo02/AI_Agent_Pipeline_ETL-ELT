@@ -131,6 +131,7 @@
 | TrungTuyenDo02 | Sổ chi phí LLM, giữ trước ngân sách mỗi lượt gọi, chặn model thiếu giá (ADR 0014) | ✅ Done | CI 1183 đạt, phủ 92.02%; 20 test mới, tranh chấp SQLite và PostgreSQL không vượt trần; 0 token | — |
 | TrungTuyenDo02 | Nâng Neon lên head; migration 0009 cấp quyền glossary_terms mà 0007 bỏ sót | ✅ Done | Neon ở 0009, p113_app đủ quyền; demo trên Neon đạt; test quét GRANT mọi bảng | — |
 | TrungTuyenDo02 | Giả lập deploy Vercel trên máy: build có BACKEND_URL, gọi API qua rewrite | ✅ Done | Đăng nhập, cookie HttpOnly, lần chạy mock tới approved, tải zip 200; chưa deploy Vercel thật | — |
+| TrungTuyenDo02 | Xử lý review PR #8: scrub_error che giá trị không nháy, chụp cấu trúc chịu tranh chấp, cột tên lạ | ✅ Done | 13 test mới tái hiện lỗi trước khi sửa; 2 điểm bot báo nhầm (SQL injection, ReDoS) đã kiểm và ghi lý do | — |
 
 ---
 

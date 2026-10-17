@@ -532,3 +532,35 @@ async def test_diff_and_suggest_endpoints(world, drift_on):
     assert (await engineer.get(f"{API}/schema-changes/999999999/diff")).status_code == 404
     await engineer.aclose()
     await reviewer.aclose()
+
+
+@pytest.mark.parametrize(
+    ("table", "detail", "column"),
+    [
+        ("orders", "Cột orders.order_date đã bị xóa; chưa có pipeline nào dùng.", "order_date"),
+        ("orders", "Cột orders.order-date đã bị xóa; chưa có pipeline nào dùng.", "order-date"),
+        ("orders", "Cột mới orders.ship-fee (integer).", "ship-fee"),
+        ("orders", "Cột orders.amount từ NOT NULL thành cho phép rỗng.", "amount"),
+        ("$sales", "Cột $sales.total đổi kiểu integer → string", "total"),
+        ("orders", "Bảng orders không còn ở nguồn.", ""),
+    ],
+)
+def test_column_is_read_from_detail_even_with_unusual_names(table: str, detail: str, column: str):
+    r"""Tên cột có gạch ngang hoặc bảng bắt đầu bằng ký tự lạ: trước đây `\w+` cắt cụt tên → bỏ sót pipeline bị ảnh hưởng."""
+    assert schema_drift._column_of_view(_view("column_removed", detail, table=table)) == column
+
+
+def test_concurrent_capture_retries_instead_of_failing(world, monkeypatch: pytest.MonkeyPatch):
+    """Hai tiến trình cùng chụp một nguồn: bên chậm vi phạm UNIQUE(source_id, table_name, version) → đọc lại và so lại, không lỗi."""
+    source = world["source"]
+    first = schema_drift.capture_snapshot(source)
+    real_latest, calls = schema_drift._latest, []
+
+    def stale_once(db, source_id):  # lần đầu đọc "chưa có phiên bản nào" như thể bên kia chưa ghi xong
+        calls.append(source_id)
+        return {} if len(calls) == 1 else real_latest(db, source_id)
+
+    monkeypatch.setattr(schema_drift, "_latest", stale_once)
+    again = schema_drift.capture_snapshot(source)
+    assert len(calls) == 2
+    assert {t: r.version for t, r in again.items()} == {t: r.version for t, r in first.items()}

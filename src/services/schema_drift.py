@@ -23,6 +23,7 @@ import sqlglot
 import yaml
 from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, delete, func, select, update
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, Session, mapped_column
 from sqlglot import exp
 
@@ -39,6 +40,7 @@ from src.services.connectors.base import SourceConnector, TableSchema, normalize
 logger = logging.getLogger(__name__)
 DOC = JSON().with_variant(JSONB, "postgresql")
 OTHER_SHAPES = "…khác"
+SNAPSHOT_ATTEMPTS = 3  # chụp cấu trúc đồng thời: số lần thử lại khi vướng UNIQUE(source_id, table_name, version)
 Tables = dict[str, dict[str, dict]]  # bảng → cột → {type, nullable, position}
 
 
@@ -175,15 +177,28 @@ def capture_snapshot(source: DataSource, tables: Tables | None = None) -> dict[s
     """Chụp cấu trúc hiện tại và lưu phiên bản mới cho bảng nào đã đổi (mã băm khác bản gần nhất). Bảng chưa từng chụp: phiên bản 1 và
     là bản chuẩn. Trả về bản gần nhất của từng bảng."""
     current = tables if tables is not None else current_tables(get_connector(source))
+    for attempt in range(1, SNAPSHOT_ATTEMPTS + 1):
+        try:
+            return _store_snapshot(source.id, current)
+        except IntegrityError:
+            # Hai tiến trình cùng chụp một nguồn: bên chậm vi phạm UNIQUE(source_id, table_name, version). Đọc lại bản mới nhất
+            # rồi so lại (thường cấu trúc đã được bên kia ghi, không cần ghi thêm) thay vì báo lỗi.
+            if attempt == SNAPSHOT_ATTEMPTS:
+                raise
+            logger.info("schema snapshot race, retrying", extra={"source_id": source.id, "attempt": attempt})
+    raise AssertionError("unreachable")
+
+
+def _store_snapshot(source_id: int, current: Tables) -> dict[str, SourceSchemaSnapshot]:
     with Session(get_engine()) as db, db.begin():
-        latest = _latest(db, source.id)
+        latest = _latest(db, source_id)
         for table, columns in current.items():
             fingerprint = fingerprint_of(columns)
             previous = latest.get(table)
             if previous and previous.fingerprint == fingerprint:
                 continue
             row = SourceSchemaSnapshot(
-                source_id=source.id,
+                source_id=source_id,
                 table_name=table,
                 version=(previous.version + 1) if previous else 1,
                 columns=columns,
@@ -567,9 +582,16 @@ def _affected(db: Session, row: SchemaChangeRow) -> list[dict]:
     return [{"run_id": run} for run in runs[:20]]
 
 
+def _column_in(table: str, detail: str) -> str:
+    """Cột mà `detail` nói tới (`Cột <bảng>.<cột> ...`); rỗng nếu thay đổi cấp bảng. Tên cột lấy tới khoảng trắng/dấu câu nên giữ
+    được tên có gạch ngang (`\\w+` cắt cụt → bỏ sót pipeline bị ảnh hưởng); `(?<![\\w.])` thay `\\b` để bảng bắt đầu bằng ký tự
+    lạ vẫn khớp. Tên bảng đã `re.escape`, mẫu không có lượng từ lồng nhau nên chạy tuyến tính."""
+    match = re.search(rf"(?<![\w.]){re.escape(table)}\.([^\s(),;:]+)", detail)
+    return match.group(1).rstrip(".") if match else ""
+
+
 def _column_of(row: SchemaChangeRow) -> str:
-    match = re.search(rf"\b{re.escape(row.table_name)}\.(\w+)", row.detail)
-    return match.group(1) if match else ""
+    return _column_in(row.table_name, row.detail)
 
 
 def acknowledge(source_id: int, user: str, *, change_id: int | None = None, table: str | None = None) -> int:
@@ -618,8 +640,7 @@ def get_change(change_id: int) -> SchemaChangeView | None:
 
 def _column_of_view(view: SchemaChangeView) -> str:
     """Cột mà một thay đổi nói tới (rỗng nếu thay đổi cấp bảng)."""
-    match = re.search(rf"\b{re.escape(view.table)}\.(\w+)", view.detail)
-    return match.group(1) if match else ""
+    return _column_in(view.table, view.detail)
 
 
 # ---------- Phụ thuộc của pipeline ----------

@@ -91,6 +91,45 @@ def test_codegen_prompt_gets_scrubbed_error():
     assert codegen_variables(state)["last_error"] == f"Could not convert string {MASK} to INT32"
 
 
+# Giá trị KHÔNG nằm trong dấu nháy, số ngắn, ngày giờ, nháy kép quanh giá trị (góp ý review PR #8 của phoenix-mentor)
+UNQUOTED_LEAKS = {
+    "convert_unquoted": ("Conversion Error: Could not convert string Nguyen Van A to INT32", ["Nguyen", "Van A"]),
+    "duckdb_duplicate_key": ('Constraint Error: Duplicate key "id: 4521" violates primary key constraint.', ["4521"]),
+    "key_unquoted": ("Constraint Error: duplicate key 4521 violates primary key constraint", ["4521"]),
+    "date_unquoted": ("Invalid Input Error: Could not parse date 31/02/2026 in column order_date", ["31/02/2026"]),
+    "timestamp": ("Conversion Error: timestamp 2026-02-31 10:15:00 is out of range", ["2026-02-31", "10:15"]),
+    "row_tuple": (
+        "Constraint Error: NOT NULL constraint failed: customers.email, row: Tran Thi B, 4521",
+        ["Tran Thi B"],
+    ),
+    "double_quoted_name": ('Invalid Input Error: value "Lê Văn C" is not a valid number', ["Lê Văn C"]),
+    "short_amount": ("Out of Range Error: value 875 exceeds the limit of column discount", ["875"]),
+}
+
+
+@pytest.mark.parametrize("name", UNQUOTED_LEAKS)
+def test_unquoted_values_short_numbers_and_dates_are_masked(name: str):
+    error, secrets = UNQUOTED_LEAKS[name]
+    cleaned = scrub_error(error)
+    for secret in secrets:
+        assert secret not in cleaned, f"{secret!r} còn trong: {cleaned}"
+    assert MASK in cleaned
+
+
+def test_structure_survives_the_stricter_masking():
+    cleaned = scrub_error(UNQUOTED_LEAKS["row_tuple"][0] + "\n" + UNQUOTED_LEAKS["date_unquoted"][0])
+    assert "customers.email" in cleaned and "order_date" in cleaned and "NOT NULL constraint failed" in cleaned
+    assert "INT32" in scrub_error(UNQUOTED_LEAKS["convert_unquoted"][0])
+    assert "column discount" in scrub_error(UNQUOTED_LEAKS["short_amount"][0])
+    # số đếm (kết quả test dbt, số dòng, vị trí) là cấu trúc, không phải dữ liệu
+    counts = "Failure in test not_null_orders_id\n  Got 1532 results, configured to fail if != 0\nLINE 120: select 1"
+    assert scrub_error(counts) == counts
+    assert scrub_error("Parser Error at line 120, position 15") == "Parser Error at line 120, position 15"
+    # thông báo tiếng Việt do chính hệ thống viết đi qua nguyên vẹn
+    ours = "Cột order_date của bảng đích có kiểu VARCHAR nhưng đặc tả yêu cầu date."
+    assert scrub_error(ours) == ours
+
+
 def test_error_book_and_memory_keep_only_scrubbed_text():
     from src.agents.nodes.common import register_failure
     from src.services.error_memory import get_error_memory
