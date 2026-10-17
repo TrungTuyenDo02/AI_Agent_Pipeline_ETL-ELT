@@ -16,6 +16,9 @@ class RunStatus(StrEnum):
     WAITING_SCHEMA = "waiting_schema"
     WAITING_RESCUE = "waiting_rescue"
     WAITING_REVIEW = "waiting_review"
+    PAUSED = (
+        "paused"  # người tạo yêu cầu bấm "Tạm dừng": dừng ở ranh giới giữa hai node, checkpoint còn nguyên (ADR 0016)
+    )
     APPROVED = "approved"
     FAILED = "failed"
     REJECTED_INPUT = "rejected_input"  # bị chặn ở cửa kiểm tra đầu vào: không chạy, không tính hạn mức
@@ -33,6 +36,7 @@ class RunRecord(BaseModel):
     created_at: str
     updated_at: str
     summary: dict = Field(default_factory=dict)
+    pause_requested: bool = False  # đang chạy và đã có yêu cầu tạm dừng (chờ node hiện tại xong)
 
 
 class LLMUsage(BaseModel):

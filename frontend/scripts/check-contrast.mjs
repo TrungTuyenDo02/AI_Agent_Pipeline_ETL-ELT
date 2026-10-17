@@ -85,6 +85,15 @@ const PAIRS = [
   ["guide-on", "guide", "chữ trên nút / dấu bước hướng dẫn nền đặc"],
   ["guide", "card", "viền, chữ nhấn hướng dẫn trên thẻ trắng"],
   ["guide-ink", "card", "tiêu đề bước hướng dẫn trên thẻ trắng"],
+  ["primary", "primary-soft", "mục điều hướng đang chọn (thanh trên, Thêm, lọc nhanh)"],
+  ["muted", "surface-2", "mục điều hướng khi rê chuột"],
+  ["primary", "bg-page", "trang giới thiệu: nhãn mục, liên kết neo đang đọc"],
+  ["warn", "bg-page", "trang giới thiệu: nguyên tắc Con người quyết định"],
+  ["ai", "bg-page", "trang giới thiệu: nguyên tắc AI thực thi"],
+  ["ok", "bg-page", "trang giới thiệu: nguyên tắc Code kiểm chứng"],
+  ["warn", "warn-soft", "trang giới thiệu: nhãn Con người"],
+  ["ai", "ai-soft", "trang giới thiệu: nhãn AI"],
+  ["ok", "ok-soft", "trang giới thiệu: nhãn Code"],
 ];
 
 function parseTokens(css) {

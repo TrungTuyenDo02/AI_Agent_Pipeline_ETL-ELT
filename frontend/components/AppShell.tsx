@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
@@ -9,16 +8,15 @@ import { useApp } from "./AppContext";
 import type { Role } from "@/lib/types";
 import { useDriftAlerts } from "@/lib/useDriftAlerts";
 
-import { BottomNav, Dock, type NavLinkItem } from "./Dock";
 import { GuestStrip } from "./GuestBar";
 import { GuideBanner } from "./guide/Guide";
 import { Icon, SparkIcon } from "./icons";
 import { NotificationBell } from "./NotificationBell";
-import { RunSearch } from "./RunSearch";
+import { BottomNav, PrimaryNav, type NavLinkItem } from "./PrimaryNav";
 import { AvatarMenu, ModeBadges, RoleChip, ThemeToggle } from "./Topbar";
 
-// Bố cục (CLAUDE.md 9.4): thanh trên (logo · tab · tìm · vai trò · chuông · avatar), dock nổi bên trái (lối tắt),
-// thẻ nền đặc trên nền phẳng. Điện thoại (< 640px): tab chuyển xuống thanh dưới đáy, ẩn dock.
+// Bố cục: thanh trên hai hàng (logo · vai trò, giới thiệu, giao diện, chuông, avatar | điều hướng chính + Yêu cầu mới),
+// thẻ nền đặc trên nền phẳng. Điện thoại (< 640px): điều hướng chính chuyển xuống thanh dưới đáy.
 type NavItem = NavLinkItem;
 const HOME: NavItem = { href: "/", label: "Trang chủ", icon: "home" };
 const RUNS: NavItem = { href: "/runs", label: "Lần chạy", icon: "runs" };
@@ -49,42 +47,32 @@ function TopBar() {
   const nav = useNavItems(user?.role ?? "engineer");
   return (
     <header className="topbar">
-      <Link href="/" className="brand">
-        <SparkIcon size={22} className="brand-spark" />
-        <span>P-113 Agent Studio</span>
-      </Link>
-      <nav className="nav-pills" aria-label="Điều hướng chính">
-        {nav.map(({ href, label, icon, badge }) => {
-          const active = isActive(pathname, href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={active ? "nav-pill active" : "nav-pill"}
-              aria-current={active ? "page" : undefined}
-            >
-              {/* nền viên đang chọn trượt sang mục mới (CLAUDE.md 9.2: layoutId="active-pill") */}
-              {active && <motion.span layoutId="active-pill" className="nav-pill-bg" aria-hidden />}
-              <Icon name={icon} size={16} weight={active ? "fill" : "regular"} />
-              <span>{label}</span>
-              {badge ? (
-                <span className="nav-badge" role="status" aria-label={`${badge} cần xử lý`}>
-                  {badge}
-                </span>
-              ) : null}
-            </Link>
-          );
-        })}
-      </nav>
-      <div className="topbar-tools">
-        <RunSearch />
-        <RoleChip />
-        <Link href="/docs" className="icon-btn" aria-label="Tài liệu dự án" title="Tài liệu dự án">
-          <Icon name="docs" size={20} />
+      <div className="topbar-row">
+        <Link href="/" className="brand">
+          <SparkIcon size={22} className="brand-spark" />
+          <span>
+            P-113<span className="brand-more"> Agent Studio</span>
+          </span>
         </Link>
-        <ThemeToggle />
-        <NotificationBell />
-        <AvatarMenu />
+        <div className="topbar-tools">
+          <RoleChip />
+          <Link href="/docs" className="icon-btn" aria-label="Giới thiệu dự án" title="Giới thiệu dự án">
+            <Icon name="docs" size={20} />
+          </Link>
+          <ThemeToggle />
+          <NotificationBell />
+          <AvatarMenu />
+        </div>
+      </div>
+      <div className="nav-row">
+        <PrimaryNav items={nav} isActive={(href) => isActive(pathname, href)} />
+        {/* Chỉ Engineer tạo yêu cầu (backend cũng kiểm) */}
+        {user?.role === "engineer" && (
+          <Link href="/#request" className="btn primary nav-create">
+            <Icon name="create" size={18} weight="bold" />
+            Yêu cầu mới
+          </Link>
+        )}
       </div>
       <GuestStrip />
     </header>
@@ -133,7 +121,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { auth, user, guest } = useApp();
-  // Trang công khai: đăng nhập, /demo (tự bật chế độ khách rồi về trang chủ), /docs (tài liệu dự án)
+  // Trang công khai: đăng nhập, /demo (tự bật chế độ khách rồi về trang chủ), /docs (giới thiệu dự án)
   const onPublic = ["/login", "/demo", "/docs"].some((path) => pathname.startsWith(path));
   const navItems = useNavItems(user?.role ?? "engineer");
 
@@ -155,7 +143,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       <a href="#main" className="skip-link">
         Bỏ qua tới nội dung
       </a>
-      <Dock />
       <div className="frame">
         <TopBar />
         <GuideBanner />
@@ -167,7 +154,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <Footer />
       </div>
-      <BottomNav items={navItems} isActive={(href) => isActive(pathname, href)} />
+      <BottomNav items={navItems} isActive={(href) => isActive(pathname, href)} canCreate={user?.role === "engineer"} />
     </div>
   );
 }

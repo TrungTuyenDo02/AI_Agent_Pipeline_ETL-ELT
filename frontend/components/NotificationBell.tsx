@@ -19,6 +19,7 @@ export const ENGINEER_ACTION: RunStatus[] = [
   "waiting_plan_review",
   "waiting_schema",
   "waiting_rescue",
+  "paused", // chờ chính người tạo bấm Tiếp tục
 ];
 export const REVIEWER_ACTION: RunStatus[] = ["waiting_review"];
 export const NEEDS_ACTION: RunStatus[] = [...ENGINEER_ACTION, ...REVIEWER_ACTION];

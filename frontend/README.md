@@ -1,14 +1,28 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Trang tài liệu `/docs` (công khai)
+## Trang giới thiệu dự án `/docs` (công khai)
 
-Trang giới thiệu cho người không rành kỹ thuật, mở được khi chưa đăng nhập (AppShell bỏ qua kiểm tra phiên cho `/login`,
-`/demo`, `/docs`). Có liên kết "Tài liệu" ở thanh trên, màn đăng nhập và dải chế độ khách.
+Trang "Giới thiệu dự án" cho người xem lần đầu, mở được khi chưa đăng nhập (AppShell bỏ qua kiểm tra phiên cho `/login`,
+`/demo`, `/docs`). Có liên kết "Giới thiệu dự án" ở thanh trên, màn đăng nhập và dải chế độ khách.
 
-- **Tiến độ và nhóm:** sửa `lib/projectStatus.ts`. Mỗi mục có `title`, `group`, `status` (`done` · `doing` · `todo` · `unknown`)
-  và `note`. Thanh "x/y mục đã xong" tự tính; `unknown` hiện "Chưa cập nhật". Tên thành viên ở `PROJECT_TEAM`.
-- **Nội dung chữ** (sản phẩm, dùng thử 3 bước, giới hạn, công nghệ): ở đầu `app/docs/page.tsx`. Mỗi ý tối đa 60 từ, không nêu
-  địa chỉ API, cấu hình hay chi tiết nội bộ.
+- **Sáu phần** (neo `#tong-quan`, `#demo`, `#quy-trinh`, `#ky-thuat`, `#cong-nghe`, `#huong-di`); nội dung chữ là các hằng ở
+  đầu `app/docs/page.tsx` (Server Component). Câu ngắn, không nêu địa chỉ API, cấu hình, số đo hay thông tin nội bộ.
+- Mỗi mô tả phải có căn cứ trong code; tách rõ tính năng hiện có, chế độ khách (mô phỏng) và định hướng. Mục "Demo" chỉ nêu
+  điều riêng của kịch bản trong `lib/demo/fixtures.ts`; các bước chung nằm ở "Quy trình".
+- **Thanh liên kết neo** `components/docs/DocsSectionNav.tsx` (Client Component duy nhất ngoài nút sáng/tối): dính đầu trang,
+  `aria-current="location"` cho mục đang đọc; cuộn tay không đổi URL; bấm liên kết, mở URL có `#`, Back/Forward dùng neo gốc của
+  trình duyệt. Chiều cao thanh ghi vào `--docs-nav-h` để tiêu đề không bị che. Màn ≤ 720px: nút "Đang xem: …" mở danh sách.
+- **Ảnh minh họa** `public/docs/{run,review}-{light,dark}.webp`: chụp từ chế độ khách (dữ liệu mẫu, không tài khoản thật), ẩn
+  các dải hướng dẫn khách. Đổi giao diện màn lần chạy/màn duyệt thì chụp lại cả bốn ảnh.
+
+## Thanh trên và điều hướng
+
+- **Laptop:** hàng 1 là tên ứng dụng + vai trò, giới thiệu, sáng/tối, thông báo, tài khoản; hàng 2 là điều hướng chính theo vai trò
+  (`components/PrimaryNav.tsx`) + "Yêu cầu mới" (chỉ Engineer). Mục không đủ chỗ (laptop hẹp, phóng to 125%) vào menu "Thêm",
+  không cuộn ngang, không cắt nhãn. Mục đang chọn: nền + gạch chân + chữ đậm + `aria-current="page"`.
+- **Điện thoại (< 640px):** thanh dưới đáy tối đa 5 ô (Engineer có "Tạo mới"), phần còn lại trong "Thêm".
+- Không còn dock bên trái và ô tìm kiếm Ctrl/Cmd+K: "Giám sát" thành bộ lọc nhanh "Đang chạy" ở trang Lần chạy; "Tài liệu API" và
+  chọn giao diện nằm trong menu tài khoản.
 
 ## Chế độ khách (dữ liệu mẫu)
 

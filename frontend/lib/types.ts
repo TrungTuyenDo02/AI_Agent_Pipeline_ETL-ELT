@@ -9,6 +9,7 @@ export type RunStatus =
   | "waiting_schema"
   | "waiting_rescue"
   | "waiting_review"
+  | "paused"
   | "approved"
   | "failed"
   | "rejected_input";
@@ -27,6 +28,8 @@ export interface RunSummary {
   simulated?: boolean;
   workspace?: string | null;
   error?: string;
+  /** Ghi chú không phải lỗi (ví dụ: server khởi động lại khi đang chờ tạm dừng). */
+  notice?: string;
 }
 
 export interface RunRecord {
@@ -39,6 +42,8 @@ export interface RunRecord {
   created_at: string;
   updated_at: string;
   summary: RunSummary;
+  /** Đang chạy và người tạo đã bấm Tạm dừng (chờ bước hiện tại xong). Bản ghi cũ/chế độ khách: không có. */
+  pause_requested?: boolean;
 }
 
 export interface StepEvent {

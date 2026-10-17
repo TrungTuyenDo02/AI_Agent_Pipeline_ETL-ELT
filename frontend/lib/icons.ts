@@ -33,7 +33,6 @@ import {
   FileText,
   Flask,
   Gauge,
-  GearSix,
   GitDiff,
   HourglassMedium,
   House,
@@ -42,7 +41,7 @@ import {
   Lightning,
   ListChecks,
   Lock,
-  MagnifyingGlass,
+  PauseCircle,
   MinusCircle,
   Moon,
   Play,
@@ -72,7 +71,7 @@ import {
 } from "@phosphor-icons/react";
 
 export const ICONS = {
-  // Điều hướng + dock + thanh trên
+  // Điều hướng + thanh trên
   home: House,
   runs: PlayCircle,
   sources: Database,
@@ -81,8 +80,6 @@ export const ICONS = {
   errors: Bug,
   create: PlusCircle,
   monitor: Pulse,
-  settings: GearSix,
-  search: MagnifyingGlass,
   notifications: Bell,
   account: UserCircle,
   users: Users,
@@ -99,6 +96,7 @@ export const ICONS = {
   info: Info,
   running: CircleNotch,
   pending: Clock,
+  pause: PauseCircle,
   awaitingReview: HourglassMedium,
   requestChanges: ArrowUUpLeft,
   skipped: MinusCircle,

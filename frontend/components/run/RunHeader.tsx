@@ -9,6 +9,7 @@ import { formatTime } from "@/lib/format";
 import { useApp } from "../AppContext";
 import { RunGuideDone, RunGuideSteps, StatusExplain } from "../guide/Guide";
 import { ErrorBox, Loading, StatusBadge } from "../ui";
+import { PauseControl } from "./PauseControl";
 import { PipelineTrack } from "./PipelineTrack";
 import { RetryBanner } from "./RetryBanner";
 import { useRun } from "./RunContext";
@@ -98,6 +99,7 @@ export function RunHeader() {
         </div>
       </div>
       <StatusExplain status={record.status} />
+      <PauseControl />
       <RunGuideDone />
       <RunGuideSteps />
       <PipelineTrack />

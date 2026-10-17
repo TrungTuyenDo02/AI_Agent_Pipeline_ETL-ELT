@@ -15,6 +15,7 @@ from src.api.health import router as health_router
 from src.api.routes import router
 from src.config import APP_VERSION, get_settings
 from src.logging_config import setup_logging
+from src.services.jobs import RunBusyError
 from src.services.seed import ensure_demo_sources
 from src.services.store import get_store
 from src.services.tracing import configure_tracing
@@ -81,6 +82,12 @@ async def validation_error(request: Request, exc: RequestValidationError) -> JSO
         status_code=422,
         content={"detail": "Dữ liệu gửi lên không hợp lệ.", "fields": [f for f in fields if f]},
     )
+
+
+@app.exception_handler(RunBusyError)
+async def run_busy(request: Request, exc: RunBusyError) -> JSONResponse:
+    """Lần chạy đã đang chạy/xếp hàng (bấm lặp, hai yêu cầu cùng lúc) → 409, không chạy trùng."""
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
 
 
 @app.exception_handler(Exception)

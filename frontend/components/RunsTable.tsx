@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { formatPct, formatTime, formatUsd } from "@/lib/format";
-import { filterRuns, isRunFilter, RUN_FILTERS } from "@/lib/runFilters";
+import { filterRuns, isRunFilter, RUN_FILTERS, runFilterHref, type RunFilterKey } from "@/lib/runFilters";
 import type { RunRecord } from "@/lib/types";
 
 import { useApp } from "./AppContext";
@@ -30,6 +30,7 @@ function RunRow({ run }: { run: RunRecord }) {
       {/* data-label: tên cột hiện cạnh giá trị khi bảng xếp thành thẻ dọc trên điện thoại (CLAUDE.md 9.9) */}
       <td data-label="Trạng thái">
         <StatusPill status={run.status} />
+        {run.pause_requested && <small className="muted pause-pending">Đang chờ tạm dừng…</small>}
       </td>
       <td className="mono" data-label="Bảng đích">
         {run.summary.target ?? "—"}
@@ -47,6 +48,32 @@ function RunRow({ run }: { run: RunRecord }) {
   );
 }
 
+// Lọc nhanh luôn hiện (thay lối tắt "Giám sát" của dock cũ); các bộ lọc khác vẫn mở được từ thẻ thống kê trang chủ.
+const QUICK: { key: RunFilterKey | null; label: string }[] = [
+  { key: null, label: "Tất cả" },
+  { key: "dang-chay", label: "Đang chạy" },
+  { key: "tam-dung", label: "Đã tạm dừng" },
+  { key: "cho-toi", label: "Chờ tôi xử lý" },
+  { key: "cua-toi", label: "Yêu cầu của tôi" },
+];
+
+function QuickFilters({ current }: { current: RunFilterKey | null }) {
+  return (
+    <nav className="quick-filters" aria-label="Lọc nhanh lần chạy">
+      {QUICK.map(({ key, label }) => (
+        <Link
+          key={label}
+          href={key ? runFilterHref(key) : "/runs"}
+          className="quick-filter"
+          aria-current={current === key ? "page" : undefined}
+        >
+          {label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
 export function RunsTable() {
   const { runs: all, runsError: error, refreshRuns: refresh, user } = useApp();
   const key = useSearchParams().get("loc");
@@ -59,7 +86,8 @@ export function RunsTable() {
       title="Lần chạy gần đây"
       actions={waiting > 0 && <span className="badge warn">{waiting} lần chạy cần bạn xử lý</span>}
     >
-      {filter && (
+      <QuickFilters current={filter} />
+      {filter && !QUICK.some((item) => item.key === filter) && (
         <p className="filter-bar">
           <span className="badge info">Đang lọc: {RUN_FILTERS[filter].label}</span>
           <Link href="/runs" className="small link-arrow">

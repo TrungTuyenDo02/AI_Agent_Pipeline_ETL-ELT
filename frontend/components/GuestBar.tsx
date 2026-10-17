@@ -40,7 +40,7 @@ export function GuestStrip() {
           ))}
         </div>
         <Link href="/docs" className="btn small">
-          Tài liệu
+          Giới thiệu
         </Link>
         <button type="button" className="btn small" onClick={() => setConfirm(true)}>
           Làm lại từ đầu

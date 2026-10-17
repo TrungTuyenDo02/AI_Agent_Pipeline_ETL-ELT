@@ -1,4 +1,5 @@
-"""Lần chạy: tạo (chạy nền), xem tiến trình/chi tiết/file, tải gói code, trả lời J1, duyệt kế hoạch J1b, cứu hộ.
+"""Lần chạy: tạo (chạy nền), xem tiến trình/chi tiết/file, tải gói code, trả lời J1, duyệt kế hoạch J1b, cứu hộ,
+tạm dừng/tiếp tục (ADR 0016).
 
 Thao tác làm graph chạy tiếp trả về 202 ngay; web hỏi `GET /runs/{id}` định kỳ để thấy tiến trình.
 Xem: mọi người đã đăng nhập. Tạo yêu cầu, trả lời, duyệt kế hoạch, cứu hộ: chỉ Engineer (kiểm ở backend).
@@ -36,7 +37,7 @@ from src.api.requests import (
     SchemaBody,
 )
 from src.models.drift import PatchPlan, SchemaChangeView
-from src.models.schemas import RunRecord
+from src.models.schemas import RunRecord, RunStatus
 from src.models.spec import ClarifyQuestion
 from src.services import auth, drift_advice, patch_plan, schema_drift
 from src.services.cost import usage_breakdown
@@ -198,6 +199,62 @@ def retry(run_id: str, user: Engineer, request: Request) -> Accepted:
     auth.audit("run.retry", user.name, target=run_id, ip=client_ip(request))
     get_jobs().submit(run_id, lambda sink: runner.retry_run(run_id, sink), actor=user.name, owner=record.requester)
     return Accepted(run_id=run_id, status="running", message="Đã nhận, agent chạy lại từ bước lỗi.")
+
+
+PAUSE_NOTE = "Hệ thống hoàn tất bước đang chạy rồi tạm dừng. Bước này vẫn có thể phát sinh chi phí AI."
+
+
+@router.post("/{run_id}/pause", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
+def pause(run_id: str, user: Engineer, request: Request) -> Accepted:
+    """Tạm dừng: node đang chạy (kể cả lời gọi AI đã gửi) chạy xong, lưu checkpoint, rồi dừng trước node kế tiếp.
+
+    Chỉ người tạo yêu cầu. Còn trong hàng đợi thì dừng trước khi bắt đầu. Đang chờ người, đã xong hoặc lỗi → 409.
+    Bấm lặp: trả lại cùng kết quả, không tạo thêm yêu cầu.
+    """
+    record = run_for_user(run_id, user)
+    problem = runner.pause_problem(record, user.name)
+    if problem:
+        code = status.HTTP_403_FORBIDDEN if problem == runner.OWNER_ONLY else status.HTTP_409_CONFLICT
+        raise HTTPException(status_code=code, detail=problem)
+    if record.status == RunStatus.PAUSED:
+        return Accepted(run_id=run_id, status="paused", message="Lần chạy đã tạm dừng.")
+    if not get_jobs().request_pause(run_id, user.name):
+        current = run_or_404(run_id).status  # vừa xong/lỗi/tới bước chờ người/đã tạm dừng giữa lúc bấm
+        if current == RunStatus.PAUSED:
+            return Accepted(run_id=run_id, status="paused", message="Lần chạy đã tạm dừng.")
+        raise HTTPException(status_code=409, detail=runner.NOT_RUNNING)
+    auth.audit("run.pause", user.name, target=run_id, ip=client_ip(request))
+    return Accepted(run_id=run_id, status="pausing", message=PAUSE_NOTE)
+
+
+@router.post("/{run_id}/resume", status_code=status.HTTP_202_ACCEPTED, response_model=Accepted)
+def resume(run_id: str, user: Engineer, request: Request) -> Accepted:
+    """Tiếp tục lần chạy đã tạm dừng từ checkpoint cuối, cùng run_id (node đã xong không chạy lại, không gọi lại AI).
+
+    Chỉ người tạo yêu cầu; kiểm số lần chạy cùng lúc, trần chi phí trong ngày (429) và trần của riêng lần chạy (409).
+    """
+    record = run_for_user(run_id, user)
+    problem = runner.resume_problem(record, user.name)
+    if problem:
+        code = status.HTTP_403_FORBIDDEN if problem == runner.OWNER_ONLY else status.HTTP_409_CONFLICT
+        raise HTTPException(status_code=code, detail=problem)
+    _check_limits(record.requester, run_id)
+
+    def still_paused() -> None:  # chạy trong khóa của hàng đợi: hai yêu cầu cùng lúc thì chỉ một lần được đưa vào hàng
+        if run_or_404(run_id).status != RunStatus.PAUSED:
+            raise HTTPException(
+                status_code=409, detail="Lần chạy không ở trạng thái đã tạm dừng nên không tiếp tục được."
+            )
+
+    get_jobs().submit(
+        run_id,
+        lambda sink: runner.continue_run(run_id, sink),
+        actor=user.name,
+        owner=record.requester,
+        guard=still_paused,
+    )
+    auth.audit("run.resume", user.name, target=run_id, ip=client_ip(request))
+    return Accepted(run_id=run_id, status="running", message="Đã nhận, agent chạy tiếp từ bước đã dừng.")
 
 
 class PatchBody(BaseModel):

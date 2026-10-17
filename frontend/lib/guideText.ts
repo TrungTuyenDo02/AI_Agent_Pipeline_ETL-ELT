@@ -36,7 +36,7 @@ export const GUIDE_STEPS: { id: GuideStepId; phase: string; title: string; text:
     id: "review",
     phase: "review",
     title: "Người duyệt",
-    text: "Một người khác xem lại thay đổi. Chỉ khi họ duyệt, pipeline mới được dùng thật.",
+    text: "Một người khác xem lại thay đổi. Code chỉ nên được đưa vào dùng thật sau khi họ duyệt; hệ thống không tự triển khai.",
   },
 ];
 
@@ -68,7 +68,7 @@ export const GUIDE_NOTES = {
   },
   review: {
     title: "Duyệt thay đổi",
-    text: "Diff cho thấy dòng thêm và dòng bỏ so với bản trước. Chỉ khi Reviewer duyệt, pipeline mới được đưa vào dùng thật. Ở chế độ khách, nút Duyệt là giả lập.",
+    text: "Diff cho thấy dòng thêm và dòng bỏ so với bản trước. Gói code tải về được ngay cả khi đang chờ duyệt, nhưng chỉ nên đưa vào sử dụng hay triển khai sau khi Reviewer duyệt; hệ thống không tự triển khai. Ở chế độ khách, nút Duyệt là giả lập.",
   },
 };
 
@@ -82,6 +82,7 @@ export const STATUS_EXPLAIN: Record<RunStatus, string> = {
   waiting_schema: "Dữ liệu nguồn có cột bị đổi hoặc bị xóa. Cần người xác nhận trước khi chạy tiếp.",
   waiting_rescue: "Agent tự sửa lỗi chưa được. Cần người gợi ý cách sửa hoặc dừng lần chạy.",
   waiting_review: "Code đã chạy thử đạt. Đang chờ Reviewer xem thay đổi và quyết định.",
+  paused: "Lần chạy đang tạm dừng theo yêu cầu. Các bước đã xong được giữ nguyên; bấm Tiếp tục để chạy tiếp.",
   approved: "Reviewer đã duyệt. Pipeline sẵn sàng để đưa vào dùng thật.",
   failed: "Lần chạy đã dừng và không chạy tiếp. Xem nhật ký chạy để biết dừng ở bước nào.",
   rejected_input: "Yêu cầu bị từ chối ở bước kiểm tra đầu vào nên chưa tốn công chạy.",
@@ -121,5 +122,5 @@ export const GUIDE_DONE = {
   title: "Bạn vừa đi hết quy trình",
   text: "Từ một câu yêu cầu tới pipeline đã chạy thử và được duyệt. Đăng nhập để chạy với dữ liệu và AI thật.",
   login: "Đăng nhập để chạy thật",
-  docs: "Xem tài liệu dự án",
+  docs: "Xem giới thiệu dự án",
 };

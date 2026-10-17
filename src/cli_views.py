@@ -26,6 +26,7 @@ STATUS_TEXT = {
     "waiting_schema": "chờ xác nhận cấu trúc nguồn thay đổi",
     "waiting_rescue": "chờ cứu hộ",
     "waiting_review": "chờ Reviewer duyệt",
+    "paused": "đã tạm dừng",
     "approved": "đã duyệt",
     "failed": "dừng do lỗi",
     "rejected_input": "bị chặn ở cửa kiểm tra đầu vào",
