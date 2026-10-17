@@ -67,7 +67,7 @@ Từ máy bạn (đã `pip install -r requirements.txt`), trỏ vào Neon bằng
 ```bash
 export MIGRATION_DATABASE_URL='postgresql+psycopg://p113_migrator:<MAT_KHAU>@<host>/<db>?sslmode=require'
 alembic upgrade head
-alembic current           # → 0008_llm_cost_ledger (head); mỗi lần deploy code mới phải chạy lại `alembic upgrade head`
+alembic current           # → 0009_glossary_grants (head); mỗi lần deploy code mới phải chạy lại `alembic upgrade head`
 ```
 Rồi mở **Shell** của dịch vụ Render (hoặc chạy trên máy bằng `DATABASE_URL` của Neon) và tạo admin đầu tiên (mật khẩu nhập ẩn):
 ```bash

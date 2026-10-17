@@ -128,7 +128,9 @@
 
 | Member | Task | Status | Output | Time |
 |--------|------|--------|--------|------|
-| TrungTuyenDo02 | Sổ chi phí LLM và giữ trước ngân sách (ADR 0014): mọi lượt gọi thật (pipeline, dự phòng, "Hỏi AI") giữ trước dự toán xấu nhất trên trần run/người/toàn hệ thống bằng UPDATE có điều kiện; quyết toán một lần (settled/released/unknown); chặn model thiếu giá; ghi tiền cả lượt bị cắt max_tokens/LengthFinishReason; trần ngày tính theo ngày gọi; CLI `cost` đối soát tay | ✅ Done | CI 1183 đạt, 20 bỏ qua, phủ 92.02%; 20 test mới (tranh chấp 20 luồng SQLite + 10 luồng PostgreSQL không vượt trần); 0 token | — |
+| TrungTuyenDo02 | Sổ chi phí LLM, giữ trước ngân sách mỗi lượt gọi, chặn model thiếu giá (ADR 0014) | ✅ Done | CI 1183 đạt, phủ 92.02%; 20 test mới, tranh chấp SQLite và PostgreSQL không vượt trần; 0 token | — |
+| TrungTuyenDo02 | Nâng Neon lên head; migration 0009 cấp quyền glossary_terms mà 0007 bỏ sót | ✅ Done | Neon ở 0009, p113_app đủ quyền; demo trên Neon đạt; test quét GRANT mọi bảng | — |
+| TrungTuyenDo02 | Giả lập deploy Vercel trên máy: build có BACKEND_URL, gọi API qua rewrite | ✅ Done | Đăng nhập, cookie HttpOnly, lần chạy mock tới approved, tải zip 200; chưa deploy Vercel thật | — |
 
 ---
 
