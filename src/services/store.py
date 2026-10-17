@@ -143,12 +143,13 @@ class Store:
 
         Trả True khi lần chạy đang có yêu cầu tạm dừng sau lệnh này (mới ghi hoặc đã có từ trước).
         """
-        params = {"id": run_id, "by": by, "now": _now(), "running": _value(RunStatus.RUNNING)}
+        # `:new_id` tách khỏi `:id`: PostgreSQL suy kiểu riêng cho mỗi tham số (cột VARCHAR khi INSERT, text khi so sánh)
+        params = {"id": run_id, "new_id": run_id, "by": by, "now": _now(), "running": _value(RunStatus.RUNNING)}
         with self.engine.begin() as conn:
             conn.execute(
                 text(
                     "INSERT INTO run_controls (run_id, pause_requested_by, pause_requested_at) "
-                    "SELECT :id, :by, :now WHERE EXISTS (SELECT 1 FROM runs WHERE id=:id AND status=:running) "
+                    "SELECT :new_id, :by, :now WHERE EXISTS (SELECT 1 FROM runs WHERE id=:id AND status=:running) "
                     "ON CONFLICT (run_id) DO NOTHING"
                 ),
                 params,
@@ -189,7 +190,8 @@ class Store:
             ).all()
             for row in rows:
                 pausing = row.pausing is not None
-                note = {"notice": INTERRUPTED_PAUSING} if pausing else {"error": INTERRUPTED}
+                # đã tạm dừng: bỏ lỗi cũ còn trong tóm tắt (ví dụ lượt trước lỗi rồi được chạy lại), chỉ giữ lời nhắc
+                note = {"notice": INTERRUPTED_PAUSING, "error": ""} if pausing else {"error": INTERRUPTED}
                 summary = {**json.loads(row.summary or "{}"), **note}
                 conn.execute(
                     text("UPDATE runs SET status=:status, updated_at=:now, summary=:summary WHERE id=:id"),

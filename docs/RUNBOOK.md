@@ -211,6 +211,12 @@ Cách dùng (một DE làm từ đầu đến cuối):
 5. Tab **Cấu trúc dữ liệu**: sơ đồ bảng raw → staging → mart, bấm vào bảng để xem schema, quan hệ, khóa nối.
 6. Duyệt xong → **Tải gói code (.zip)** → chép vào repo dbt của đội → mở Pull Request để CI/CD chạy.
 
+**Tạm dừng / tiếp tục** ([ADR 0016](adr/0016-tam-dung-tiep-tuc-lan-chay.md)): khi lần chạy đang chạy hoặc xếp hàng, người tạo yêu
+cầu thấy nút **Tạm dừng** ở đầu trang lần chạy. Bước đang chạy vẫn chạy xong (có thể tốn chi phí AI), rồi dừng trước bước kế tiếp.
+Trạng thái **Đã tạm dừng** có nút **Tiếp tục**: chạy từ bước kế tiếp, không làm lại phần đã xong. Người khác, Reviewer, Admin và khách
+không thấy nút; backend cũng chặn. Tiếp tục bị từ chối khi lần chạy đã chạm trần token/USD (`RUN_TOKEN_BUDGET`,
+`RUN_COST_BUDGET_USD`), hết ngân sách hệ thống hôm nay hoặc người đó đang đủ số lần chạy cùng lúc.
+
 Mở web sẽ vào trang **Đăng nhập** (tài khoản do Admin cấp; tạo mẫu cho dev: `python -m src.cli users seed-dev`).
 Avatar góc phải: tên, vai trò, giao diện sáng/tối, nhãn **Mô phỏng**/**LLM thật**, nút **Đăng xuất** (phiên mất hiệu lực
 ở máy chủ ngay). Nút của vai trò khác bị khóa kèm lời nhắc; backend vẫn chặn (403). Admin có thêm mục **Người dùng**:
@@ -320,6 +326,8 @@ mỗi thành viên cần `AI_LOG_API_KEY` riêng trong `.env`.
 | `llm primary failed, using fallback` trong log | OpenAI lỗi tạm thời, đã tự chuyển sang Gemini; nếu lặp lại thường xuyên thì kiểm tra hạn mức OpenAI |
 | Chữ tiếng Việt lỗi trong terminal | Dùng PowerShell/Windows Terminal; hoặc chạy `$env:PYTHONIOENCODING="utf-8"` |
 | `make` không tồn tại (Windows) | Dùng `python scripts/tasks.py <đích>` |
+| Lần chạy "Đã tạm dừng" kèm lời nhắc "Server khởi động lại khi lần chạy đang chờ tạm dừng" | Server tắt trong lúc chờ bước hiện tại xong. Bấm **Tiếp tục**: chỉ bước đang dở được làm lại, các bước trước giữ nguyên. Lần chạy không có yêu cầu tạm dừng thì vẫn thành "Đã dừng" và dùng **Chạy lại từ bước lỗi** |
+| Bấm **Tiếp tục** báo hết trần token/USD | Trần của riêng lần chạy (`RUN_TOKEN_BUDGET`, `RUN_COST_BUDGET_USD`). Tạo yêu cầu nhỏ hơn hoặc nhờ quản trị viên tăng trần; lần chạy vẫn giữ trạng thái đã tạm dừng |
 | Cổng 8000 bị chiếm | `python -m uvicorn src.main:app --port 8001` (web: đặt `NEXT_PUBLIC_API_URL=http://localhost:8001`) |
 | Web báo "Không kết nối được máy chủ API" | Kiểm tra API đang chạy (`/health`); đúng `NEXT_PUBLIC_API_URL`; địa chỉ web nằm trong `CORS_ORIGINS` |
 | Lần chạy dừng "Có lỗi nội bộ", V2 báo dbt dừng không in kết quả, web báo "Chưa có nhật ký từng bước" | Máy chủ API đã khởi động lại giữa lần chạy. Chạy API bằng `python scripts/tasks.py run` (đã có `--reload-dir src`); nếu tự gõ lệnh uvicorn với `--reload` thì thêm `--reload-dir src`, vì V2 ghi file `.py` vào `pipelines/workspaces/`. Chi tiết lỗi in ở cửa sổ terminal chạy API (không ghi ra file) |

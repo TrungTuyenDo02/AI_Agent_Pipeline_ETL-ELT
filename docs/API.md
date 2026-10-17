@@ -9,6 +9,9 @@ Tiền tố `/api/v1`, riêng `/health` không có tiền tố.
   Ngoại lệ không cần đăng nhập: `/health`, `/auth/login`, `/auth/logout`.
 - **Thao tác ghi** (POST/PATCH) phải kèm header `X-Requested-With` (chống giả mạo yêu cầu từ trang khác).
 - **Chạy nền:** thao tác làm agent chạy tiếp trả `202` ngay, các lần chạy xếp hàng một luồng. Web hỏi `GET /runs/{id}` định kỳ.
+  Lần chạy đang chạy hoặc đang xếp hàng mà bị đưa vào hàng lần nữa (bấm lặp, hai yêu cầu cùng lúc) → `409`.
+- **Lần chạy:** `record.status` có thêm `paused`; `record.pause_requested` = `true` khi đang chạy và đã có yêu cầu tạm dừng.
+  `record.summary.notice` (nếu có) là lời nhắc khi server khởi động lại lúc đang chờ tạm dừng.
 - **Lỗi:** `detail` tiếng Việt, không lộ traceback. Lỗi kiểm tra đầu vào: `422`.
 - **Vai trò:** `engineer` tạo yêu cầu, trả lời, duyệt kế hoạch, cứu hộ; `reviewer` duyệt/từ chối code và sổ lỗi; `admin` quản lý tài khoản.
 
@@ -53,6 +56,8 @@ Tiền tố `/api/v1`, riêng `/health` không có tiền tố.
 | POST | `/api/v1/runs/{run_id}/plan` | engineer | Duyệt kế hoạch J1b: `decision` = `approve` hoặc `revise` (kèm `note`) |
 | POST | `/api/v1/runs/{run_id}/schema` | engineer | Nguồn mất cột/nghi đổi tên: `action` = `continue` (kèm `renames`) hoặc `abort` |
 | POST | `/api/v1/runs/{run_id}/rescue` | engineer | Cứu hộ: `action` = `retry` (kèm `hint`) hoặc `abort` |
+| POST | `/api/v1/runs/{run_id}/pause` | engineer (người tạo yêu cầu) | Tạm dừng ([ADR 0016](adr/0016-tam-dung-tiep-tuc-lan-chay.md)): node đang chạy chạy xong (vẫn có thể tốn chi phí AI), lưu checkpoint, dừng trước node kế tiếp; đang xếp hàng thì dừng trước khi bắt đầu. `202` + `status` = `pausing` (đã nhận) hoặc `paused` (đã dừng, bấm lặp). Người khác `403`; đang chờ người, đã xong hoặc lỗi `409` |
+| POST | `/api/v1/runs/{run_id}/resume` | engineer (người tạo yêu cầu) | Tiếp tục lần chạy `paused` từ checkpoint cuối, cùng `run_id`; node đã xong không chạy lại. `202`; không ở trạng thái `paused`, đang chạy, chạm trần token/USD của lần chạy hoặc ngân sách hệ thống hôm nay `409`; quá số lần chạy cùng lúc hoặc trần chi phí hôm nay `429`. Bị từ chối thì vẫn `paused` |
 | POST | `/api/v1/runs/{run_id}/review` | reviewer | Duyệt J2: `decision` = `approve` hoặc `reject` (từ chối bắt buộc `note`) |
 | GET | `/api/v1/runs/{run_id}/catalog` | đăng nhập | raw → staging → mart, kiểu cột, % rỗng, khóa, lineage, JOIN (0 token) |
 | GET | `/api/v1/runs/{run_id}/profile` | engineer, reviewer | Hồ sơ dữ liệu một bảng (`table`, `dataset` = sandbox/small/dirty/dupkeys/nullmoney/few/empty) |

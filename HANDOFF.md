@@ -1,46 +1,69 @@
-# HANDOFF — chuyển sang Claude Code Cloud (2026-10-18)
+# HANDOFF — Đợt B tạm dừng/tiếp tục đã hoàn thiện trên cloud (2026-10-18)
 
-## Việc đang làm
+## Việc vừa làm
 
-- Nhánh bàn giao: `wip/cloud-pause-resume-2026-10-18`, tách từ `feat/guest-mode` tại `aa6822f`.
-- Đây là snapshot WIP: có cả Đợt A (giao diện) và Đợt B (pause/resume chưa hoàn tất). Không coi commit bàn giao là bản đã qua CI.
-- Đọc [hướng dẫn cloud](docs/CLOUD_HANDOFF.md) trước khi sửa. [Prompt tiếp tục](docs/CLAUDE_CLOUD_PROMPT.md) đã chuẩn bị để người dùng dán vào phiên mới.
-- Phiên chuẩn bị bàn giao chỉ cập nhật tài liệu và đóng gói trạng thái có sẵn; không sửa logic, không chạy lại pytest/frontend và không chạy migration.
-- `.venv` local hiện không khởi động được vì Python 3.11 mà nó trỏ tới không còn ở đường dẫn cũ. Cloud cần tạo môi trường mới từ requirements; không chuyển virtualenv local.
+- Nhánh: `wip/cloud-pause-resume-2026-10-18` (tách từ `feat/guest-mode` tại `aa6822f`). Commit snapshot `9fe2193` + commit
+  hoàn thiện Đợt B của phiên cloud. Chưa merge, chưa mở PR.
+- Đợt A (giao diện) giữ nguyên, không sửa. `frontend-check` chạy lại trên cloud: xem mục kết quả.
+- Đợt B: logic có sẵn trong snapshot giữ nguyên trừ 2 sửa nhỏ ở `src/services/store.py` (bên dưới). Phần lớn công việc là tái hiện,
+  kiểm chứng và bổ sung test. ADR [0016](docs/adr/0016-tam-dung-tiep-tuc-lan-chay.md) đã viết; API.md, RUNBOOK, README, WORKLOG
+  đã cập nhật.
 
-## Đợt A — theo báo cáo phiên Claude trước
+## Hai test lỗi trong log cũ — nguyên nhân
 
-- Thanh trên hai hàng và `PrimaryNav.tsx`; mục dư vào menu Thêm, thanh dưới điện thoại tối đa 5 ô. Bỏ Dock và RunSearch/Ctrl+K.
-- Viết lại `/docs`, thêm `DocsSectionNav.tsx` và 4 ảnh demo sáng/tối trong `frontend/public/docs/`; sửa câu chữ, CSS, màu tương phản và tài liệu frontend.
-- Phiên trước báo lint, typecheck, format:check, check:contrast, build đạt; đã kiểm tra nhiều chiều rộng, vai trò và sáng/tối; `/docs` 40/40 kiểm tra đạt. Chưa chạy lại trong phiên bàn giao này.
-- Ảnh trước/sau ở `scratchpad/ui/shots/` theo báo cáo cũ không được xác nhận có trên cloud. Bốn ảnh trong `frontend/public/docs/` là asset cần bàn giao.
+- `test_pause_while_node_runs_finishes_node_then_stops_before_next`: **test sai giả định**. Graph là `planner → spec_check (V0) →
+  clarify (J1)` (`routing.after_planner`). Node kế tiếp sau planner đúng là `spec_check`. Đã sửa kỳ vọng và siết thêm: `spec_check`
+  và `clarify` chưa chạy, checkpoint có `spec` nhưng chưa có `spec_errors`.
+- `test_resume_refused_when_budget_or_limits_hit`: **test sai giả định**. LLM mock trả 0 token (`llm_mock._usage`), nên đã dùng
+  0 < 1 và 202 là đúng. Đã giả lập 500 token/lượt như `test_token_budget_stops_run_with_clear_message`, trần 400, giữ kỳ vọng 409
+  `RUN_TOKEN_BUDGET`.
 
-## Đợt B — code đã có, cần hoàn thiện và kiểm chứng
+## Sửa implementation
 
-- Migration `0010_run_controls.py`, cờ pause trong store; runner chạy từng node và tiếp tục từ checkpoint; khóa chống chạy trùng trong jobs.
-- `RunBusyError` → HTTP 409 trong `src/main.py`; API pause/resume và audit trong `src/api/runs.py` đã có.
-- Nhãn CLI, stages, kiểu/trạng thái/bộ lọc/nhật ký frontend và `PauseControl.tsx` đã có.
-- Hợp đồng hiện có thêm `RunStatus.PAUSED` và `RunRecord.pause_requested=False`. Việc đóng gói WIP không xác nhận thiết kế đã được duyệt; giữ tương thích checkpoint/API cũ và không mở rộng thêm hợp đồng ngoài phạm vi này.
-- Test đã có ở `tests/test_api/test_pause_api.py`. Chưa thấy ADR 0016 dù code đang dẫn chiếu số này.
+- `Store.request_pause` lỗi **trên PostgreSQL** (`AmbiguousParameter`: cùng tham số `:id` vừa là cột VARCHAR khi INSERT vừa là text
+  khi so sánh). SQLite không bắt được. Tách thành `:new_id`. Phát hiện bằng PostgreSQL 16 tạm trong container.
+- `fail_interrupted_runs`: lần chạy đang chờ tạm dừng thành `paused` thì xóa `summary.error` cũ (ví dụ lượt trước lỗi rồi chạy lại),
+  chỉ giữ `notice`.
 
-## Kết quả mới nhất từ log người dùng cung cấp
+## Test thêm (tests/test_api/test_pause_api.py, 17 test)
 
-- Pause/resume: **10 passed, 2 failed** trong 78.07 giây. Hai test lỗi:
-  - `test_pause_while_node_runs_finishes_node_then_stops_before_next`: kỳ vọng `clarify`, thực tế node tiếp theo là `spec_check`.
-  - `test_resume_refused_when_budget_or_limits_hit`: kỳ vọng 409 do `RUN_TOKEN_BUDGET`, thực tế 202.
-- Cần tái hiện và xác định lỗi test hay logic; chưa đủ bằng chứng kết luận chỉ sai giả định test.
-- Bộ test cũ chỉ có output tới khoảng 43%; phiên trước báo hết thời gian 900 giây. Exit code của lệnh bọc không chứng minh pytest đã hoàn tất.
-- Số 1149 passed/20 skipped/2 xfailed/91.85% ở bàn giao trước là baseline lịch sử, không áp dụng cho snapshot pause/resume hiện tại.
+- Trần USD của lần chạy và ngân sách hệ thống hôm nay (409, vẫn `paused`, dưới trần thì chạy tiếp được).
+- Chưa đăng nhập 401, thiếu `X-Requested-With` 403, bị chặn thì không ghi `run.resume`.
+- Đang chạy: `resume`/`retry` → 409, không chạy trùng.
+- Khởi động lại khi node đang chạy và có yêu cầu tạm dừng: thành `paused`, tiếp tục chỉ làm lại planner, không chạy lại G0/G1.
+- Test restart cũ đếm `fail_interrupted_runs() == 0` trên store dùng chung cả phiên, nên lỗi khi chạy cả bộ. Đã đổi sang kiểm đúng
+  lần chạy của test (trạng thái, tóm tắt không đổi, không có lỗi).
 
-## Thứ tự tiếp tục
+## Kết quả kiểm chứng (phiên cloud)
 
-1. Thiết lập môi trường mock/SQLite kiểm thử theo hướng dẫn cloud; chạy lại file test pause/resume và sửa nguyên nhân.
-2. Kiểm chứng ranh giới node, resume không chạy lại phần đã xong, queue/concurrency, restart, quyền, giới hạn/ngân sách và audit.
-3. Kiểm tra migration, checkpoint/API cũ và UI cho Engineer/người khác/khách.
-4. Viết ADR 0016, cập nhật WORKLOG, README, RUNBOOK và API.md cho endpoint mới.
-5. Chạy `python scripts/tasks.py ci` và `python scripts/tasks.py frontend-check` đến khi có kết quả cuối. Ghi đúng phần chưa kiểm chứng.
-- Receipt từng run và phân giải source_id khi trùng tên bảng vẫn là backlog sau đợt này.
-- Backend mock ở cổng 8000 được phiên trước báo đang chạy trên máy local; chưa kiểm tra/tắt trong phiên bàn giao. Cloud là môi trường riêng.
+- `python -m pytest tests/test_api/test_pause_api.py`: 17 passed; chạy lặp 5 lần đều đạt.
+- PostgreSQL 16 tạm (`p113_test`, `STATE_BACKEND=postgres`, `RUN_WORKERS=1`): pause + auth/migration + retry + runs API 63 passed.
+  Migration lên `0010_run_controls`, GRANT cho `p113_app` đúng; vòng downgrade/upgrade qua `test_migrations_run_from_scratch...`.
+  Với `RUN_WORKERS` mặc định (nhiều luồng), `test_pause_while_queued_never_starts` không áp dụng vì lần chạy thứ hai không xếp hàng.
+- Headless Chromium (backend mock + `next start`): nút chỉ hiện cho Engineer tạo yêu cầu; Engineer khác, Reviewer, chưa đăng nhập,
+  khách đều không thấy; sáng/tối × 1366/390 px không tràn ngang, 0 lỗi trang. Bấm **Tiếp tục** → `waiting_clarification`.
+  Uvicorn khởi động lại thật đã chuyển lần chạy "đang chờ tạm dừng" thành "đã tạm dừng" kèm lời nhắc.
+- `python scripts/tasks.py ci` và `frontend-check`: `ci` exit 0: ruff check/format đạt; pytest **1211 passed, 31 skipped,
+  2 xfailed**, độ phủ **92,01%** (8 phút 18 giây). 31 skipped có sẵn từ trước: 20 `test_connectors` (cần `RUN_PG_TESTS=1`),
+  5 `test_state_postgres` (cần `TEST_DATABASE_URL` PostgreSQL), 6 `test_prompts/test_budget` (không tải được bộ mã tiktoken trong container). `frontend-check` exit 0: lint,
+  format:check, typecheck, check:contrast, build đều đạt.
+
+## Chưa kiểm chứng
+
+- PostgreSQL thật (Neon) và nhiều luồng thật sự song song trên PostgreSQL; Docker.
+- Kill tiến trình thật giữa một lời gọi LLM/dbt (đã mô phỏng bằng checkpoint dừng trước planner + `fail_interrupted_runs`).
+- LLM thật: không gọi trong phiên này.
+
+## Cần chủ dự án review
+
+- Hợp đồng: `RunStatus.PAUSED`, `RunRecord.pause_requested=False`, 2 endpoint mới, `Accepted.status` thêm `pausing`/`paused`
+  (chi tiết ADR 0016 mục "Hợp đồng"). Tương thích: trường mới có mặc định; checkpoint cũ không đổi khuôn; test API cũ đều đạt.
+- Hành vi mới: mọi hành động đưa lần chạy đang bận vào hàng lần nữa nay trả 409 (trước 202 rồi bị bỏ trong luồng nền).
+
+## Việc tiếp theo
+
+1. Review diff, quyết định hợp đồng; mở PR khi đồng ý.
+2. Backlog: receipt từng run và phân giải `source_id` khi trùng tên bảng.
 
 ## Baseline trước đợt giao diện/pause-resume
 

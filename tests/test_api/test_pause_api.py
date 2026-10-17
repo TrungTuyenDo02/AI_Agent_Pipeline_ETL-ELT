@@ -13,8 +13,8 @@ from httpx import AsyncClient
 from src.agents import runner
 from src.agents.nodes import planner
 from src.config import get_settings
-from src.models.schemas import RunStatus
-from src.services import auth
+from src.models.schemas import LLMUsage, RunStatus
+from src.services import auth, llm_mock
 from src.services.jobs import get_jobs
 from src.services.llm import LLMCallError
 from src.services.store import get_store
@@ -55,7 +55,7 @@ async def _detail(client: AsyncClient, run_id: str) -> dict:
 
 
 async def _paused_run(client: AsyncClient, gate: Gate) -> str:
-    """Lần chạy bị tạm dừng ngay sau planner (planner đã chạy đúng 1 lần, clarify chưa chạy)."""
+    """Lần chạy bị tạm dừng ngay sau planner (planner đã chạy đúng 1 lần, V0 spec_check và J1 clarify chưa chạy)."""
     run_id = (await client.post(f"{API}/runs", json=REQUEST)).json()["run_id"]
     assert gate.entered.wait(30)
     accepted = await client.post(f"{API}/runs/{run_id}/pause")
@@ -82,8 +82,11 @@ async def test_pause_while_node_runs_finishes_node_then_stops_before_next(client
     assert paused["record"]["status"] == "paused" and paused["record"]["pause_requested"] is False
     assert paused["busy"] is False and paused["pending"] is None  # luồng nền đã trả lại, không chờ trong vòng lặp
     assert gate.calls == 1  # planner chạy xong đúng một lần
-    assert runner._next_nodes(run_id) == ["clarify"]  # node kế tiếp chưa chạy
-    assert "planner" in [e["node"] for e in paused["events"]] and "clarify" not in [e["node"] for e in paused["events"]]
+    assert runner._next_nodes(run_id) == ["spec_check"]  # graph: planner → V0 spec_check → J1 clarify; V0 chưa chạy
+    ran = [e["node"] for e in paused["events"]]
+    assert "planner" in ran and "spec_check" not in ran and "clarify" not in ran
+    saved = runner.get_values(run_id)  # checkpoint ngay sau planner: có spec, V0 chưa ghi kết quả kiểm tra
+    assert "spec" in saved and "spec_errors" not in saved
     assert any(s["detail"] == "tạm dừng trước bước này" for s in paused["stages"])
     actions = [(a.action, a.target) for a in auth.recent_audit(50)]
     assert ("run.pause", run_id) in actions and ("run.paused", run_id) in actions
@@ -148,7 +151,11 @@ async def test_pause_resume_denied_for_others(client: AsyncClient, login, gate, 
 async def test_paused_run_survives_restart(client: AsyncClient, gate, seeded_sources):
     run_id = await _paused_run(client, gate)
     runner._graph.cache_clear()  # như khởi động lại: graph + kết nối checkpoint mới
-    assert get_store().fail_interrupted_runs() == 0  # lần chạy đã tạm dừng giữ nguyên, không bị đánh lỗi
+    before = get_store().get_run(run_id)
+    get_store().fail_interrupted_runs()  # store dùng chung cả phiên test: chỉ xét lần chạy của test này
+    after_restart = get_store().get_run(run_id)
+    assert after_restart.status == RunStatus.PAUSED  # lần chạy đã tạm dừng giữ nguyên, không bị đánh lỗi
+    assert after_restart.summary == before.summary and not after_restart.summary.get("error")
     assert (await _detail(client, run_id))["record"]["status"] == "paused"
     assert (await client.post(f"{API}/runs/{run_id}/resume")).status_code == 202
     get_jobs().wait(run_id)
@@ -205,9 +212,16 @@ async def test_pause_refused_when_waiting_or_done(client: AsyncClient, seeded_so
 async def test_resume_refused_when_budget_or_limits_hit(
     client: AsyncClient, gate, monkeypatch: pytest.MonkeyPatch, seeded_sources
 ):
+    # LLM mock tốn 0 token (llm_mock._usage) nên giả lập mỗi lượt 500 token, như test_token_budget_stops_run_with_clear_message
+    monkeypatch.setattr(
+        llm_mock,
+        "_usage",
+        lambda task: LLMUsage(task=task, provider="mock", model="mock", input_tokens=500, simulated=True),
+    )
     run_id = await _paused_run(client, gate)
+    assert sum(u["input_tokens"] for u in runner.get_values(run_id)["llm_usage"]) == 500  # đã lưu trong checkpoint
     settings = get_settings()
-    monkeypatch.setattr(settings, "run_token_budget", 1)  # mock vẫn đếm token: planner đã dùng > 1
+    monkeypatch.setattr(settings, "run_token_budget", 400)  # planner đã dùng 500 ≥ 400
     over = await client.post(f"{API}/runs/{run_id}/resume")
     assert over.status_code == 409 and "RUN_TOKEN_BUDGET" in over.json()["detail"]
     monkeypatch.setattr(settings, "run_token_budget", 0)
@@ -216,3 +230,88 @@ async def test_resume_refused_when_budget_or_limits_hit(
     assert limited.status_code == 429
     assert (await _detail(client, run_id))["record"]["status"] == "paused"  # không đổi gì khi bị từ chối
     assert gate.calls == 1
+
+
+class _Spent:
+    """Sổ chi phí giả: đã dùng `usd` cho đúng một hạn mức (`scope`), các hạn mức khác 0."""
+
+    def __init__(self, scope: str, usd: float) -> None:
+        self.scope, self.usd = scope, usd
+
+    def used_usd(self, scope: str, subject: str, day: str = "") -> float:
+        return self.usd if scope == self.scope else 0.0
+
+
+@pytest.mark.parametrize(
+    ("setting", "scope", "needle"),
+    [
+        ("run_cost_budget_usd", "run", "RUN_COST_BUDGET_USD"),
+        ("llm_global_daily_budget_usd", "global", "ngân sách AI hôm nay"),
+    ],
+)
+async def test_resume_refused_when_cost_budget_spent(
+    client: AsyncClient, gate, monkeypatch: pytest.MonkeyPatch, seeded_sources, setting: str, scope: str, needle: str
+):
+    run_id = await _paused_run(client, gate)
+    monkeypatch.setattr(get_settings(), setting, 0.5)
+    monkeypatch.setattr(runner, "get_ledger", lambda: _Spent(scope, 0.5))  # đã dùng đúng bằng trần
+    refused = await client.post(f"{API}/runs/{run_id}/resume")
+    assert refused.status_code == 409 and needle in refused.json()["detail"]
+    assert (await _detail(client, run_id))["record"]["status"] == "paused"
+    monkeypatch.setattr(runner, "get_ledger", lambda: _Spent(scope, 0.49))  # còn dưới trần: chạy tiếp được
+    assert (await client.post(f"{API}/runs/{run_id}/resume")).status_code == 202
+    get_jobs().wait(run_id)
+    assert (await _detail(client, run_id))["record"]["status"] == "waiting_clarification"
+    assert gate.calls == 1
+
+
+async def test_pause_resume_need_session_and_csrf(client: AsyncClient, anon: AsyncClient, gate, seeded_sources):
+    run_id = await _paused_run(client, gate)
+    for path in ("pause", "resume"):
+        assert (await anon.post(f"{API}/runs/{run_id}/{path}")).status_code == 401  # chưa đăng nhập (kể cả khách)
+        no_header = await client.post(f"{API}/runs/{run_id}/{path}", headers={"X-Requested-With": ""})
+        assert no_header.status_code == 403 and "X-Requested-With" in no_header.json()["detail"]
+    assert (await _detail(client, run_id))["record"]["status"] == "paused"
+    actions = [(a.action, a.target) for a in auth.recent_audit(50)]
+    assert ("run.resume", run_id) not in actions  # bị chặn thì không ghi kiểm toán "đã tiếp tục"
+
+
+async def test_pause_refused_on_other_busy_actions(client: AsyncClient, gate, seeded_sources):
+    """Đang chạy: tiếp tục/chạy lại/trả lời J1 đều bị 409, không đưa lần chạy vào hàng lần thứ hai."""
+    run_id = (await client.post(f"{API}/runs", json=REQUEST)).json()["run_id"]
+    assert gate.entered.wait(30)
+    assert (await client.post(f"{API}/runs/{run_id}/resume")).status_code == 409  # chưa tạm dừng
+    assert (await client.post(f"{API}/runs/{run_id}/retry")).status_code == 409
+    gate.release.set()
+    get_jobs().wait(run_id)
+    assert (await _detail(client, run_id))["record"]["status"] == "waiting_clarification"
+    assert gate.calls == 1
+
+
+async def test_restart_mid_node_while_pausing_redoes_only_that_node(client: AsyncClient, gate, seeded_sources):
+    """Server tắt khi planner đang chạy và đã có yêu cầu tạm dừng: checkpoint cuối là ranh giới TRƯỚC planner.
+
+    Sau khởi động: "đã tạm dừng" (không phải lỗi); tiếp tục chỉ làm lại planner, không chạy lại G0/G1 đã xong.
+    """
+    gate.release.set()
+    store = get_store()
+    record = store.create_run(REQUEST["request_text"], client.username)
+    graph, config = runner.get_graph(), runner._config(record.id)
+    for _ in graph.stream(runner._initial_payload(record), config, interrupt_before=["planner"]):
+        pass  # G0 input_gate, G1 drift_gate xong; dừng trước planner như lúc tiến trình chết giữa planner
+    assert runner._next_nodes(record.id) == ["planner"] and gate.calls == 0
+    store.update_run(record.id, RunStatus.RUNNING, {"error": "Gọi OpenAI thất bại (lượt trước, đã bấm chạy lại)."})
+    assert store.request_pause(record.id, client.username) is True
+
+    runner._graph.cache_clear()  # như khởi động lại: graph + kết nối checkpoint mới
+    assert store.fail_interrupted_runs() >= 1  # store dùng chung cả phiên test: có thể còn lần chạy của test khác
+    paused = store.get_run(record.id)
+    assert paused.status == RunStatus.PAUSED and paused.pause_requested is False
+    assert "khởi động lại" in paused.summary["notice"] and not paused.summary.get("error")
+    assert (await client.post(f"{API}/runs/{record.id}/resume")).status_code == 202
+    get_jobs().wait(record.id)
+    after = await _detail(client, record.id)
+    assert after["record"]["status"] == "waiting_clarification"
+    assert gate.calls == 1  # planner làm lại đúng một lần
+    ran = [e["node"] for e in after["events"]]
+    assert ran[0] == "planner" and "input_gate" not in ran and "drift_gate" not in ran
