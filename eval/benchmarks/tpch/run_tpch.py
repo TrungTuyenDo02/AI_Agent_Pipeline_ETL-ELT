@@ -38,12 +38,15 @@ def parse_header(text: str) -> dict[str, str]:
 
 
 def prepare_db(sf: float) -> Path:
-    """Sinh dữ liệu TPC-H vào data/tpch_sf<sf>.duckdb (bỏ qua nếu đã có)."""
+    """Sinh dữ liệu TPC-H vào data/tpch_sf<sf>.duckdb (bỏ qua nếu đã có). Extension đã cài thì chạy được khi không có mạng."""
     db = ROOT / "data" / f"tpch_sf{sf}.duckdb"
     db.parent.mkdir(parents=True, exist_ok=True)
     with duckdb.connect(str(db)) as con:
-        con.execute("INSTALL tpch")
-        con.execute("LOAD tpch")
+        try:
+            con.execute("LOAD tpch")
+        except duckdb.Error:
+            con.execute("INSTALL tpch")  # lần đầu: cần mạng
+            con.execute("LOAD tpch")
         if not con.execute("SELECT count(*) FROM information_schema.tables WHERE table_name = 'lineitem'").fetchone()[
             0
         ]:

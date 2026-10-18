@@ -1,5 +1,27 @@
 # eval/benchmarks — đo tốc độ Optimizer (E4) + Đối chiếu (V3)
 
+## Eval hiệu năng cố định (`perf/` + `eval/run_perf.py`)
+
+7 ca (`perf/cases.yaml`): 6 ca có điểm nghẽn đã biết (nối theo khoảng, nối nhân dòng, DISTINCT *, cửa sổ khử trùng, UNION,
+ORDER BY trong truy vấn con) + 1 ca đối chứng. Mỗi ca là dự án dbt nhỏ (model đích + 2 model nhẹ làm nhiễu) trên dữ liệu tất định
+1 triệu dòng sinh bằng `range()` (không cần mạng). Đáp án kỳ vọng đóng băng ở `perf/expected/<id>.csv` từ câu SQL tham chiếu viết
+độc lập; chỉ chạy lại `--freeze` khi đổi ca. Thêm 13 ca TPC-H ở dưới (mặc định sf 0.1, `--sf 1` để chạy bổ sung).
+
+```powershell
+python eval/run_perf.py --repeat 2      # mock, 2 lượt; kết quả: eval/results/<eval_id>/summary.md, cases.csv, details.json
+python eval/run_perf.py --only range_join --no-tpch
+```
+
+- Chấm riêng: khớp đáp án · đúng model + toán tử trong top `PERF_TOP_N` · quyết định tối ưu · bản áp dụng giữ kết quả bản gốc
+  (tự kiểm lại ngoài V3) · thời gian trước/sau (trung vị + IQR) · nhiễu (đo bản gốc 2 lần) · token, chi phí.
+- Đo công bằng: 1 lần khởi động + `OPT_BENCH_RUNS` lần, cố định `--threads` (mặc định 2). Chỉ tính "nhanh hơn" khi đã áp dụng
+  (V3 + IQR) và lợi ích vượt nhiễu.
+- `--repeat 2`: kết luận (đúng, trúng điểm nghẽn, quyết định, giữ kết quả) khác nhau hoặc trung vị bản gốc lệch quá IQR →
+  "kết quả chưa ổn định", không tính là đạt.
+- Luôn chạy `LLM_PROVIDER=mock` (bỏ qua `.env`) trừ khi có `--allow-real-llm`. Chỉ số DAG do agent sinh ở mock ghi
+  "không đánh giá năng lực LLM".
+- TPC-H chưa có dữ liệu và không có mạng → các ca TPC-H ghi "chưa đo", phần còn lại vẫn chạy.
+
 ## TPC-H (`tpch/`)
 
 13 truy vấn TPC-H viết chậm cố ý (`tpch/slow/*.sql`, lấy từ nhánh `feature/optimizer-agent`). Mỗi file có header

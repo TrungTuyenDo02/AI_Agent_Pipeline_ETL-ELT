@@ -17,7 +17,7 @@ from src.models.evidence import Bottleneck, PerfReport
 UNKNOWN = "Đo trên sandbox DuckDB với dữ liệu thử; chưa biết hành vi trên dữ liệu và kho thật."
 # Tiền tố tên toán tử DuckDB → (giả thuyết, bước kiểm tra tiếp)
 HYPOTHESES = {
-    ("NESTED_LOOP_JOIN", "PIECEWISE_MERGE_JOIN", "BLOCKWISE_NL_JOIN", "CROSS_PRODUCT"): (
+    ("NESTED_LOOP_JOIN", "PIECEWISE_MERGE_JOIN", "IE_JOIN", "BLOCKWISE_NL_JOIN", "CROSS_PRODUCT"): (
         "Nối không theo điều kiện bằng (khoảng, bất đẳng thức) hoặc tích Đề-các.",
         "Xem điều kiện nối; thử nối bằng khóa rồi lọc khoảng, so kết quả bằng V3.",
     ),

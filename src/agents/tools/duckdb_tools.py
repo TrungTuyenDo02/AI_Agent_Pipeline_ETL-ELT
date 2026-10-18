@@ -14,6 +14,7 @@ import duckdb
 from pydantic import BaseModel, Field
 
 from src.agents.tools.pii import mask_rows
+from src.config import get_settings
 from src.models.evidence import QueryMetrics
 from src.models.spec import SourceRef
 
@@ -273,6 +274,8 @@ def benchmark_query(db_path: Path, sql: str, runs: int) -> QueryMetrics:
     """Đo thời gian: 1 lần khởi động + `runs` lần, lấy trung vị và IQR (Q3 − Q1, mili giây; cần ≥ 2 lần đo)."""
     timings: list[float] = []
     with connect_read(db_path) as con:
+        if threads := get_settings().opt_bench_threads:
+            con.execute(f"SET threads = {int(threads)}")  # cố định số luồng để so trước/sau công bằng
         con.execute(sql).fetchall()
         for _ in range(runs):
             start = time.perf_counter()

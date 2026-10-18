@@ -270,6 +270,8 @@ Trên GitHub: tab **Actions → Eval → Run workflow** (chạy phần không c�
 
 ### 4.2 Benchmark
 
+- Eval hiệu năng cố định (mock, 7 ca + TPC-H): `python eval/run_perf.py --repeat 2`, xem
+  [eval/benchmarks/README.md](../eval/benchmarks/README.md). Không chạy trong CI (TPC-H cần mạng lần đầu); test nhỏ có trong CI.
 - TPC-H (đo tốc độ Optimizer, cần mạng lần đầu): `python eval/benchmarks/tpch/run_tpch.py --sf 0.1`
 - ELT-Bench (đo độ đúng toàn luồng): xem [eval/benchmarks/README.md](../eval/benchmarks/README.md).
 

@@ -184,3 +184,17 @@
 - Vì sao: Optimize.md bước 5 và quyết định của chủ dự án (gate ở backend, IQR, không coi thiếu bằng chứng là đạt).
 - Kết quả: test cổng 3 trạng thái, test gọi thẳng API Duyệt (dbt test lỗi, checkpoint cũ thiếu bằng chứng → 409, duyệt thật sau
   đó ghi người duyệt + thời điểm), test luật IQR; frontend lint, format, typecheck, contrast, lint:text, build đạt.
+
+### 2026-10-18 — Optimize.md bước 2: bộ eval hiệu năng cố định (mock)
+
+- Làm gì: `eval/run_perf.py` + `eval/benchmarks/perf/cases.yaml` (6 ca điểm nghẽn đã biết + 1 đối chứng, dữ liệu tất định 1 triệu
+  dòng, đáp án đóng băng `perf/expected/*.csv` từ SQL tham chiếu viết độc lập) + 13 ca TPC-H sf 0.1. Chỉ gọi hàm có sẵn
+  (`run_dbt_build`, `analyze_bottlenecks`, `optimize_standalone`, `benchmark_query`). Đầu ra `eval/results/<eval_id>/summary.md`,
+  `cases.csv`, `details.json`. `OPT_BENCH_THREADS` cố định luồng DuckDB khi đo (eval dùng 2). TPC-H dùng lại extension/dữ liệu
+  đã tải khi không có mạng. Mặc định ép `LLM_PROVIDER=mock` (bỏ qua `.env`), chỉ số DAG ở mock ghi "không đánh giá năng lực LLM".
+- Kết quả đo (`perf-20261018-194755-4e5b0ac-mock`, 2 lượt, 5 lần đo + 1 khởi động, 2 luồng): đúng kỳ vọng 20/20; đúng model +
+  toán tử điểm nghẽn trong top 3: 6/6; áp dụng 15 bản tối ưu, tự kiểm lại giữ kết quả bản gốc 15/15, cả 15 nhanh hơn vượt nhiễu
+  (76–96% ở ca rõ, 17–27% ở q03); giữ nguyên 5 (gồm ca đối chứng). Kết luận hai lượt giống nhau; **thời gian lệch quá ngưỡng nhiễu
+  ở 6 ca (5–20% giữa hai lượt trên laptop) → "kết quả chưa ổn định", nghiệm thu chưa đạt**. Chưa chạy LLM thật: chi phí 0 USD.
+- Phát hiện: bộ dò dấu hiệu tĩnh của optimizer không bắt được `range_join` và `fanout_join` (bỏ qua với "không phát hiện dấu hiệu
+  query chậm") trong khi báo cáo điểm nghẽn tìm đúng; chưa sửa trong đợt này (ghi vào Hạn chế).

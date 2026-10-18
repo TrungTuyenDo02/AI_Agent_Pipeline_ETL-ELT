@@ -100,3 +100,15 @@ Không đụng các file trang đăng nhập đang sửa dở (`login/`, `global
 - Tiếp theo: bước 2 (eval) theo mục "Bước 2" ở trên, chạy bằng mock; TPC-H mặc định sf 0.1 (cho phép `--sf 1`, dùng lại file
   `data/tpch_sf<sf>.duckdb` đã tải); tỷ lệ DAG qua lần đầu ở mock ghi "không đánh giá năng lực LLM"; `--repeat 2` lệch kết luận
   → "kết quả chưa ổn định".
+
+## Trạng thái bước 2 (2026-10-18)
+
+- Đã làm: `eval/run_perf.py`, 7 ca `perf/` + 13 ca TPC-H sf 0.1, đầu ra 3 file, `--repeat 2`. Kết quả mock: đúng 20/20, điểm
+  nghẽn 6/6, tối ưu áp dụng 15 (giữ kết quả 15/15); kết luận hai lượt giống nhau nhưng thời gian lệch quá ngưỡng nhiễu ở 6 ca →
+  "kết quả chưa ổn định" (máy đo là laptop).
+- Còn mở (chờ chủ dự án quyết):
+  - Chạy thật bằng LLM: cần báo riêng số ca, model, chi phí ước tính.
+  - Ổn định thời gian: đo trên máy yên tĩnh hoặc tăng `OPT_BENCH_RUNS`. Không nới ngưỡng.
+  - Optimizer bỏ sót nối theo khoảng và nối nhân dòng ở bước dò dấu hiệu tĩnh. Có thể cho optimizer dùng báo cáo điểm nghẽn
+    làm tín hiệu (việc riêng).
+  - README "Hạn chế đã biết" chưa cập nhật vì README đang có thay đổi chưa commit của chủ dự án.
