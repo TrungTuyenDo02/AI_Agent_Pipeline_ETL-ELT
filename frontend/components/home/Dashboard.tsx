@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 
 import { STATUS_LABELS, formatAgo, formatClock } from "@/lib/format";
+import { STAT_EXPLAIN } from "@/lib/guideText";
 import { runFilterHref } from "@/lib/runFilters";
 import type { AdminUser, AuditEntry, ErrorEntry, RunRecord, SchemaReport } from "@/lib/types";
 import { useNow } from "@/lib/useNow";
@@ -27,6 +28,7 @@ import {
   UsersIcon,
 } from "../icons";
 import { ENGINEER_ACTION, runHref, waitingFor } from "../NotificationBell";
+import { GuideGlossary, HomeGuideDone, HomeGuideSteps } from "../guide/Guide";
 import { StatusPill } from "../StatusPill";
 import { ROLE_LABELS } from "../Topbar";
 import { Empty } from "../ui";
@@ -85,7 +87,7 @@ function Hero({ eyebrow, title, sub, cta }: { eyebrow: string; title: ReactNode;
 }
 
 function StatsPanel({ title, stats }: { title: string; stats: StatItem[] }) {
-  const { status, statusError } = useApp();
+  const { status, statusError, guest } = useApp();
   return (
     <section className="glass overview">
       <header className="panel-row">
@@ -106,6 +108,10 @@ function StatsPanel({ title, stats }: { title: string; stats: StatItem[] }) {
                 <CountUp value={stat.value} />
               </strong>
               <span>{stat.label}</span>
+              {/* Chế độ khách: một câu giải thích dưới mỗi ô */}
+              {guest && STAT_EXPLAIN[stat.label] && (
+                <small className="guide-stat-note">{STAT_EXPLAIN[stat.label]}</small>
+              )}
             </>
           );
           return stat.href ? (
@@ -288,6 +294,7 @@ export function EngineerHome() {
   const loaded = runs !== null;
   return (
     <div className="dashboard">
+      <HomeGuideDone />
       <Hero
         eyebrow={`Engineer · Chào ${user?.display_name ?? ""}`}
         title={
@@ -300,6 +307,7 @@ export function EngineerHome() {
         sub="Bạn chỉ cần mô tả bằng lời bảng số liệu mình cần. Agent tự viết cách lấy dữ liệu, chạy thử, kiểm tra kết quả; người duyệt xem lại trước khi đưa vào dùng."
       />
       <NewRequestCard />
+      <HomeGuideSteps />
       <RunListCard
         title="Yêu cầu gần đây của tôi"
         icon={<ClockIcon size={20} />}
@@ -343,6 +351,7 @@ export function EngineerHome() {
         />
         <SchemaWatchCard />
       </div>
+      <GuideGlossary />
     </div>
   );
 }
@@ -383,6 +392,7 @@ export function ReviewerHome() {
   const next = queue[0];
   return (
     <div className="dashboard">
+      <HomeGuideDone />
       <Hero
         eyebrow={`Reviewer · Chào ${user?.display_name ?? ""}`}
         title={
@@ -442,6 +452,7 @@ export function ReviewerHome() {
           },
         ]}
       />
+      <HomeGuideSteps />
       <RunListCard
         id="queue"
         title="Chờ bạn duyệt (cũ nhất trước)"
@@ -456,6 +467,7 @@ export function ReviewerHome() {
         <ErrorBookCard entries={errors.data} />
         <ActivityFeed runs={decided} title="Đã quyết gần đây" />
       </div>
+      <GuideGlossary />
     </div>
   );
 }
@@ -490,7 +502,7 @@ function AuditCard({ entries }: { entries: AuditEntry[] | null }) {
         <h2 className="row">
           <PulseIcon size={20} /> Nhật ký kiểm toán
         </h2>
-        <span className="small muted">chỉ ghi thêm, mới nhất trước</span>
+        <span className="small muted">Chỉ ghi thêm, mới nhất trước</span>
       </header>
       {entries && entries.length === 0 && <Empty>Chưa có hoạt động.</Empty>}
       <ul className="audit-list">

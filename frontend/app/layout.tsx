@@ -10,9 +10,10 @@ import { mono, sans } from "@/lib/fonts";
 
 import "../styles/tokens.css";
 import "./globals.css";
+import "../styles/pipesmith-brand.css";
 
 export const metadata: Metadata = {
-  title: "P-113 Pipeline Agent",
+  title: "PipeSmith · Pipeline có kiểm chứng",
   description:
     "Agent sinh và tối ưu pipeline ELT/ETL (dbt + Airflow), chạy thử trong sandbox DuckDB, DE duyệt trước khi merge.",
 };

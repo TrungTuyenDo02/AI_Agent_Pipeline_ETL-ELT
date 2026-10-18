@@ -41,6 +41,13 @@ class JobLimitError(Exception):
     """Vượt giới hạn theo người (số lần chạy cùng lúc hoặc trần chi phí LLM trong ngày); thông báo tiếng Việt."""
 
 
+class RunBusyError(RuntimeError):
+    """Lần chạy đã đang chạy hoặc đang xếp hàng (bấm lặp, hai yêu cầu cùng lúc): không đưa vào hàng lần nữa."""
+
+
+BUSY = "Lần chạy đang chạy, vui lòng đợi."
+
+
 def check_limits(owner: str, active: int, new_run: bool = False) -> None:
     """CLAUDE.md mục 14.2-14.3: chặn TRƯỚC khi tạo/chạy tiếp lần chạy của `owner` (người tạo yêu cầu).
 
@@ -158,14 +165,48 @@ class JobQueue:
             active = self._active(owner, exclude=run_id)
         check_limits(owner, active, new_run=not run_id)
 
-    def submit(self, run_id: str, job: Job, actor: str = "", owner: str = "") -> None:
+    def submit(
+        self,
+        run_id: str,
+        job: Job,
+        actor: str = "",
+        owner: str = "",
+        guard: Callable[[], None] | None = None,
+        limits: bool = False,
+    ) -> None:
         """Đánh dấu đang chạy rồi đưa vào hàng đợi (`actor` = người khởi động, để ghi nhật ký kiểm toán;
-        `owner` = người tạo yêu cầu, để giới hạn theo người)."""
-        get_store().update_run(run_id, RunStatus.RUNNING)
+        `owner` = người tạo yêu cầu, để giới hạn theo người).
+
+        Kiểm "đang bận" và đưa vào hàng trong CÙNG khóa: bấm lặp hoặc hai yêu cầu đồng thời không làm một lần chạy chạy trùng
+        (lần thứ hai nhận RunBusyError). `guard` chạy trong khóa, ném lỗi để hủy (ví dụ trạng thái vừa đổi).
+        `limits`: kiểm giới hạn theo người (JobLimitError) cũng trong khóa này, nên hai lần chạy khác nhau của một người
+        không cùng lọt giới hạn số lần chạy cùng lúc. Bị từ chối thì chưa đổi gì (trạng thái, yêu cầu tạm dừng giữ nguyên).
+        Khóa không gọi lại hàng đợi nên không kẹt: chỉ đọc DB (số lần chạy hôm nay, sổ chi phí).
+        Lượt chạy mới bỏ yêu cầu tạm dừng cũ còn sót; yêu cầu tạm dừng đến SAU lúc này vẫn có hiệu lực.
+        """
+        store = get_store()
         with self._lock:
+            future = self._futures.get(run_id)
+            if future and not future.done():
+                raise RunBusyError(BUSY)
+            if guard:
+                guard()
+            if limits:
+                check_limits(owner or actor, self._active(owner or actor, exclude=run_id))
+            store.clear_pause(run_id)
+            store.update_run(run_id, RunStatus.RUNNING)
             self._owners[run_id] = owner or actor
             self._order = [r for r in self._order if r != run_id and not self._futures[r].done()] + [run_id]
             self._futures[run_id] = self._executor.submit(self._run, run_id, job, actor)
+
+    def request_pause(self, run_id: str, by: str) -> bool:
+        """Ghi yêu cầu tạm dừng nếu lần chạy đang chạy hoặc đang xếp hàng (trong khóa của hàng đợi, không chen giữa lúc
+        `submit`). Trả False nếu lần chạy không còn bận: đã dừng ở bước chờ người, xong, lỗi hoặc đã tạm dừng."""
+        with self._lock:
+            future = self._futures.get(run_id)
+            if not future or future.done():
+                return False
+            return get_store().request_pause(run_id, by)
 
     def position(self, run_id: str) -> int | None:
         """Số lần chạy đứng TRƯỚC trong hàng (0 = đang chạy hoặc sắp chạy); None nếu không ở trong hàng."""

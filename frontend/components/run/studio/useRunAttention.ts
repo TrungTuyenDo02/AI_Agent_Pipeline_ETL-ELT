@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 
 import type { RunDetail } from "@/lib/types";
 
-const BASE_TITLE = "P-113 Agent Studio";
+const BASE_TITLE = "PipeSmith";
 const PENDING_TEXT: Record<string, string> = {
   clarify: "Agent cần bạn trả lời câu hỏi",
   plan: "Kế hoạch chờ bạn duyệt",

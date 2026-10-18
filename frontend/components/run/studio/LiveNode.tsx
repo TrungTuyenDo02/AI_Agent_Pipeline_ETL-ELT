@@ -6,6 +6,7 @@ import { plainStepLabel } from "@/lib/format";
 import type { CurrentNode } from "@/lib/types";
 import { useNow } from "@/lib/useNow";
 
+import { SampleTag } from "../../GuestBar";
 import { SpinningIcon } from "../../icons";
 import { useRun } from "../RunContext";
 
@@ -75,7 +76,7 @@ export function ActivityTicker({ lines }: { lines: string[] }) {
   const line = lines[position];
   return (
     <div className="activity" aria-live="polite" aria-atomic="true">
-      <span className="activity-tag">đang làm</span>
+      <span className="activity-tag">Đang làm</span>
       <TypedLine key={`${position}-${line}`} text={line} instant={reduced} />
       {lines.length > 1 && (
         <span className="activity-count muted" aria-hidden>
@@ -154,6 +155,7 @@ export function LiveNode({ current, compact = false }: { current: CurrentNode; c
           <span className="live-clock" aria-label={`Đã chạy ${formatSeconds(elapsed)}`}>
             {formatSeconds(elapsed)}
           </span>
+          <SampleTag />
           {!compact && <NotifyButton />}
         </span>
       </div>

@@ -33,7 +33,13 @@ export function ThemeToggle() {
 }
 
 export function ModeBadges() {
-  const { status, statusError } = useApp();
+  const { status, statusError, guest } = useApp();
+  if (guest)
+    return (
+      <span className="badge warn" title="Chế độ khách: không gọi máy chủ, không gọi AI; mọi kết quả là mẫu dựng sẵn">
+        Dữ liệu mẫu
+      </span>
+    );
   if (statusError) return <span className="badge danger">Mất kết nối API</span>;
   if (!status) return <span className="badge muted">Đang kiểm tra API…</span>;
   const open = (status.breakers ?? []).filter((b) => b.state !== "closed");
@@ -59,7 +65,7 @@ export function ModeBadges() {
 
 /** Avatar tròn (chữ cái đầu): bấm mở menu người dùng (vai trò, đăng xuất) + giao diện + chế độ LLM. */
 export function AvatarMenu() {
-  const { user, logout, theme, setTheme } = useApp();
+  const { user, logout, theme, setTheme, guest } = useApp();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -99,12 +105,15 @@ export function AvatarMenu() {
             ))}
           </div>
           <ModeBadges />
-          <a href={`${API_URL}/docs`} target="_blank" rel="noreferrer" className="menu-link">
-            <DocIcon size={16} /> Tài liệu API <ArrowUpRightIcon size={14} />
-          </a>
+          {/* Chế độ khách không mở trang nào của máy chủ */}
+          {!guest && (
+            <a href={`${API_URL}/docs`} target="_blank" rel="noreferrer" className="menu-link">
+              <DocIcon size={16} /> Tài liệu API <ArrowUpRightIcon size={14} />
+            </a>
+          )}
           <button type="button" className="btn logout-btn" onClick={signOut} disabled={leaving}>
             <LogoutIcon size={16} />
-            {leaving ? "Đang đăng xuất…" : "Đăng xuất"}
+            {guest ? "Thoát chế độ khách" : leaving ? "Đang đăng xuất…" : "Đăng xuất"}
           </button>
         </div>
       )}
@@ -132,7 +141,7 @@ const SWITCHABLE: Role[] = ["engineer", "reviewer"];
  * nên đổi vai = đăng nhập tài khoản có vai đó (giao diện không tự cấp quyền). Reviewer thấy ngay số yêu cầu chờ duyệt.
  */
 export function RoleChip() {
-  const { user, runs, logout } = useApp();
+  const { user, runs, logout, guest, switchGuestRole } = useApp();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [target, setTarget] = useState<Role | null>(null);
@@ -174,7 +183,13 @@ export function RoleChip() {
                   type="button"
                   className="role-option"
                   aria-pressed={role === user.role}
-                  onClick={() => setTarget(role === user.role ? null : role)}
+                  onClick={() => {
+                    // Khách: đổi vai ngay (không có tài khoản thật); đăng nhập thường: phải đăng nhập tài khoản vai đó
+                    if (guest && role !== "admin") {
+                      switchGuestRole(role);
+                      setOpen(false);
+                    } else setTarget(role === user.role ? null : role);
+                  }}
                 >
                   <span className={`role-dot role-${role}`} aria-hidden />
                   {ROLE_LABELS[role]}

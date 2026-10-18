@@ -56,15 +56,18 @@ Chi phí của V là **0 token** (token = đơn vị tính tiền khi gọi AI),
 
 ## 3. Cách thực hiện, từng bước
 
-Luồng thật nằm ở [src/agents/graph.py](../src/agents/graph.py) (LangGraph, 17 nút). E = agent, V = kiểm chứng bằng code, J = con người.
+Luồng thật nằm ở [src/agents/graph.py](../src/agents/graph.py) (LangGraph, 26 nút). E = agent, V = kiểm chứng bằng code, J = con người.
 
 | Bước | Làm gì | Loại | Kiến thức AI / kỹ thuật dùng |
 |---|---|---|---|
-| `planner` | Đọc yêu cầu và danh mục nguồn thật, lập đặc tả: bảng đích, mỗi dòng là gì (grain), cột, chỉ số, điểm chưa rõ | E | Mô hình ngôn ngữ lớn, đầu ra có cấu trúc (JSON Schema strict) |
+| `input_gate` | Chặn yêu cầu rỗng, vô nghĩa, tấn công prompt, lạc đề trước khi tốn token; chỉ gọi model nhỏ khi luật chưa chắc | V (+ E nhỏ) | Luật cố định, bỏ dấu, từ đồng nghĩa; model nhỏ cho ca khó |
+| `input_info` | Yêu cầu thiếu thông tin thì hỏi bổ sung theo mẫu cố định | J | Điểm dừng chờ người |
+| `drift_gate` | Nguồn vừa đổi cấu trúc kiểu gây hỏng (`breaking`) thì chặn cho tới khi Engineer xác nhận | V + J | So cấu trúc với bản chuẩn |
+| `planner` | Đọc yêu cầu, danh mục nguồn và thuật ngữ nghiệp vụ khớp, lập đặc tả: bảng đích, mỗi dòng là gì (grain), cột, chỉ số, điểm chưa rõ | E | Mô hình ngôn ngữ lớn, đầu ra có cấu trúc (JSON Schema strict) |
 | `clarify` | Hỏi lại dạng trắc nghiệm khi còn điểm chưa rõ; dừng chờ người | J | `interrupt` của LangGraph, lưu checkpoint |
 | `spec_check` (V0) | Chặn nếu thiếu trường, nguồn không có thật, ELT/ETL sai luật, `references` trỏ tới bảng không tồn tại | V | Kiểm tra luật bằng code |
 | `plan_review` (J1b) | Người đọc kế hoạch có giải thích "vì sao", đồng ý hoặc yêu cầu sửa | J | Điểm dừng chờ người |
-| `ingest` | Nạp CSV/JSON/SQLite/Parquet vào hộp cát | V (code) | DuckDB |
+| `ingest` | Lấy một tập con dữ liệu nguồn (tệp, DuckDB, PostgreSQL chỉ đọc) vào hộp cát; cột nhạy cảm được băm có muối | V (code) | Bộ nạp nguồn `src/services/connectors/`, DuckDB |
 | `profiler` | Soi dữ liệu: kiểu cột, % rỗng, trùng khóa, định dạng ngày/tiền; che email, số điện thoại | V (code) | Thống kê mô tả |
 | `schema_guard` | So cấu trúc nguồn với bản đã duyệt; nguồn mất cột thì dừng hỏi người | V + J | Ảnh chụp cấu trúc trong PostgreSQL |
 | `mock_data` | Sinh các bộ dữ liệu thử: nhỏ, lớn, bẩn, rỗng, ít dòng, trùng khóa | V (code) | Sinh dữ liệu có hạt giống cố định |
@@ -74,24 +77,28 @@ Luồng thật nằm ở [src/agents/graph.py](../src/agents/graph.py) (LangGrap
 | `sandbox_run` (V2) | `dbt build` trong hộp cát DuckDB, có giới hạn thời gian và bộ nhớ | V | dbt, DuckDB |
 | `rescue` | Sau 3 vòng sửa hoặc lỗi lặp: nhờ người gợi ý hoặc dừng | J | Chữ ký lỗi |
 | `optimizer` (E4) | Thử viết lại query chậm: luật cố định → sqlglot → LLM | E + V | Chuỗi ứng viên theo chi phí |
-| `compare` (V3) | Kết quả bản mới phải **giống hệt** bản cũ trên 5 bộ dữ liệu; đo tốc độ; quyết định "đáng áp dụng không" | V | So hai chiều, trung vị thời gian |
+| `compare` (V3) | Kết quả bản mới phải **giống hệt** bản cũ trên 6 bộ dữ liệu; đo tốc độ; quyết định "đáng áp dụng không" | V | So hai chiều, trung vị thời gian |
+| `opt_revert` | Bản tối ưu chạy lại trên sandbox không đạt hoặc lệch kết quả: trả lại bản gốc, 0 token | V | Dấu vân tay bảng đích |
+| `patch_start` → `patch_apply` → `patch_verify` | Bản vá khi nguồn đổi cấu trúc: dùng lại đặc tả và code đã duyệt, sửa cơ học bằng code, so bảng đích với lần chạy gốc | V | Kế hoạch vá `patch_plan.py` |
 | `package` | Gom bằng chứng "Code đo" và "LLM nói", viết mô tả Pull Request | V | — |
-| `review` (J2) | Reviewer duyệt hoặc từ chối kèm ghi chú | J | Phân quyền, nhật ký kiểm toán |
+| `review` (J2) | Reviewer duyệt hoặc từ chối kèm ghi chú; ngay trước đó hệ thống kiểm lại cấu trúc nguồn | J | Phân quyền, nhật ký kiểm toán |
 
 ### Ai được làm gì (3 vai trò)
 
 | Vai trò | Được làm | Không được làm |
 |---|---|---|
-| Engineer | Tạo yêu cầu, trả lời câu hỏi làm rõ, duyệt kế hoạch, cứu hộ, xác nhận khi nguồn đổi cột | Duyệt code cuối (J2) |
-| Reviewer | Duyệt hoặc từ chối code kèm ghi chú, duyệt sổ lỗi | Tạo yêu cầu thay Engineer |
-| Admin | Cấp, khóa tài khoản, xem nhật ký kiểm toán | Xem dữ liệu bảng của pipeline |
+| Engineer | Tạo yêu cầu, trả lời câu hỏi làm rõ, duyệt kế hoạch, cứu hộ, xác nhận khi nguồn đổi cấu trúc, yêu cầu bản vá | Duyệt code cuối (J2) |
+| Reviewer | Duyệt hoặc từ chối code kèm ghi chú, duyệt sổ lỗi và bộ nhớ agent | Tạo yêu cầu thay Engineer |
+| Admin | Cấp, khóa tài khoản; đăng ký nguồn, phòng ban, mức AI được xem; sửa từ điển nghiệp vụ; xem nhật ký kiểm toán | Xem dữ liệu bảng của pipeline |
 
-Không có đăng ký tự do: tài khoản do quản trị cấp. Sai vai trò bị từ chối (mã 403) và ghi vào nhật ký (`audit_log`). Chi tiết: [API.md](API.md).
+Mỗi người chỉ thấy nguồn của phòng mình. Không có đăng ký tự do: tài khoản do quản trị cấp. Sai vai trò bị từ chối (mã 403) và ghi vào nhật ký (`audit_log`). Chi tiết: [API.md](API.md).
 
 ### Giữ an toàn khi dùng AI
 
 - **Khóa API và mật khẩu** chỉ nằm trong `.env` hoặc dịch vụ quản lý bí mật, không vào Git, prompt hay log.
 - **Dữ liệu cá nhân** (email, số điện thoại) được che trước khi hiển thị hoặc gửi cho AI.
+- **AI chỉ thấy đúng mức của nguồn**, qua một hàm duy nhất `build_llm_context`: chỉ cấu trúc (`schema_only`), thêm thống kê (`profile`, mặc định), hoặc thêm vài dòng đã che (`masked_sample`, chỉ nguồn ít nhạy cảm). Thông báo lỗi được che giá trị (`scrub_error`) trước khi vào prompt.
+- **Giới hạn theo người:** tối đa 2 lần chạy cùng lúc, số lần chạy mỗi ngày, trần token mỗi lần chạy và trần chi phí mỗi ngày.
 - **Code do AI viết** phải qua V1 (chặn lệnh nguy hiểm) rồi mới chạy trong hộp cát không có quyền đọc file ngoài.
 - **Agent không tự đẩy code lên kho chính**: người duyệt tải gói `.zip` và tự mở Pull Request.
 - **Tiến trình dbt** chạy với môi trường đã bỏ khóa API, mật khẩu và chuỗi kết nối DB (`_API_KEY`, `_TOKEN`, `_SECRET`, `_PASSWORD`, `DATABASE_URL`…).
@@ -124,6 +131,9 @@ Mỗi mục: **Là gì** · **Dùng ở đâu**.
 | Hỏi làm rõ trước khi làm | Có điểm chưa rõ thì hỏi, không đoán | `clarify`; prompt Planner chỉ hỏi khi có bằng chứng từ dữ liệu |
 | Ngân sách token và bộ nhớ đệm prompt | Giữ phần câu dặn cố định ở đầu để nhà cung cấp tính rẻ hơn; cắt dữ liệu thừa | [src/services/prompt_context.py](../src/services/prompt_context.py), `tests/test_prompts/`, [prompt_tokens.md](../eval/results/prompt_tokens.md) |
 | Chọn model theo từng bước và model dự phòng | Việc nhẹ dùng model nhẹ; OpenAI lỗi thì chuyển Gemini | `MODEL_*`, `LLM_FALLBACK` ([CONFIG.md](CONFIG.md)) |
+| Model nhỏ làm bộ lọc đầu vào | Model rẻ chỉ phân loại "đúng chủ đề / thiếu gì", gọi khi luật cố định chưa chắc | `input_gate`, [src/prompts/input_gate.md](../src/prompts/input_gate.md) |
+| Đưa kiến thức nghiệp vụ vào prompt | Chỉ đưa vài thuật ngữ khớp yêu cầu (như "doanh thu", "đơn hoàn tất") thay vì cả từ điển | [src/services/glossary.py](../src/services/glossary.py), [ADR 0011](adr/0011-tu-dien-nghiep-vu.md) |
+| Bộ nhớ agent có người duyệt | Lỗi đã tự sửa được ghi nhớ; chỉ mục Reviewer đã duyệt mới vào prompt Planner/Codegen | [src/services/agent_memory.py](../src/services/agent_memory.py) |
 | Ảo giác (hallucination) và cách chặn bằng code | AI có thể bịa tên bảng, cột, hoặc tự khen sai; code kiểm lại thay vì tin | V0, V1, V2, V3; giao diện tách "Code đo" (đã kiểm) và "LLM nói" (chưa kiểm chứng) |
 
 ## 5. Thuật toán và kỹ thuật kiểm tra và tối ưu
@@ -133,7 +143,7 @@ Mỗi kỹ thuật: **Là gì** · **Vì sao chọn** (so với cách khác) · 
 ### 5.1 Phân tích SQL thành cây cú pháp (sqlglot) để chặn lệnh nguy hiểm và tên bịa (V1)
 - **Là gì:** biến câu SQL thành một cây (như phân tích câu thành chủ ngữ, vị ngữ) rồi duyệt cây tìm `DROP`, `ATTACH`, hàm đọc file, đường dẫn tuyệt đối, tên bảng hoặc cột không có thật.
 - **Vì sao:** tìm bằng chuỗi ký tự dễ bị lách (viết hoa thường, chèn chú thích); duyệt cây thì bắt đúng cấu trúc. Rẻ hơn nhờ AI soát và cho kết quả cố định.
-- **Dẫn chứng:** [verifier_report.md](../eval/results/verifier_report.md): V1 chặn 76/78 ca tấn công, báo nhầm 0/43 ca hợp lệ (đo 2026-10-10; 2 ca còn lọt là tấn công làm treo máy, đã ghi `known_leak`, V2 chặn bằng thời gian giới hạn).
+- **Dẫn chứng:** [verifier_report.md](../eval/results/verifier_report.md): V1 chặn 77/79 ca tấn công, báo nhầm 0/43 ca hợp lệ (đo 2026-10-12; 2 ca còn lọt là tấn công làm treo máy, đã ghi `known_leak`, V2 chặn bằng thời gian giới hạn).
 
 ### 5.2 Chạy thử trong hộp cát DuckDB bằng `dbt build` (V2)
 - **Là gì:** chạy thật code đã sinh trên dữ liệu thử, trong tiến trình con có giới hạn thời gian (`SANDBOX_TIMEOUT_SEC`), bộ nhớ (`SANDBOX_MEMORY_LIMIT`) và cấm truy cập file ngoài (`enable_external_access=false`).
@@ -146,12 +156,12 @@ Mỗi kỹ thuật: **Là gì** · **Vì sao chọn** (so với cách khác) · 
 - **Dẫn chứng:** [mutation.md](../eval/results/mutation.md) (bắt lỗi SUM→AVG, bỏ WHERE, bỏ khử trùng...).
 
 ### 5.4 Kiểm thử đột biến (mutation testing)
-- **Là gì:** cố tình cài 12 lỗi giả vào pipeline đúng (đổi SUM thành AVG, bỏ điều kiện lọc, quên một nguồn...) rồi xem bộ kiểm chứng có báo động không. Giống thử chuông báo cháy bằng khói giả.
+- **Là gì:** cố tình cài 15 lỗi giả vào pipeline đúng (đổi SUM thành AVG, bỏ điều kiện lọc, quên một nguồn, bỏ bước kiểm cấu trúc nguồn, dùng `SELECT *`...) rồi xem bộ kiểm chứng có báo động không. Giống thử chuông báo cháy bằng khói giả.
 - **Vì sao:** "test đều xanh" chưa chắc test tốt; đo khả năng bắt lỗi của chính bộ kiểm chứng.
-- **Dẫn chứng:** [mutation.md](../eval/results/mutation.md): bắt **11/12 (91,7%)**, báo động nhầm 0/1. Lọt `count_distinct_id` vì dữ liệu thử không có mã trùng giữa các nguồn.
+- **Dẫn chứng:** [mutation.md](../eval/results/mutation.md) (2026-10-16): bắt **14/15 (93,3%)**, báo động nhầm 0/1. Lọt `count_distinct_id` vì dữ liệu thử không có mã trùng giữa các nguồn.
 
 ### 5.5 So sánh trên nhiều bộ dữ liệu và các bất biến (V3)
-- **Là gì:** bản viết lại phải cho **kết quả giống hệt** trên 5 bộ dữ liệu (nhỏ, bẩn, rỗng, ít dòng, trùng khóa), kèm 120 bộ ngẫu nhiên có hạt giống cố định, và các phép thử "xáo thứ tự dòng", "nhân đôi dòng" không được làm đổi kết luận.
+- **Là gì:** bản viết lại phải cho **kết quả giống hệt** trên 6 bộ dữ liệu (nhỏ, bẩn, rỗng, ít dòng, trùng khóa, tiền rỗng), kèm 120 bộ ngẫu nhiên có hạt giống cố định, và các phép thử "xáo thứ tự dòng", "nhân đôi dòng" không được làm đổi kết luận.
 - **Vì sao:** một bộ dữ liệu đẹp che được lỗi; dữ liệu ngẫu nhiên và dữ liệu rỗng làm lộ lỗi.
 - **Dẫn chứng:** [verifier_report.md](../eval/results/verifier_report.md): V3 bắt 20/21 cặp sai, báo nhầm 0/17; luật viết lại 0 lệch trên 120 bộ.
 
@@ -170,27 +180,49 @@ Mỗi kỹ thuật: **Là gì** · **Vì sao chọn** (so với cách khác) · 
 - **Vì sao:** AI dễ sửa vòng vo cùng một lỗi tốn token; dừng sớm rẻ hơn.
 - **Dẫn chứng:** `tests/test_agents/test_fix_loop.py`, `test_routing.py`.
 
-### 5.9 Phát hiện nguồn đổi cấu trúc (`schema_guard`)
-- **Là gì:** lưu ảnh chụp cột và kiểu của từng bảng nguồn khi Reviewer duyệt; lần sau so lại. Thêm cột chỉ cảnh báo; **xóa hoặc nghi đổi tên** cột thì dừng cho Engineer xác nhận từng cặp (code không tự đoán).
+### 5.9 Giám sát nguồn đổi cấu trúc
+- **Là gì:** so cột và kiểu của nguồn với bản chuẩn ở 3 thời điểm: trước Planner (`drift_gate`), ngay trước khi Reviewer duyệt, và theo định kỳ. Thay đổi gây hỏng (xóa, đổi tên, đổi kiểu cột) thì chặn cho tới khi Engineer xác nhận; thêm cột chỉ cảnh báo. Pipeline sinh ra cũng tự phòng thủ: bước đầu tiên của DAG kiểm cấu trúc nguồn, không `SELECT *`, có test đếm dòng không ép được kiểu.
 - **Vì sao:** nguồn đổi cột âm thầm là nguyên nhân phổ biến làm pipeline sai mà không báo lỗi.
-- **Dẫn chứng:** [src/services/schema_watch.py](../src/services/schema_watch.py), bảng `schema_snapshots` ([DATABASE.md](DATABASE.md)).
+- **Dẫn chứng:** [ADR 0010](adr/0010-giam-sat-thay-doi-cau-truc-nguon.md); [drift.md](../eval/results/drift.md) (6 kịch bản, 0 token): 4 chặn hoặc hỏng sớm, 1 vô hại, 1 chỉ cảnh báo thống kê (đổi đơn vị tiền), **0 sai âm thầm**.
 
-### 5.10 Các bộ chấm
+### 5.10 Bản vá nhanh khi nguồn đổi cấu trúc
+- **Là gì:** khi người bấm "Đề xuất bản vá", run vá dùng lại đặc tả, câu trả lời và code đã duyệt (không lập kế hoạch lại). Đổi tên hoặc đổi kiểu cột được sửa bằng code; chỉ hỏi người "cột nào thay cột đã mất"; chỉ gọi AI cho phần đổi nghĩa. Bảng đích được so với lần chạy gốc (cột, kiểu, từng dòng kể cả dòng trùng).
+- **Vì sao:** lập kế hoạch lại tốn token, hỏi lại người và có thể làm đổi nghiệp vụ đã duyệt.
+- **Dẫn chứng:** [ADR 0012](adr/0012-ban-va-nhanh-khi-nguon-doi-cau-truc.md); [patch.md](../eval/results/patch.md): 5/6 kịch bản xong không cần AI, 0 token, bảng đích giống hệt; 1/6 cần AI: 8.327 token ≈ 0,0027 USD ([patch_llm.md](../eval/results/patch_llm.md)).
+
+### 5.11 Kiểm lại bản tối ưu trên sandbox, lỗi thì trả bản gốc
+- **Là gì:** trước khi áp dụng bản tối ưu, code chụp "dấu vân tay" bảng đích của bản gốc (cột + kiểu, số dòng, tổng băm từng dòng). Bản tối ưu chạy lại phải ra đúng dấu vân tay đó; không đạt thì `opt_revert` trả bản gốc.
+- **Vì sao:** V3 chỉ so trên dữ liệu thử; bước chuyển SQL về `ref()` có thể làm lệch mà V2 không thấy. Trả bản gốc rẻ và an toàn hơn nhờ Codegen sửa bản tối ưu.
+- **Dẫn chứng:** [ADR 0013](adr/0013-doi-chieu-lai-ban-toi-uu-tren-sandbox.md), [src/agents/nodes/opt_revert.py](../src/agents/nodes/opt_revert.py).
+
+### 5.12 Cửa kiểm tra đầu vào 3 tầng
+- **Là gì:** tầng 0–1 bằng luật trong [config/input_gate.yaml](../config/input_gate.yaml) (bỏ dấu, mẫu tấn công, từ khóa nghiệp vụ, 0 token); tầng 2 gọi model nhỏ chỉ khi luật chưa chắc.
+- **Vì sao:** chặn yêu cầu hỏng trước Planner thì không tốn token cho cả luồng.
+- **Dẫn chứng:** [input_gate.md](../eval/results/input_gate.md) (50 câu, tầng 2 chạy `mock`): chặn nhầm 0/10 câu hợp lệ, lọt 0/30 câu vô nghĩa, tấn công hoặc lạc đề; tầng 2 ước tính ≈ 1,2% chi phí một lần chạy.
+
+### 5.13 Các bộ chấm
 - **Golden 12 ca:** 12 yêu cầu có đáp án tính tay (trùng đơn, hoàn tiền, ngày lẫn định dạng, nối một-nhiều, thông tin cá nhân...).
 - **ELT-Bench-Verified:** bộ đo công khai ([nguồn](https://github.com/czanoli/ELT-Bench)); chọn 10 pipeline nhẹ nhất, 34 bảng.
 - **TPC-H:** bộ query kinh điển, dùng 13 query chậm cố ý.
+- **Extract v1:** bộ dữ liệu tổng hợp độc lập (CSV, JSON, SQLite, DuckDB, Parquet) để kiểm bộ nạp nguồn ([README](../eval/datasets/extract_v1/README.md)).
 
 ## 6. Kết quả đo
 
-Nguồn: [eval/results/report.md](../eval/results/report.md), sinh bởi `python eval/run_eval.py` ngày 2026-10-10 (Windows, Python 3.11). Số chạy bằng `mock` **không** phản ánh chất lượng mô hình thật.
+Nguồn: [eval/results/report.md](../eval/results/report.md) (cập nhật 2026-10-16, Windows, Python 3.11) và các file kết quả cạnh nó. Số chạy bằng `mock` **không** phản ánh chất lượng mô hình thật.
 
 | Chỉ số | Điều kiện đo | Kết quả |
 |---|---|---|
-| Test tự động | `mock`, không cần khóa | 730 đạt, 2 xfail, 0 lỗi (2026-10-14) |
-| Độ phủ code | `pytest --cov`, ngưỡng 60% | 92,19% |
-| Mutation: bắt lỗi giả | mô phỏng (bộ sinh test giả `mock`, pipeline gốc cố định), 1 lần | 11/12 (91,7%) |
+| Test tự động | `mock`, không cần khóa | 1162 đạt, 20 bỏ qua (test Postgres, cần `RUN_PG_TESTS=1`), 2 xfail, 0 lỗi (2026-10-16) |
+| Độ phủ code | `pytest --cov`, ngưỡng 60% | 91,95% |
+| Mutation: bắt lỗi giả | mô phỏng (bộ sinh test giả `mock`, pipeline gốc cố định), 1 lần, 2026-10-16 | 14/15 (93,3%) |
+| Cửa kiểm tra đầu vào | 50 câu do tác giả viết; tầng 2 chạy `mock` | chặn nhầm 0/10, lọt 0/30 |
+| Nguồn đổi cấu trúc: 6 kịch bản | sandbox DuckDB, 0 token, 2026-10-16 | 0 sai âm thầm, 0 báo nhầm |
+| Bản vá nhanh | sandbox; phần cần AI chạy LLM thật (`gpt-6-luna`), 2026-10-16 | 5/6 không cần AI (0 token); 1/6: 8.327 token ≈ 0,0027 USD. Cách cũ (lập kế hoạch lại): ≈ 0,0045 USD mỗi run |
+| Từ điển nghiệp vụ | code, 0 token; độ đúng chưa đo bằng LLM thật | thuật ngữ cần thiết tới Planner 6/6; token prompt Planner +13,5% ([glossary.md](../eval/results/glossary.md)) |
+| Mức truy cập của LLM | code, 0 token, 12 ca golden | giá trị thật lọt vào ngữ cảnh: 0 ở cả `schema_only` và `profile` ([llm_access.md](../eval/results/llm_access.md)) |
+| Extract: đúng nguồn và kết quả nạp | dataset tổng hợp, 0 LLM | 21/21 ca; chưa đo PostgreSQL thật ([extract.md](../eval/results/extract.md)) |
 | Golden: kết quả đúng khớp SQL chuẩn | code | 11/11 ca |
-| Golden: agent đúng | LLM thật (gpt-5.6-luna; optimizer gpt-5.6-terra), 12 ca, 1 lần, đo 2026-10-08 | 12/12 ca |
+| Golden: agent đúng | LLM thật (gpt-5.6-luna; optimizer gpt-5.6-terra), 12 ca, 1 lần, đo 2026-10-08; **chưa đo lại** với model hiện dùng, mức `profile`, cửa kiểm tra, từ điển | 12/12 ca |
 | Golden: đạt ngay lần đầu | như trên | 12/12 ca |
 | Golden: chọn đúng ELT/ETL | như trên | 12/12 ca |
 | Golden: token / chi phí mỗi ca | như trên | 6917 token / 0,0045 USD |
@@ -218,16 +250,19 @@ Trước đây báo cáo ghi 7/34 vì bộ chấm còn lỗi; đã sửa và ch�
 - Chế độ `mock` chỉ chứng minh luồng chạy, không chứng minh chất lượng AI.
 - **ELT-Bench chỉ 11/34 bảng (khoảng 32%)** và có ca pipeline **được duyệt nhưng kết quả sai**: bộ kiểm chứng hiện chưa bắt hết, đây là rủi ro thật, không phải sai số nhỏ.
 - **Golden 12/12 chưa phải điểm kiểm độc lập:** bộ golden chưa tách thành tập chỉnh và tập kiểm riêng, nên không nên đọc là độ đúng trên yêu cầu lạ.
-- **Optimizer chưa có số đo với LLM thật:** con số tối ưu TPC-H đến từ `mock` và luật cố định; phần LLM của optimizer ghi là *chưa kiểm chứng*.
-- **Mutation test dùng bộ sinh test giả (`mock`):** đo khả năng bắt lỗi của bộ kiểm chứng, không đo chất lượng test do LLM thật viết. Lọt 1/12 ca (`count_distinct_id`).
+- **Optimizer với LLM thật chỉ có phép đo A/B nhỏ** ở trên; con số tối ưu TPC-H 11/13 đến từ `mock` và luật cố định.
+- **Mutation test dùng bộ sinh test giả (`mock`):** đo khả năng bắt lỗi của bộ kiểm chứng, không đo chất lượng test do LLM thật viết. Lọt 1/15 ca (`count_distinct_id`).
+- **Phát hiện nguồn đổi cấu trúc nhưng không ngăn được:** hệ thống chỉ phát hiện sớm và làm pipeline hỏng rõ ràng. Đổi nghĩa mà không đổi cấu trúc (tiền từ đồng sang nghìn đồng) chỉ được cảnh báo thống kê. Muốn ngăn hẳn cần hợp đồng dữ liệu giữa các đội.
+- **Các phần mới chưa đo bằng LLM thật:** độ đúng của agent ở mức `profile` so với `schema_only`, khi có từ điển, và tầng 2 của cửa kiểm tra (bộ 50 câu nhỏ, tầng 0–1 đã bắt hết câu lạc đề).
+- **PostgreSQL chỉ đọc** mới kiểm thử trên Neon; nạp phần mới (incremental) chưa có khối `is_incremental()`; bộ nhớ agent tìm theo từ khóa, chưa đo được hiệu quả.
 
 ## 8. Hướng phát triển
 
 1. Mời 3–5 DE làm tay 5–10 ca theo quy trình có sẵn để có số so sánh thời gian.
 2. Thử trên dữ liệu thật của một đội (có sự đồng ý), thu phản hồi người dùng.
-3. Chuyển lưu lần chạy và checkpoint sang PostgreSQL để deploy bền và chạy nhiều bản.
+3. Đo lại golden bằng LLM thật với model hiện dùng, mức `profile`, cửa kiểm tra và từ điển nghiệp vụ.
 4. Phân xử khi test và code bất đồng: hiện mọi lỗi V1/V2 đều quay về Codegen, nên test sai có thể kéo code sửa theo test sai; cần phân loại lỗi thuộc bên nào trước khi sửa.
-5. Đăng nhập một lần (SSO) thay tài khoản nội bộ.
+5. Deploy thật trên Neon/Render (mã đã hỗ trợ) và đo tải; đăng nhập một lần (SSO) thay tài khoản nội bộ.
 
 ## 9. Tài liệu tham khảo
 

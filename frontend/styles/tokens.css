@@ -40,7 +40,27 @@
   /* Nhãn "Code AI sinh" ở màn hồ sơ dữ liệu (bảng staging/mart do code AI viết) */
   --ai: light-dark(#5143c9, #a8a6ff);
   --ai-soft: light-dark(#eeedfb, #1f1e45);
+  /* Hướng dẫn trong chế độ khách: xanh ngọc (nền đặc, nền nhạt, chữ đậm trên nền nhạt, chữ trên nền đặc) */
+  --guide: light-dark(#0f766e, #2dd4bf);
+  --guide-soft: light-dark(#e0f5f1, #0f2e2b);
+  --guide-ink: light-dark(#0b4f49, #a7f3e4);
+  --guide-on: light-dark(#ffffff, #0b0b0f);
+  /* Lời nhắn Pip: xanh ngọc nhạt riêng ở chế độ sáng, giữ nền tối trung tính. */
+  --pip-bubble-bg: light-dark(#d9f3eb, #16161b);
+  --pip-bubble-ink: light-dark(#0b4f49, #f5f5f7);
+  --pip-bubble-muted: light-dark(#34665d, #a1a1a6);
+  --pip-bubble-edge: light-dark(#8cc7b9, #2c2c33);
   --shadow-color: light-dark(rgb(0 0 0 / 7%), rgb(0 0 0 / 50%));
+  /* Màu nhấn phụ (hổ phách) cho số liệu, biểu tượng nổi bật: tương phản với xanh dương chính, chỉ dùng ~10% diện tích */
+  --highlight: light-dark(#8f4700, #fbbf24);
+  --highlight-soft: light-dark(#fdf1de, #3a2a0e);
+  /* Khối nền nhạt màu nhấn (trang giới thiệu): nhạt hơn --primary-soft để chữ phụ vẫn đạt AA */
+  --tint: light-dark(#eef4fb, #0f1d33);
+  /* Khối nền tối (trang giới thiệu): luôn tối ở cả hai chế độ, nên hai giá trị giống nhau; token bên trong khối
+     được đặt lại bằng giá trị tối ở .docs-band cuối file, và chỉ kiểm tương phản ở chế độ tối (DARK_PAIRS) */
+  --band: light-dark(#0d1626, #0d1626);
+  --band-card: light-dark(#16233a, #16233a);
+  --band-edge: light-dark(#2a3a55, #2a3a55);
 
   /* Khung trang + màu nhấn (xanh dương hiện tại) + console tối */
   --frame: light-dark(#f5f5f7, #0b0b0f);
@@ -159,4 +179,27 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
+}
+
+/* Khối nền tối của trang giới thiệu: trình duyệt tính light-dark() của biến ngay tại :root, nên đổi color-scheme
+   cho một khối không đủ. Đặt lại đúng giá trị tối (cột thứ hai ở trên) cho các token khối này dùng. */
+.docs-band {
+  color-scheme: dark;
+  --text: #f5f5f7;
+  --muted: #a1a1a6;
+  --text-2: #a1a1a6;
+  --border: #34343c;
+  --primary: #409cff;
+  --primary-ink: #0b0b0f;
+  --primary-hi: #3d9bff;
+  --ok: #30d158;
+  --ai: #a8a6ff;
+  --warn: #ff9f0a;
+  --guide: #2dd4bf;
+  --highlight: #fbbf24;
+  --tint: #0f1d33;
+  --card: var(--band-card);
+  --card-border: var(--band-edge);
+  --glass-edge: #2c2c33;
+  --shadow-color: rgb(0 0 0 / 50%);
 }

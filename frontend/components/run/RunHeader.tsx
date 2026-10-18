@@ -6,7 +6,11 @@ import { usePathname } from "next/navigation";
 import { downloadUrl } from "@/lib/api";
 import { formatTime } from "@/lib/format";
 
+import { useApp } from "../AppContext";
+import { RunGuideDone, RunGuideSteps, StatusExplain } from "../guide/Guide";
 import { ErrorBox, Loading, StatusBadge } from "../ui";
+import { PauseControl } from "./PauseControl";
+import { PipCompanion } from "./PipCompanion";
 import { PipelineTrack } from "./PipelineTrack";
 import { RetryBanner } from "./RetryBanner";
 import { useRun } from "./RunContext";
@@ -31,7 +35,7 @@ function Tabs({ runId }: { runId: string }) {
           aria-current={pathname === tab.href ? "page" : undefined}
         >
           {tab.label}
-          {tab.flag && <span className="badge warn">chờ bạn</span>}
+          {tab.flag && <span className="badge warn">Chờ bạn</span>}
         </Link>
       ))}
     </nav>
@@ -40,6 +44,7 @@ function Tabs({ runId }: { runId: string }) {
 
 export function RunHeader() {
   const { runId, detail, error, loading, refresh } = useRun();
+  const { guest } = useApp();
   if (loading && !detail) return <Loading text="Đang tải lần chạy…" />;
   if (!detail) return <ErrorBox message={error || "Không tải được lần chạy."} onRetry={refresh} />;
   const { record } = detail;
@@ -55,7 +60,11 @@ export function RunHeader() {
             <span>·</span>
             <span>{formatTime(record.created_at)}</span>
             <span>·</span>
-            {record.provider === "mock" ? (
+            {guest ? (
+              <span className="badge warn" title="Chế độ khách: kết quả là mẫu dựng sẵn, không do AI chạy thật">
+                Dữ liệu mẫu
+              </span>
+            ) : record.provider === "mock" ? (
               <span className="badge muted" title="LLM mô phỏng: câu trả lời cố định, chạy trong sandbox">
                 Chạy thử (sandbox)
               </span>
@@ -68,17 +77,33 @@ export function RunHeader() {
           <StatusBadge status={record.status} />
           {detail.busy &&
             (detail.queue_position ? (
-              <span className="badge info">đang xếp hàng: còn {detail.queue_position} lần chạy phía trước</span>
+              <span className="badge info">Đang xếp hàng: còn {detail.queue_position} lần chạy phía trước</span>
             ) : (
-              <span className="badge info">agent đang chạy…</span>
+              <span className="badge info">Agent đang chạy…</span>
             ))}
-          {hasCode && (
-            <a className="btn primary" href={downloadUrl(runId)} download>
-              Tải gói code (.zip)
-            </a>
-          )}
+          {hasCode &&
+            (guest ? (
+              // Tải về là lời gọi tới máy chủ: chế độ khách không có, xem code ở tab "Duyệt code"
+              <button
+                type="button"
+                className="btn primary"
+                disabled
+                title="Chế độ khách không tải gói code. Đăng nhập để tải."
+              >
+                Tải gói code (.zip)
+              </button>
+            ) : (
+              <a className="btn primary" href={downloadUrl(runId)} download>
+                Tải gói code (.zip)
+              </a>
+            ))}
         </div>
       </div>
+      <StatusExplain status={record.status} />
+      <PauseControl />
+      <PipCompanion key={record.id} detail={detail} guest={guest} />
+      <RunGuideDone />
+      <RunGuideSteps />
       <PipelineTrack />
       <RetryBanner />
       {error && <ErrorBox message={`Mất kết nối, đang thử lại… (${error})`} />}

@@ -1,12 +1,18 @@
 """Chạy graph theo từng lần chạy (run_id = thread_id): bắt đầu, tạm dừng ở J1/J2/cứu hộ, chạy tiếp.
 
 Dùng chung cho CLI và API. Trạng thái graph lưu bằng checkpointer (SQLite hoặc PostgreSQL theo STATE_BACKEND); tóm tắt lưu trong store.
+
+Tạm dừng theo yêu cầu (ADR 0016): graph chạy TỪNG NODE MỘT (`interrupt_before="*"` lúc gọi `stream`: LangGraph lưu checkpoint
+rồi dừng trước node kế tiếp). Giữa hai node, runner xem trong store có yêu cầu tạm dừng không; có thì dừng hẳn (không chạy
+node kế, không gọi thêm AI, trả lại luồng nền). Node đang chạy (kể cả lời gọi LLM đã gửi) luôn được chạy xong.
+Tiếp tục = chạy tiếp từ checkpoint đó với cùng run_id: node đã xong không chạy lại, kết quả đã lưu không gọi AI lại.
 """
 
 import logging
 import sqlite3
 import time
 from collections.abc import Callable
+from datetime import datetime
 from functools import lru_cache
 
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -22,11 +28,11 @@ from src.agents.nodes.common import remember_fixes
 from src.agents.progress import NodeStart, StepEvent, describe, node_started
 from src.config import get_settings
 from src.models.evidence import ReviewDecision
-from src.models.schemas import RunStatus
-from src.services import schema_drift
-from src.services.cost_ledger import llm_caller
+from src.models.schemas import RunRecord, RunStatus
+from src.services import auth, schema_drift
+from src.services.cost_ledger import get_ledger, llm_caller
 from src.services.llm import LLMCallError, LLMConfigError, run_budget
-from src.services.store import get_store
+from src.services.store import VN_TZ, get_store
 
 logger = logging.getLogger(__name__)
 EventCallback = Callable[[StepEvent | NodeStart], None]  # NodeStart: node bắt đầu; StepEvent: node xong
@@ -39,6 +45,14 @@ INTERRUPT_STATUS = {
     "rescue": RunStatus.WAITING_RESCUE,
     "review": RunStatus.WAITING_REVIEW,
 }
+
+
+OWNER_ONLY = "Chỉ người tạo yêu cầu mới tạm dừng hoặc tiếp tục được lần chạy này."
+NOT_RUNNING = "Lần chạy không đang chạy nên không tạm dừng được (đã xong, đã dừng hoặc đang chờ người)."
+RECURSION_LIMIT = (
+    200  # trần số node mỗi lượt chạy (thay `recursion_limit` của LangGraph vì nay mỗi lần gọi chỉ chạy 1 node)
+)
+TOO_MANY_STEPS = "Lần chạy đi quá {limit} bước trong một lượt (có thể lặp vô hạn) nên dừng lại. Xem log."
 
 
 class RunStateError(RuntimeError):
@@ -104,11 +118,18 @@ def get_graph() -> CompiledStateGraph:
 
 
 def _config(run_id: str) -> dict:
-    return {"configurable": {"thread_id": run_id}, "recursion_limit": 200}
+    return {"configurable": {"thread_id": run_id}, "recursion_limit": RECURSION_LIMIT}
 
 
-def _stream(run_id: str, payload: object, on_event: EventCallback | None) -> str:
-    """Chạy graph tới điểm dừng kế tiếp; trả về thông báo lỗi (rỗng nếu không lỗi)."""
+class StepResult(BaseModel):
+    """Kết quả một lượt chạy graph: lỗi (rỗng = không lỗi) và có dừng vì yêu cầu tạm dừng không."""
+
+    error: str = ""
+    paused: bool = False
+
+
+def _stream(run_id: str, payload: object, on_event: EventCallback | None) -> StepResult:
+    """Chạy graph tới điểm dừng kế tiếp (chờ người, xong, lỗi hoặc tạm dừng theo yêu cầu)."""
     used = sum(u.get("input_tokens", 0) + u.get("output_tokens", 0) for u in get_values(run_id).get("llm_usage", []))
     record = get_store().get_run(run_id)
     owner = record.requester if record else ""  # sổ chi phí: tiền của lượt gọi tính cho người tạo lần chạy
@@ -116,28 +137,44 @@ def _stream(run_id: str, payload: object, on_event: EventCallback | None) -> str
         return _consume(run_id, payload, on_event)
 
 
-def _consume(run_id: str, payload: object, on_event: EventCallback | None) -> str:
-    """Chạy graph và phát sự kiện từng bước (tách khỏi `_stream` để bọc trần token)."""
+def _consume(run_id: str, payload: object, on_event: EventCallback | None) -> StepResult:
+    """Chạy graph TỪNG NODE MỘT, phát sự kiện từng bước; giữa hai node xem có yêu cầu tạm dừng không.
+
+    Lượt đầu mang `payload` (đầu vào mới, câu trả lời `Command(resume=…)`, hoặc None = chạy tiếp từ checkpoint). Câu trả lời
+    của người dùng luôn được ghi vào graph trước (node chờ người chỉ chạy code, không gọi AI) để không mất khi tạm dừng.
+    """
+    graph, config, store = get_graph(), _config(run_id), get_store()
     last = time.perf_counter()
+    first: object = payload
+    steps = 0
     try:
-        for mode, chunk in get_graph().stream(payload, _config(run_id), stream_mode=["updates", "tasks"]):
-            if mode == "tasks":  # "tasks" có `input` khi node bắt đầu, có `result` khi node xong (bỏ qua)
-                if on_event and "input" in chunk and isinstance(chunk["input"], dict):
-                    on_event(node_started(chunk["name"], chunk["input"]))
-                continue
-            for node, update in chunk.items():
-                if node == "__interrupt__":
+        while True:
+            if not isinstance(first, Command) and store.take_pause(run_id):
+                return StepResult(paused=True)  # dừng TRƯỚC node kế tiếp: chưa chạy, chưa gọi AI
+            for mode, chunk in graph.stream(first, config, stream_mode=["updates", "tasks"], interrupt_before="*"):
+                if mode == "tasks":  # "tasks" có `input` khi node bắt đầu, có `result` khi node xong (bỏ qua)
+                    if on_event and "input" in chunk and isinstance(chunk["input"], dict):
+                        on_event(node_started(chunk["name"], chunk["input"]))
                     continue
-                now = time.perf_counter()
-                if on_event:
-                    on_event(describe(node, update or {}, now - last))
-                last = now
+                for node, update in chunk.items():
+                    if node == "__interrupt__":
+                        continue
+                    now = time.perf_counter()
+                    if on_event:
+                        on_event(describe(node, update or {}, now - last))
+                    last = now
+            first = None
+            snapshot = graph.get_state(config)
+            if not snapshot.next or any(task.interrupts for task in snapshot.tasks):
+                return StepResult()  # xong, hoặc tới bước chờ người: giữ trạng thái chờ, không thêm "tạm dừng"
+            steps += 1
+            if steps > RECURSION_LIMIT:
+                return StepResult(error=TOO_MANY_STEPS.format(limit=RECURSION_LIMIT))
     except (LLMConfigError, LLMCallError) as exc:
-        return str(exc)
+        return StepResult(error=str(exc))
     except Exception:  # ranh giới cuối: ghi log đầy đủ, chỉ trả thông báo thân thiện
         logger.exception("graph run failed", extra={"run_id": run_id})
-        return "Có lỗi nội bộ khi chạy pipeline. Xem log để biết chi tiết."
-    return ""
+        return StepResult(error="Có lỗi nội bộ khi chạy pipeline. Xem log để biết chi tiết.")
 
 
 def get_values(run_id: str) -> dict:
@@ -183,19 +220,36 @@ def record_dependencies(run_id: str, values: dict) -> None:
         logger.exception("pipeline dependencies not saved", extra={"run_id": run_id})
 
 
-def _finish(run_id: str, error: str) -> RunOutcome:
+def _finish(run_id: str, result: StepResult) -> RunOutcome:
     values, pending = get_values(run_id), pending_interrupt(run_id)
+    error = result.error
     if error:
         status = RunStatus.FAILED
+    elif result.paused:
+        status = RunStatus.PAUSED
     elif pending:
         status = INTERRUPT_STATUS.get(pending.get("kind"), RunStatus.RUNNING)
     else:
         status = RunStatus(values.get("status") or RunStatus.RUNNING)
-    get_store().update_run(run_id, status, summarize(values, error))
+    get_store().update_run(run_id, status, summarize(values, error))  # khác "running" → bỏ yêu cầu tạm dừng còn treo
+    if status is RunStatus.PAUSED:
+        record = get_store().get_run(run_id)
+        auth.audit(
+            "run.paused", record.requester if record else "", target=run_id, detail={"next": _next_nodes(run_id)}
+        )
     if status is RunStatus.WAITING_REVIEW:
         remember_fixes(run_id, values)
         record_dependencies(run_id, values)
     return RunOutcome(run_id=run_id, status=status, pending=pending, error=error or values.get("error", ""))
+
+
+def _next_nodes(run_id: str) -> list[str]:
+    """Node sẽ chạy khi tiếp tục (ghi nhật ký kiểm toán; chỉ tên node, không có dữ liệu)."""
+    return list(get_graph().get_state(_config(run_id)).next or [])
+
+
+def _initial_payload(record: RunRecord) -> dict:
+    return {"run_id": record.id, "request_text": record.request_text, "requester": record.requester, "llm_usage": []}
 
 
 def create_run(request_text: str, requester: str) -> str:
@@ -208,23 +262,34 @@ def run_created(run_id: str, on_event: EventCallback | None = None) -> RunOutcom
     record = get_store().get_run(run_id)
     if record is None:
         raise RunStateError(f"Không tìm thấy lần chạy {run_id}.")
-    payload = {"run_id": run_id, "request_text": record.request_text, "requester": record.requester, "llm_usage": []}
-    return _finish(run_id, _stream(run_id, payload, on_event))
+    return _finish(run_id, _stream(run_id, _initial_payload(record), on_event))
+
+
+def _started(run_id: str) -> bool:
+    """Graph đã nhận đầu vào ban đầu (có checkpoint) chưa."""
+    return get_graph().get_state(_config(run_id)).created_at is not None
+
+
+def prepare_patch(run_id: str, seed: dict) -> None:
+    """Ghi đầu vào của run vá vào checkpoint NGAY khi tạo, trước khi xếp hàng (ADR 0016).
+
+    Chỉ chạy bước nhận đầu vào và định tuyến START (code, 0 token): dừng trước `patch_start`, không node nào chạy. Nhờ vậy tạm
+    dừng khi còn xếp hàng hoặc server khởi động lại trước khi job chạy vẫn giữ `patch_of`/spec/code gốc; tiếp tục đi thẳng
+    `patch_start`, không quay về cửa kiểm tra đầu vào hay Planner.
+    """
+    if _started(run_id):
+        return
+    record = get_store().get_run(run_id)
+    if record is None:
+        raise RunStateError(f"Không tìm thấy lần chạy {run_id}.")
+    for _ in get_graph().stream({**_initial_payload(record), **seed}, _config(run_id), interrupt_before="*"):
+        pass
 
 
 def run_patch(run_id: str, seed: dict, on_event: EventCallback | None = None) -> RunOutcome:
     """Chạy run vá: trạng thái khởi đầu (`seed`) mang đặc tả, câu trả lời và code của lần chạy gốc nên graph vào thẳng `patch_start`."""
-    record = get_store().get_run(run_id)
-    if record is None:
-        raise RunStateError(f"Không tìm thấy lần chạy {run_id}.")
-    payload = {
-        "run_id": run_id,
-        "request_text": record.request_text,
-        "requester": record.requester,
-        "llm_usage": [],
-        **seed,
-    }
-    return _finish(run_id, _stream(run_id, payload, on_event))
+    prepare_patch(run_id, seed)  # API đã ghi lúc tạo thì bỏ qua; CLI/test gọi thẳng thì ghi ở đây
+    return _finish(run_id, _stream(run_id, None, on_event))
 
 
 def start_run(request_text: str, requester: str, on_event: EventCallback | None = None) -> RunOutcome:
@@ -266,6 +331,65 @@ def retry_run(run_id: str, on_event: EventCallback | None = None) -> RunOutcome:
         raise RunStateError(problem)
     get_store().update_run(run_id, RunStatus.RUNNING)
     return _finish(run_id, _stream(run_id, None, on_event))
+
+
+def pause_problem(record: RunRecord, user_name: str) -> str:
+    """Lý do KHÔNG tạm dừng được (chuỗi rỗng = được): chỉ người tạo yêu cầu, chỉ khi lần chạy đang chạy hoặc xếp hàng.
+
+    Đã tạm dừng rồi (bấm lặp) cũng được: không làm gì thêm.
+    """
+    if record.requester != user_name:
+        return OWNER_ONLY
+    if record.status not in (RunStatus.RUNNING, RunStatus.PAUSED):
+        return NOT_RUNNING
+    return ""
+
+
+def resume_problem(record: RunRecord, user_name: str) -> str:
+    """Lý do KHÔNG tiếp tục được: chỉ người tạo yêu cầu, lần chạy phải đang tạm dừng, còn trần token/tiền của lần chạy."""
+    if record.requester != user_name:
+        return OWNER_ONLY
+    if record.status != RunStatus.PAUSED:
+        return "Lần chạy không ở trạng thái đã tạm dừng nên không tiếp tục được."
+    return budget_problem(record.id)
+
+
+def budget_problem(run_id: str) -> str:
+    """Trần của riêng lần chạy (token, tiền) và trần toàn hệ thống hôm nay. Chạm trần thì không chạy tiếp, vì lượt gọi AI kế
+    tiếp chắc chắn bị chặn (trần theo người và số lần chạy cùng lúc do `jobs.check_limits` kiểm)."""
+    settings = get_settings()
+    used = sum(u.get("input_tokens", 0) + u.get("output_tokens", 0) for u in get_values(run_id).get("llm_usage", []))
+    if settings.run_token_budget and used >= settings.run_token_budget:
+        return (
+            f"Lần chạy đã dùng {used:,} token, chạm trần {settings.run_token_budget:,} token mỗi lần chạy "
+            "(RUN_TOKEN_BUDGET) nên không tiếp tục được. Hãy tạo yêu cầu nhỏ hơn hoặc nhờ quản trị viên tăng trần."
+        )
+    ledger = get_ledger()
+    if settings.run_cost_budget_usd and ledger.used_usd("run", run_id) >= settings.run_cost_budget_usd:
+        return (
+            f"Lần chạy đã dùng hết trần {settings.run_cost_budget_usd:.2f} USD mỗi lần chạy (RUN_COST_BUDGET_USD) "
+            "nên không tiếp tục được."
+        )
+    day = datetime.now(VN_TZ).date().isoformat()
+    if (
+        settings.llm_global_daily_budget_usd
+        and ledger.used_usd("global", "*", day) >= settings.llm_global_daily_budget_usd
+    ):
+        return "Hệ thống đã dùng hết ngân sách AI hôm nay. Hãy tiếp tục vào ngày mai hoặc liên hệ quản trị viên."
+    return ""
+
+
+def continue_run(run_id: str, on_event: EventCallback | None = None) -> RunOutcome:
+    """Tiếp tục lần chạy đã tạm dừng từ checkpoint cuối (cùng run_id): node đã xong không chạy lại.
+
+    Lần chạy bị tạm dừng khi còn trong hàng đợi (graph chưa nhận đầu vào) thì bắt đầu từ đầu vào ban đầu.
+    """
+    record = get_store().get_run(run_id)
+    if record is None:
+        raise RunStateError(f"Không tìm thấy lần chạy {run_id}.")
+    started = _started(run_id)  # run vá luôn đã có checkpoint đầu vào (`prepare_patch`)
+    get_store().update_run(run_id, RunStatus.RUNNING)
+    return _finish(run_id, _stream(run_id, None if started else _initial_payload(record), on_event))
 
 
 def resume_run(request: ResumeRequest, on_event: EventCallback | None = None) -> RunOutcome:

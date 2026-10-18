@@ -135,6 +135,10 @@ def pipeline_stages(
         if optional and state == "waiting":
             continue
         stages.append(Stage(id=stage_id, code=code, label=label, kind=kind, state=state, detail=detail[:140]))
+    if status == "paused":  # tạm dừng theo yêu cầu: bước kế tiếp chưa chạy
+        first_open = next((s for s in stages if s.state == "waiting"), None)
+        if first_open:
+            first_open.detail = "tạm dừng trước bước này"
     if status == "failed" and not any(s.state == "failed" for s in stages):
         first_open = next((s for s in stages if s.state in ("waiting", "running")), None)
         if first_open:

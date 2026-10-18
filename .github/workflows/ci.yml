@@ -71,6 +71,10 @@ jobs:
         run: npm run format:check
       - name: Typecheck (tsc)
         run: npm run typecheck
+      - name: Contrast check (WCAG AA)
+        run: npm run check:contrast
+      - name: Text check (chữ giao diện)
+        run: npm run lint:text
       - name: Build (next build)
         run: npm run build
 

@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { STATUS_LABELS } from "@/lib/format";
 
-import { useHasRole } from "../AppContext";
+import { useApp, useHasRole } from "../AppContext";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { RoleNote } from "../Topbar";
 import { Card, ErrorBox } from "../ui";
@@ -13,6 +13,7 @@ import { useRun } from "./RunContext";
 export function DecisionForm() {
   const { detail, act } = useRun();
   const reviewer = useHasRole("reviewer");
+  const { guest } = useApp();
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -44,7 +45,9 @@ export function DecisionForm() {
               {detail.busy
                 ? "Agent đang chạy, chờ một chút."
                 : detail.record.status === "approved"
-                  ? "Đã duyệt. Tải gói code (.zip) ở góc trên để mở Pull Request."
+                  ? guest
+                    ? "Đã duyệt (giả lập trong chế độ khách). Đăng nhập để duyệt và tải gói code thật."
+                    : "Đã duyệt. Tải gói code (.zip) ở góc trên để mở Pull Request."
                   : `Trạng thái: ${STATUS_LABELS[detail.record.status]}.`}
             </span>
           </div>

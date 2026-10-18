@@ -6,7 +6,9 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { apiPost, messageOf } from "@/lib/api";
 import type { Accepted } from "@/lib/types";
 
-import { useHasRole } from "./AppContext";
+import { GUIDE_TRY } from "@/lib/guideText";
+
+import { useApp, useHasRole } from "./AppContext";
 import { ArrowRightIcon } from "./icons";
 import { RoleNote } from "./Topbar";
 import { ErrorBox } from "./ui";
@@ -32,6 +34,7 @@ export function CreateRunForm({ draft = "" }: { draft?: string }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const engineer = useHasRole("engineer");
+  const { guest } = useApp();
   const toast = useToast();
   const tooShort = text.trim().length < 5;
   // Bộ đếm ký tự (CLAUDE.md 9.4); trần 4000 khớp CreateRunBody ở backend
@@ -66,6 +69,23 @@ export function CreateRunForm({ draft = "" }: { draft?: string }) {
 
   return (
     <form onSubmit={submit} className="request-form">
+      {/* Chế độ khách: gợi ý cách viết yêu cầu; nút ví dụ chỉ điền sẵn, không tự gửi */}
+      {guest && (
+        <div className="guide-try">
+          <strong>{GUIDE_TRY.title}</strong>
+          <p>{GUIDE_TRY.text}</p>
+          <button
+            type="button"
+            className="btn guide-btn"
+            onClick={() => {
+              setText(GUIDE_TRY.example);
+              box.current?.focus();
+            }}
+          >
+            {GUIDE_TRY.button}
+          </button>
+        </div>
+      )}
       <label htmlFor="request-text" className="sr-only">
         Yêu cầu pipeline
       </label>

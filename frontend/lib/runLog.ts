@@ -129,6 +129,26 @@ export function buildCompactLog(detail: RunDetail): LogLine[] {
       hint: GENERIC_HINT,
     });
   }
+  if (detail.record.status === "paused")
+    lines.push({
+      id: "run-paused",
+      time: null,
+      level: "warn",
+      step: "Lần chạy",
+      code: "",
+      text: "Đã tạm dừng theo yêu cầu, trước bước kế tiếp",
+      hint: "Bấm Tiếp tục để chạy tiếp. Các bước đã xong không chạy lại.",
+    });
+  else if (detail.record.pause_requested)
+    lines.push({
+      id: "run-pausing",
+      time: null,
+      level: "info",
+      step: "Lần chạy",
+      code: "",
+      text: "Đang chờ tạm dừng: bước hiện tại chạy xong thì dừng",
+      hint: "",
+    });
   return lines;
 }
 

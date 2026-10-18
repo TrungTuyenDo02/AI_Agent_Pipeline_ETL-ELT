@@ -33,7 +33,7 @@ function EntryCard({ entry, onDone }: { entry: ErrorEntry; onDone: () => Promise
   return (
     <Card
       title={<span className="mono">{entry.code}</span>}
-      actions={<span className="badge muted">gặp {entry.occurrences} lần</span>}
+      actions={<span className="badge muted">Gặp {entry.occurrences} lần</span>}
     >
       <div className="stack error-entry" style={{ gap: 10 }}>
         <p>{entry.description}</p>

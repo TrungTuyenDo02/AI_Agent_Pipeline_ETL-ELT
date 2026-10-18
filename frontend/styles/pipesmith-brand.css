@@ -1,0 +1,489 @@
+/* Galey SemiBold supplied by the project owner; used only for the wordmark.
+   Vietnamese body text retains the existing interface font. */
+@font-face {
+  font-family: "PipeSmith Galey";
+  src: url("/fonts/galey/galey-semi-bold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+.pipesmith-wordmark {
+  font-family: "PipeSmith Galey", "Galey Sans", "Galey", var(--font-sans), sans-serif;
+  font-weight: 600;
+  font-size: 1.15em;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  white-space: nowrap;
+  color: inherit;
+}
+
+.pip-sprite {
+  display: inline-block;
+  flex: none;
+  width: var(--pip-size, 96px);
+  height: var(--pip-size, 96px);
+  max-width: 100%;
+  background-image: url("/brand/pip-atlas.webp");
+  background-size: 300% 200%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  vertical-align: middle;
+}
+
+.pip-intro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.pip-intro-copy {
+  min-width: 0;
+}
+.pip-intro-copy strong {
+  display: block;
+  font-size: 14px;
+}
+.pip-intro-copy p {
+  margin: 5px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.login-hero .pip-intro {
+  color: var(--login-hero-ink);
+}
+.login-hero .pip-intro-copy p {
+  color: var(--login-hero-muted);
+}
+.docs-hero .pip-intro {
+  color: var(--text);
+}
+.docs-hero .pip-intro-copy p {
+  color: var(--muted);
+}
+
+.pip-companion {
+  --pip-trip: -112px;
+  position: fixed;
+  right: 24px;
+  bottom: calc(24px + var(--bottom-nav-h, 0px));
+  width: 88px;
+  height: 88px;
+  z-index: 35;
+  pointer-events: none;
+}
+.pip-companion[data-corner$="left"] {
+  --pip-trip: 112px;
+  right: auto;
+  left: 24px;
+}
+.pip-companion[data-corner^="top"] {
+  top: calc(112px + env(safe-area-inset-top));
+  bottom: auto;
+}
+.pip-perch {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+.pip-perch::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 6px;
+  bottom: 10px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--muted);
+  opacity: 0.25;
+}
+.pip-cat {
+  display: grid;
+  place-items: center;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+.pip-companion[data-dragging="true"] .pip-cat {
+  cursor: grabbing;
+}
+.pip-cat:focus-visible,
+.pip-restore:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+.pip-at-home {
+  display: contents;
+}
+.pip-walking {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.pip-walk-sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: url("/brand/pip-walk.webp") 0% 0% / 200% 200% no-repeat;
+  image-rendering: pixelated;
+}
+.pip-attention {
+  position: absolute;
+  top: 10px;
+  right: 8px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--card);
+  background: var(--warn);
+}
+.pip-bubble {
+  --text: var(--pip-bubble-ink);
+  --muted: var(--pip-bubble-muted);
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  width: min(288px, calc(100vw - 48px));
+  max-height: min(360px, calc(100dvh - 240px));
+  overflow-y: auto;
+  padding: 16px;
+  border: 1px solid var(--pip-bubble-edge);
+  border-radius: 16px;
+  background: var(--pip-bubble-bg);
+  color: var(--text);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 16%);
+  pointer-events: auto;
+}
+.pip-companion[data-corner$="left"] .pip-bubble {
+  left: 0;
+  right: auto;
+}
+.pip-companion[data-corner^="top"] .pip-bubble {
+  bottom: auto;
+  top: calc(100% + 8px);
+}
+.pip-bubble strong {
+  display: block;
+  padding-right: 28px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.pip-bubble p {
+  margin: 8px 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.pip-bubble-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+.pip-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin: 6px 0;
+  font-size: 13px;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.pip-corners {
+  display: inline-flex;
+  gap: 3px;
+}
+.pip-corners button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--muted);
+  cursor: pointer;
+}
+.pip-corners button span {
+  display: block;
+  width: 16px;
+  height: 12px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  position: relative;
+}
+.pip-corners button span::after {
+  content: "";
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  right: 1px;
+  bottom: 1px;
+  border-radius: 1px;
+  background: currentColor;
+}
+.pip-corners button[data-corner^="top"] span::after {
+  top: 1px;
+  bottom: auto;
+}
+.pip-corners button[data-corner$="left"] span::after {
+  left: 1px;
+  right: auto;
+}
+.pip-corners button[aria-pressed="true"] {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+.pip-hide {
+  min-height: 40px;
+  padding: 0 8px;
+  float: right;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.pip-restore {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--card-border);
+  border-radius: 50%;
+  background: var(--card);
+  cursor: pointer;
+  pointer-events: auto;
+}
+body:has(.toast, [role="alertdialog"], [role="dialog"][aria-modal="true"]) .pip-companion {
+  visibility: hidden;
+}
+#run-workspace {
+  scroll-margin-top: 120px;
+}
+
+@media (min-width: 640px) and (prefers-reduced-motion: no-preference) {
+  .pip-companion[data-patrol="true"] .pip-perch {
+    animation: pip-patrol 28s linear infinite;
+  }
+  .pip-companion[data-patrol="true"] .pip-at-home > .pip-sprite {
+    animation: pip-stay 28s step-end infinite;
+  }
+  .pip-companion[data-patrol="true"] .pip-walking {
+    animation: pip-walk-show 28s step-end infinite;
+  }
+  .pip-companion[data-patrol="true"] .pip-walk-sprite {
+    animation:
+      pip-walk-frames 0.64s step-end infinite,
+      pip-turn 28s step-end infinite;
+  }
+  .pip-companion[data-corner$="left"] .pip-walking {
+    scale: -1 1;
+  }
+  .pip-companion:is(:hover, :focus-within) .pip-perch,
+  .pip-companion:is(:hover, :focus-within) .pip-perch * {
+    animation-play-state: paused;
+  }
+}
+@keyframes pip-patrol {
+  0%,
+  79%,
+  96%,
+  100% {
+    transform: translateX(0);
+  }
+  87%,
+  88% {
+    transform: translateX(var(--pip-trip));
+  }
+}
+@keyframes pip-stay {
+  0%,
+  96%,
+  100% {
+    opacity: 1;
+  }
+  79% {
+    opacity: 0;
+  }
+}
+@keyframes pip-walk-show {
+  0%,
+  96%,
+  100% {
+    opacity: 0;
+  }
+  79% {
+    opacity: 1;
+  }
+}
+@keyframes pip-turn {
+  0%,
+  96%,
+  100% {
+    transform: scaleX(1);
+  }
+  88% {
+    transform: scaleX(-1);
+  }
+}
+@keyframes pip-walk-frames {
+  0%,
+  100% {
+    background-position: 2.3% 4%;
+  }
+  25% {
+    background-position: 98.7% 4.5%;
+  }
+  50% {
+    background-position: 3.2% 90.7%;
+  }
+  75% {
+    background-position: 99.1% 91.3%;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pip-sprite-animated[data-pose="idle"] {
+    animation: pip-breathe 4s ease-in-out infinite;
+  }
+  .pip-sprite-animated[data-pose="notes"] {
+    animation: pip-note 1.4s steps(2, end) infinite;
+  }
+  .pip-sprite-animated[data-pose="coding"] {
+    animation: pip-type 0.55s steps(2, end) infinite;
+  }
+  .pip-sprite-animated[data-pose="review"] {
+    animation: pip-breathe 4s ease-in-out infinite;
+  }
+  .pip-sprite-animated[data-pose="error"] {
+    animation: pip-check 0.8s steps(3, end) 1;
+  }
+  .pip-sprite-animated[data-pose="done"] {
+    animation: pip-celebrate 0.9s steps(4, end) 1;
+  }
+}
+@keyframes pip-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+@keyframes pip-note {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  50% {
+    transform: rotate(-2deg);
+  }
+}
+@keyframes pip-type {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(2px);
+  }
+}
+@keyframes pip-check {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  35% {
+    transform: rotate(-3deg);
+  }
+  70% {
+    transform: rotate(3deg);
+  }
+}
+@keyframes pip-celebrate {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  35% {
+    transform: translateY(-7px);
+  }
+  65% {
+    transform: translateY(-3px);
+  }
+}
+
+@media (max-width: 639px) {
+  .pip-companion {
+    width: 64px;
+    height: 64px;
+    top: auto !important;
+    bottom: calc(12px + var(--bottom-nav-h, 64px)) !important;
+    right: 12px;
+    left: auto;
+  }
+  .pip-companion[data-corner$="left"] {
+    left: 12px;
+    right: auto;
+  }
+  .pip-cat {
+    touch-action: auto;
+    cursor: pointer;
+  }
+  .pip-cat .pip-sprite {
+    width: 64px;
+    height: 64px;
+    animation: none;
+  }
+  .pip-perch::after {
+    left: 10px;
+    right: 4px;
+    bottom: 7px;
+  }
+  .pip-bubble,
+  .pip-companion[data-corner^="top"] .pip-bubble {
+    top: auto;
+    bottom: calc(100% + 8px);
+    width: min(288px, calc(100vw - 24px));
+  }
+  .pip-corners button[data-corner^="top"] {
+    display: none;
+  }
+  .pip-attention {
+    top: 4px;
+    right: 3px;
+  }
+  #run-workspace {
+    scroll-margin-top: 16px;
+  }
+}
+@media (max-width: 480px) {
+  .pip-intro {
+    gap: 8px;
+  }
+  .pip-intro-copy strong {
+    font-size: 13px;
+  }
+}

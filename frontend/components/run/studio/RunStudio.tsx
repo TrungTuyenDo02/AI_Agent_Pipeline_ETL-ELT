@@ -1,5 +1,6 @@
 "use client";
 
+import { StageGuide } from "../../guide/Guide";
 import { ResultCard } from "../ResultCard";
 import { useRun } from "../RunContext";
 import { RunLog } from "../RunLog";
@@ -30,7 +31,8 @@ export function RunStudio() {
     </>
   );
   return (
-    <div className="studio-flow">
+    <div className="studio-flow" id="run-workspace" tabIndex={-1}>
+      <StageGuide />
       {settled ? (
         <details className="card done-group">
           <summary>

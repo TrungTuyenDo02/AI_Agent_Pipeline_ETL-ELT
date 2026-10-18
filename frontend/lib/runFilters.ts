@@ -22,6 +22,10 @@ export const RUN_FILTERS = {
     label: "Đang chạy (Giám sát)",
     test: (run: RunRecord) => run.status === "running",
   },
+  "tam-dung": {
+    label: "Đã tạm dừng",
+    test: (run: RunRecord) => run.status === "paused",
+  },
   "da-duyet": {
     label: "Yêu cầu của tôi đã duyệt",
     test: (run: RunRecord, user: CurrentUser | null) => run.requester === user?.name && run.status === "approved",

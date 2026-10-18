@@ -132,6 +132,26 @@
 | TrungTuyenDo02 | Nâng Neon lên head; migration 0009 cấp quyền glossary_terms mà 0007 bỏ sót | ✅ Done | Neon ở 0009, p113_app đủ quyền; demo trên Neon đạt; test quét GRANT mọi bảng | — |
 | TrungTuyenDo02 | Giả lập deploy Vercel trên máy: build có BACKEND_URL, gọi API qua rewrite | ✅ Done | Đăng nhập, cookie HttpOnly, lần chạy mock tới approved, tải zip 200; chưa deploy Vercel thật | — |
 | TrungTuyenDo02 | Xử lý review PR #8: scrub_error che giá trị không nháy, chụp cấu trúc chịu tranh chấp, cột tên lạ | ✅ Done | 13 test mới tái hiện lỗi trước khi sửa; 2 điểm bot báo nhầm (SQL injection, ReDoS) đã kiểm và ghi lý do | — |
+| TrungTuyenDo02 | Chế độ khách bằng dữ liệu mẫu, chỉ ở frontend (`/demo`, ADR 0015) | ✅ Done | Headless: luồng Engineer → Reviewer trọn vẹn, 0 request tới backend; đăng nhập thường không đổi; CI 1205 đạt | — |
+
+---
+
+## 2026-10-18
+
+| Member | Task | Status | Output | Time |
+|--------|------|--------|--------|------|
+| TrungTuyenDo02 | Hướng dẫn nhúng sẵn trong chế độ khách: quy trình 4 bước, giải thích từng giai đoạn, từ điển | ✅ Done | Headless: 4 bước đổi đúng 8 giai đoạn, lần chạy dừng báo đúng bước; người dùng thường không thấy hướng dẫn | — |
+| TrungTuyenDo02 | Trang `/docs` công khai, tiến độ đọc từ `lib/projectStatus.ts`, liên kết Tài liệu | ✅ Done | Mở được khi chưa đăng nhập; ý dài nhất 54 từ; đổi 2 mục → thanh 1/10 đúng; CI 1205 đạt | — |
+| TrungTuyenDo02 | Hoàn thiện tạm dừng/tiếp tục lần chạy (ADR 0016): sửa 2 test sai giả định, lỗi tham số PostgreSQL | ✅ Done | Pause API 17/17 trên SQLite; PostgreSQL 16 tạm 63/63; nút chỉ hiện cho người tạo; CI 1211 đạt | — |
+| TrungTuyenDo02 | Sửa lỗi review: run vá mất đầu vào khi tạm dừng xếp hàng; tiếp tục đồng thời vượt hạn mức | ✅ Done | 3 test tái hiện lỗi trước khi sửa; đầu vào bản vá lưu lúc tạo; kiểm hạn mức trong khóa hàng đợi; CI 1214 đạt | — |
+| TrungTuyen | Hiển thị PipeSmith và linh vật Pip theo trạng thái lần chạy | ✅ Done | Frontend-check đạt; sáu tư thế; Galey SemiBold tải thật, kiểm laptop và điện thoại không tràn ngang | — |
+| TrungTuyen | Pip bám mép: kéo đổi góc, lưu vị trí, bong bóng và đường đi ngắn | ✅ Done | Frontend-check đạt; 26 kiểm tra Chromium đạt trên desktop, điện thoại và chế độ giảm chuyển động | — |
+| TrungTuyen | Hiện Pip ngay trên Trang chủ và danh sách, gồm chế độ khách | ✅ Done | Frontend-check đạt; 12 kiểm tra Chromium đạt; không trùng linh vật khi chuyển trang, ẩn/hiện giữ xuyên trang | — |
+| TrungTuyen | Đổi bong bóng Pip chế độ sáng sang xanh ngọc nhạt | ✅ Done | Build, định dạng và tương phản đạt (thấp nhất 4,76:1); kiểm sáng/tối, laptop và điện thoại đạt | — |
+| TrungTuyen | Landing `/docs`: nhịp màu theo khối, màu nhấn phụ, khối Cách hoạt động, chữ gom vào `content/landing.ts` | ✅ Done | Tương phản AA mọi cặp; build đạt; chụp 1440px, 375px, sáng/tối không tràn; mỗi đoạn tối đa 2 dòng | — |
+| TrungTuyen | Trang đăng nhập: sửa chồng lớp, ba điểm nổi bật, demo động kèm bảng kết quả, số liệu phần trăm | ✅ Done | Số từ README (93%, 86%, 6/6, 92%, 7×); bảng là 3/30 dòng thật fct_daily_revenue của lần chạy mẫu; màn hẹp form lên trước | — |
+| TrungTuyen | Kiểm chữ giao diện: `npm run lint:text` tự viết, sửa viết hoa đầu nhãn, thêm vào CI | ✅ Done | Sửa 19 chuỗi, ghi `docs/spellcheck-report.md`; lint:text sạch; thuật ngữ thống nhất "duyệt" | — |
+| TrungTuyen | README: ảnh trang giới thiệu, đăng nhập; bảng màn hình và thao tác theo vai | ✅ Done | Ảnh chụp bản build 1440×900; nhãn nút đối chiếu với code; liên kết README kiểm bằng check_md_links | — |
 
 ---
 

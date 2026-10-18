@@ -14,6 +14,7 @@ const STATUS_ICON: Record<Exclude<RunStatus, "running">, IconName> = {
   waiting_schema: "warning",
   waiting_rescue: "warning",
   waiting_review: "awaitingReview",
+  paused: "pause",
   approved: "success",
   failed: "failure",
   rejected_input: "warning",

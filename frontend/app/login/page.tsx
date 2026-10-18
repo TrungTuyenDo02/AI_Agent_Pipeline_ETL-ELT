@@ -2,12 +2,15 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAnimate, useReducedMotion } from "framer-motion";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { useApp } from "@/components/AppContext";
+import { PipeSmithWordmark } from "@/components/PipeSmithWordmark";
+import { PipSprite } from "@/components/PipSprite";
 import { EyeIcon, EyeOffIcon, Icon, LockIcon, SparkIcon, StatusIcon, UserIcon } from "@/components/icons";
 import { LoginShowcase } from "@/components/login/LoginShowcase";
 import { Checkbox } from "@/components/ui";
@@ -49,7 +52,7 @@ function remember(username: string | null): void {
 }
 
 function LoginForm({ t, pick }: { t: LoginText; pick: { user: string; password: string; n: number } | null }) {
-  const { auth, login } = useApp();
+  const { auth, login, enterGuest } = useApp();
   const router = useRouter();
   const next = safeNext(useSearchParams().get("next"));
   const [keep, setKeep] = useState(false);
@@ -204,6 +207,21 @@ function LoginForm({ t, pick }: { t: LoginText; pick: { user: string; password: 
         )}
       </button>
 
+      {/* Chế độ khách: chạy giao diện bằng dữ liệu mẫu trong trình duyệt, không gọi máy chủ */}
+      <div className="login-guest">
+        <button
+          type="button"
+          className="btn login-guest-btn"
+          onClick={() => {
+            enterGuest();
+            router.replace("/");
+          }}
+        >
+          <Icon name="show" size={18} weight="bold" /> {t.guestTry}
+        </button>
+        <p className="login-guest-hint">{t.guestHint}</p>
+      </div>
+
       <p className="login-foot">
         {t.forgot}{" "}
         <button
@@ -267,6 +285,9 @@ export default function LoginPage() {
   return (
     <main className="login-page">
       <div className="login-tools">
+        <Link href="/docs" className="login-docs-link">
+          <Icon name="docs" size={18} /> {t.docs}
+        </Link>
         <div className="login-lang" role="group" aria-label={t.langLabel}>
           {(["vi", "en"] as const).map((value) => (
             <button key={value} type="button" aria-pressed={lang === value} onClick={() => chooseLang(value)}>
@@ -288,11 +309,26 @@ export default function LoginPage() {
       <section className="login-hero">
         <div className="login-hero-brand">
           <SparkIcon size={28} />
-          <span>P-113 Agent Studio</span>
+          <PipeSmithWordmark />
         </div>
         <h2>{t.heroTitle}</h2>
         <p className="login-hero-sub">{t.heroSub}</p>
         <blockquote>{t.quote}</blockquote>
+        <div className="pip-intro">
+          <PipSprite
+            pose="idle"
+            size={72}
+            label={lang === "vi" ? "Pip, chú mèo pixel của PipeSmith" : "Pip, PipeSmith's pixel cat"}
+          />
+          <div className="pip-intro-copy">
+            <strong>{lang === "vi" ? "Pip đồng hành cùng bạn" : "Meet your companion, Pip"}</strong>
+            <p>
+              {lang === "vi"
+                ? "Chú mèo nhỏ sẽ theo nhịp công việc của mỗi lần chạy."
+                : "A little cat that follows each run's actual state."}
+            </p>
+          </div>
+        </div>
         <LoginShowcase t={t} onPickAccount={(user, password) => setPick({ user, password, n: Date.now() })} />
         <p className="login-hero-foot">{t.footer}</p>
       </section>

@@ -6,6 +6,7 @@ import type { RunRecord } from "@/lib/types";
 import { formatNumber, formatPct, formatUsd } from "@/lib/format";
 
 import { useApp } from "./AppContext";
+import { SampleTag } from "./GuestBar";
 import { Icon } from "./icons";
 
 // Hiệu quả agent trên các lần chạy đã có (để cân nhắc có nên dùng rộng rãi). Chỉ tính lần chạy LLM thật;
@@ -46,7 +47,7 @@ export function summarizeRuns(runs: RunRecord[]) {
 }
 
 export function AgentEfficiency() {
-  const { runs } = useApp();
+  const { runs, guest } = useApp();
   const [perMonth, setPerMonth] = useState("100");
   const [manualMinutes, setManualMinutes] = useState("");
   const [reviewMinutes, setReviewMinutes] = useState("");
@@ -67,8 +68,10 @@ export function AgentEfficiency() {
         <Icon name="performance" size={20} weight="duotone" />
         <strong>Hiệu quả agent</strong>
         <span className="muted small">
-          {s.real} lần chạy LLM thật{s.simulated > 0 ? ` · ${s.simulated} lần mô phỏng (không tính)` : ""}
+          {guest ? `${s.real} lần chạy mẫu` : `${s.real} lần chạy LLM thật`}
+          {s.simulated > 0 ? ` · ${s.simulated} lần mô phỏng (không tính)` : ""}
         </span>
+        <SampleTag />
       </summary>
       <div className="efficiency-body">
         {s.real === 0 ? (

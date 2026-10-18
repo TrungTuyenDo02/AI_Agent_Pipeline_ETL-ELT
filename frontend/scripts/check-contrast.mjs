@@ -80,6 +80,45 @@ const PAIRS = [
   ["login-cta-b", "login-glass-solid", "viền ô đang nhập, vòng focus trên thẻ đăng nhập"],
   ["login-error", "login-error-bg", "lỗi đăng nhập"],
   ["warn", "warn-soft", "nhãn vai trò Admin"],
+  ["guide-ink", "guide-soft", "chữ trong khung hướng dẫn (chế độ khách)"],
+  ["pip-bubble-ink", "pip-bubble-bg", "Pip: tiêu đề lời nhắn"],
+  ["pip-bubble-muted", "pip-bubble-bg", "Pip: nội dung, nhãn khách và nút ẩn"],
+  ["primary", "pip-bubble-bg", "Pip: liên kết trong lời nhắn"],
+  ["pip-bubble-muted", "card", "Pip: biểu tượng chọn góc"],
+  ["text", "guide-soft", "chữ thường trong khung hướng dẫn"],
+  ["guide-on", "guide", "chữ trên nút / dấu bước hướng dẫn nền đặc"],
+  ["guide", "card", "viền, chữ nhấn hướng dẫn trên thẻ trắng"],
+  ["guide-ink", "card", "tiêu đề bước hướng dẫn trên thẻ trắng"],
+  ["primary", "primary-soft", "mục điều hướng đang chọn (thanh trên, Thêm, lọc nhanh)"],
+  ["muted", "surface-2", "mục điều hướng khi rê chuột"],
+  ["primary", "bg-page", "trang giới thiệu: nhãn mục, liên kết neo đang đọc"],
+  ["warn", "bg-page", "trang giới thiệu: nguyên tắc Con người quyết định"],
+  ["ai", "bg-page", "trang giới thiệu: nguyên tắc AI thực thi"],
+  ["ok", "bg-page", "trang giới thiệu: nguyên tắc Code kiểm chứng"],
+  ["warn", "warn-soft", "trang giới thiệu: nhãn Con người"],
+  ["ai", "ai-soft", "trang giới thiệu: nhãn AI"],
+  ["ok", "ok-soft", "trang giới thiệu: nhãn Code"],
+  ["text", "tint", "trang giới thiệu: chữ trên khối nền nhạt màu nhấn"],
+  ["muted", "tint", "trang giới thiệu: chữ phụ trên khối nền nhạt màu nhấn"],
+  ["primary", "tint", "trang giới thiệu: nhãn mục, liên kết trên khối nền nhạt"],
+  ["highlight", "bg-page", "trang giới thiệu: chữ nhấn phụ trên nền trang"],
+  ["highlight", "card", "trang giới thiệu: chữ nhấn phụ trong thẻ trắng"],
+  ["highlight", "tint", "trang giới thiệu: chữ nhấn phụ trên khối nền nhạt"],
+  ["highlight", "highlight-soft", "nhãn nhấn phụ"],
+];
+
+// Khối nền tối (.docs-band) đặt lại token bằng giá trị tối: chỉ kiểm cặp ở chế độ tối.
+const DARK_PAIRS = [
+  ["text", "band", "khối nền tối: chữ chính"],
+  ["muted", "band", "khối nền tối: chữ phụ"],
+  ["primary", "band", "khối nền tối: nhãn mục, liên kết"],
+  ["highlight", "band", "khối nền tối: số liệu, chữ nhấn phụ"],
+  ["text", "band-card", "khối nền tối: chữ trong thẻ"],
+  ["muted", "band-card", "khối nền tối: chữ phụ trong thẻ"],
+  ["highlight", "band-card", "khối nền tối: số liệu trong thẻ"],
+  ["ok", "band-card", "khối nền tối: nhãn chạy thử đạt"],
+  ["ai", "band-card", "khối nền tối: chữ nhấn AI trong thẻ"],
+  ["console-text", "band-card", "khối nền tối: dòng code demo"],
 ];
 
 function parseTokens(css) {
@@ -116,6 +155,26 @@ for (const mode of ["light", "dark"]) {
     if (!ok) failed += 1;
     console.log(`  ${ok ? "✓" : "✗"} ${value.toFixed(2).padStart(5)}:1  --${fg} / --${bg}  (${usage})`);
   }
+}
+console.log("\nKhối nền tối (chỉ chế độ tối)");
+// Giá trị đặt lại trong .docs-band phải trùng cột tối của token, nếu không các cặp dưới không phản ánh màu thật.
+const band = readFileSync(TOKENS, "utf8").match(/\.docs-band\s*\{([^}]*)\}/);
+for (const [, name, value] of (band ? band[1] : "").matchAll(/--([a-z0-9-]+):\s*(#[0-9a-f]{6})\s*;/gi)) {
+  if (tokens[name] && tokens[name].dark.toLowerCase() !== value.toLowerCase()) {
+    console.log(`  ✗ .docs-band --${name}: ${value} khác giá trị tối ${tokens[name].dark}`);
+    failed += 1;
+  }
+}
+for (const [fg, bg, usage] of DARK_PAIRS) {
+  if (!tokens[fg] || !tokens[bg]) {
+    console.log(`  ✗ thiếu biến --${!tokens[fg] ? fg : bg} trong tokens.css`);
+    failed += 1;
+    continue;
+  }
+  const value = ratio(tokens[fg].dark, tokens[bg].dark);
+  const ok = value >= MIN_RATIO;
+  if (!ok) failed += 1;
+  console.log(`  ${ok ? "✓" : "✗"} ${value.toFixed(2).padStart(5)}:1  --${fg} / --${bg}  (${usage})`);
 }
 if (failed) {
   console.error(`\n${failed} cặp dưới ${MIN_RATIO}:1 — chỉnh màu trong styles/tokens.css.`);

@@ -5,3 +5,5 @@ package-lock.json
 AGENTS.md
 CLAUDE.md
 README.md
+# sinh tự động bởi scripts/demo_fixtures.py
+lib/demo/fixtures.ts

@@ -2,6 +2,8 @@
 
 import { formatNumber, formatPct, formatUsd } from "@/lib/format";
 
+import { useApp } from "../AppContext";
+import { SampleTag } from "../GuestBar";
 import { Icon } from "../icons";
 import { Empty, Stat } from "../ui";
 import { useRun } from "./RunContext";
@@ -23,6 +25,7 @@ function secondsText(value: number): string {
 
 export function UsageSummary() {
   const { detail } = useRun();
+  const { guest } = useApp();
   if (!detail) return null;
   const usage = detail.usage;
   const rows = usage?.rows ?? [];
@@ -51,6 +54,8 @@ export function UsageSummary() {
           <span className="badge warn" title="LLM_PROVIDER=mock: câu trả lời cố định, không tốn tiền">
             Mô phỏng
           </span>
+        ) : guest ? (
+          <SampleTag />
         ) : (
           <span className="badge muted">Ước tính theo bảng giá công khai</span>
         )}

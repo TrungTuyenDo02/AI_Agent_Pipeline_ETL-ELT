@@ -4,6 +4,8 @@ import { formatNumber, formatPct, formatUsd } from "@/lib/format";
 import type { Optimization } from "@/lib/types";
 
 import { CodeDiff } from "../CodeDiff";
+import { SampleTag } from "../GuestBar";
+import { GuideNote } from "../guide/Guide";
 import { Card, Empty, PassMark } from "../ui";
 import { useRun } from "./RunContext";
 
@@ -19,7 +21,9 @@ function BeforeAfter({ report }: { report: Optimization }) {
   return (
     <section className="card before-after" aria-labelledby="ba-title">
       <header className="card-head">
-        <h2 id="ba-title">So sánh trước / sau tối ưu</h2>
+        <h2 id="ba-title">
+          So sánh trước / sau tối ưu <SampleTag />
+        </h2>
         <span className={applied ? "badge ok" : "badge muted"}>{applied ? "Đã áp dụng bản mới" : "Giữ bản gốc"}</span>
       </header>
       <div className="ba-body">
@@ -52,14 +56,14 @@ function BeforeAfter({ report }: { report: Optimization }) {
             <tr>
               <td>
                 Chi phí máy mỗi lần chạy
-                <small className="muted ba-note">tỉ lệ theo thời gian chạy</small>
+                <small className="muted ba-note">Tỉ lệ theo thời gian chạy</small>
               </td>
               <td className="num">100%</td>
               <td className="num">{before && after != null ? formatPct((100 * after) / before) : "—"}</td>
             </tr>
             <tr>
               <td>Độ đúng kết quả</td>
-              <td className="num">bản gốc</td>
+              <td className="num">Bản gốc</td>
               <td className="num">
                 <span className={checks.length && same === checks.length ? "badge ok" : "badge warn"}>
                   {correct}
@@ -115,7 +119,7 @@ function Findings({ report }: { report: Optimization }) {
       {report.explanation && (
         <div style={{ marginTop: 12 }}>
           <h3>
-            LLM giải thích <span className="badge muted">chưa kiểm chứng</span>
+            LLM giải thích <span className="badge muted">Chưa kiểm chứng</span>
           </h3>
           <p className="claimed-box">{report.explanation}</p>
         </div>
@@ -140,13 +144,17 @@ export function OptimizationScreen() {
   const report = detail.optimization;
   if (!report.original_sql) {
     return (
-      <Card title="Tối ưu query">
-        <Empty>Chưa tới bước tối ưu (E4 chạy sau khi code qua sandbox).</Empty>
-      </Card>
+      <>
+        <GuideNote id="optimize" />
+        <Card title="Tối ưu query">
+          <Empty>Chưa tới bước tối ưu (E4 chạy sau khi code qua sandbox).</Empty>
+        </Card>
+      </>
     );
   }
   return (
     <>
+      <GuideNote id="optimize" />
       <BeforeAfter report={report} />
       <div className="grid-2">
         <Equivalence report={report} />
