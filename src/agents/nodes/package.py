@@ -1,13 +1,20 @@
 """Gói "Pull Request" để duyệt: bằng chứng tách `measured` (code đo) và `claimed` (LLM nói)."""
 
 import json
+import logging
 from pathlib import Path
 
+from src.agents.nodes.common import sandbox_db
+from src.agents.review_gate import review_gate
 from src.agents.state import PipelineState
+from src.agents.tools.bottleneck import analyze_bottlenecks
 from src.agents.tools.sql_tools import value_filters
+from src.config import get_settings
 from src.models.evidence import Evidence, MeasuredItem
 from src.models.schemas import RunStatus
 from src.services.schema_watch import SchemaReport
+
+logger = logging.getLogger(__name__)
 
 
 def _spec_items(state: PipelineState) -> list[MeasuredItem]:
@@ -49,6 +56,22 @@ def _run_items(state: PipelineState) -> list[MeasuredItem]:
             check="Số lần sửa / cứu hộ",
             result=f"{state.get('fix_attempts', 0)} lần sửa, {state.get('rescue_count', 0)} lần cứu hộ",
         ),
+    ]
+
+
+def _required_items(state: PipelineState) -> list[MeasuredItem]:
+    """Cổng duyệt vào bằng chứng: chưa kiểm chứng → passed=None (không tính là đạt)."""
+    gate = review_gate(state)
+    label = {"passed": "Đạt", "failed": "Không đạt", "unverified": "Chưa kiểm chứng"}
+    return [
+        MeasuredItem(
+            node=node,
+            check=c.name,
+            result=f"{label[c.status]}: {c.reason}",
+            passed={"passed": True, "failed": False}.get(c.status),
+        )
+        for node, items in (("Kiểm tra bắt buộc", gate.checks), ("Bổ sung", gate.extra))
+        for c in items
     ]
 
 
@@ -164,7 +187,50 @@ def _optimization_items(state: PipelineState) -> list[MeasuredItem]:
     items.append(
         MeasuredItem(node="E4/V3 Tối ưu", check="Quyết định", result=f"{report['decision']}: {report['reason']}")
     )
+    return items + _perf_items(report.get("bottlenecks"))
+
+
+def _ms(value: float | None) -> str:
+    return "chưa đo" if value is None else f"{value:.1f} ms"
+
+
+def _perf_items(perf: dict | None) -> list[MeasuredItem]:
+    """Hai con số tách biệt (tổng các model ≠ thời gian thực) + model chậm nhất. Giả thuyết không vào `measured`."""
+    if not perf or not perf.get("measured"):
+        return [MeasuredItem(node="Đo hiệu năng", check="Thời gian từng model", result="chưa đo")] if perf else []
+    items = [
+        MeasuredItem(node="Đo hiệu năng", check="Tổng thời gian các model", result=_ms(perf.get("model_total_ms"))),
+        MeasuredItem(node="Đo hiệu năng", check="Thời gian lệnh dbt build", result=_ms(perf.get("dbt_wall_ms"))),
+        MeasuredItem(node="Đo hiệu năng", check="Thời gian toàn DAG (Airflow)", result=_ms(perf.get("dag_wall_ms"))),
+    ]
+    for f in perf.get("findings", []):
+        result = (
+            f["phenomenon"] + (" " + "; ".join(f["evidence"]) if f["evidence"] else "")
+            if f["analyzed"]
+            else f["unknown"]
+        )
+        items.append(MeasuredItem(node="Điểm nghẽn", check=f"#{f['rank']} {f['model']}", result=result))
     return items
+
+
+def with_bottlenecks(state: PipelineState) -> dict:
+    """Gắn báo cáo điểm nghẽn vào báo cáo tối ưu (tùy chọn). Lỗi → ghi "chưa phân tích được", không làm hỏng pipeline."""
+    report = state.get("optimization") or {}
+    if not report or not state.get("workspace"):
+        return report
+    settings = get_settings()
+    try:
+        perf = analyze_bottlenecks(
+            Path(state["workspace"]),
+            sandbox_db(state),
+            state.get("sandbox") or {},
+            settings.perf_top_n,
+            settings.perf_analyze_sec,
+        ).model_dump(mode="json")
+    except Exception as exc:  # noqa: BLE001 — bước phân tích là phụ
+        logger.warning("bottleneck analysis failed", extra={"error": type(exc).__name__})
+        perf = {"measured": False, "note": f"Chưa phân tích được: {type(exc).__name__}."}
+    return {**report, "bottlenecks": perf}
 
 
 def build_evidence(state: PipelineState, filters: list[dict] | None = None) -> Evidence:
@@ -175,7 +241,8 @@ def build_evidence(state: PipelineState, filters: list[dict] | None = None) -> E
         claimed.append(f"Optimizer: {explanation}")
     filters = find_value_filters(state) if filters is None else filters
     measured = (
-        _spec_items(state)
+        _required_items(state)
+        + _spec_items(state)
         + _run_items(state)
         + _patch_items(state)
         + _data_rule_items(state, filters)
@@ -214,8 +281,10 @@ def write_pr_description(state: PipelineState, evidence: Evidence) -> None:
 
 
 def package_node(state: PipelineState) -> dict:
-    """Đóng gói bằng chứng, chuyển sang chờ duyệt."""
+    """Đóng gói bằng chứng (kèm báo cáo điểm nghẽn), chuyển sang chờ duyệt."""
     filters = find_value_filters(state)
-    evidence = build_evidence(state, filters)
+    optimization = with_bottlenecks(state)
+    evidence = build_evidence({**state, "optimization": optimization}, filters)
     write_pr_description(state, evidence)
-    return {"evidence": evidence.model_dump(), "value_filters": filters, "status": RunStatus.WAITING_REVIEW.value}
+    update = {"evidence": evidence.model_dump(), "value_filters": filters, "status": RunStatus.WAITING_REVIEW.value}
+    return {**update, "optimization": optimization} if optimization else update

@@ -2,7 +2,8 @@
 
 - SQL: chỉ một câu SELECT; chặn DROP/ATTACH/INSTALL/COPY/PRAGMA/SET, hàm đọc file, đường dẫn tuyệt đối, Jinja lạ.
 - Mọi bảng/cột phải có trong danh mục thật (sqlglot qualify); DuckDB biên dịch thử (EXPLAIN, chỉ đọc) từng model.
-- DAG: biên dịch được, có DAG(...), có thứ tự task, không ghi cứng thông tin kết nối.
+- DAG: biên dịch được, có DAG(...), có thứ tự task, không ghi cứng thông tin kết nối; phụ thuộc không vòng lặp, không task mồ
+  côi, `--select` khớp model có thật; lịch, `retries` hợp lệ; dbt chỉ chạy trên target/profile sandbox (sai đích thì chặn).
 """
 
 import ast
@@ -90,8 +91,85 @@ def _preflight_issues(tree: ast.AST) -> list[str]:
     ]
 
 
-def check_dag(source: str) -> list[str]:
-    """Kiểm tra DAG Airflow bằng AST (không cần cài Airflow)."""
+def _ends(node: ast.AST, tail: bool) -> list[str]:
+    """Task ở cuối (tail) hoặc đầu chuỗi `a >> [b, c]`."""
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.RShift | ast.LShift):
+        return _ends(node.right if tail else node.left, tail)
+    elements = node.elts if isinstance(node, ast.List | ast.Tuple) else [node]
+    return [e.id for e in elements if isinstance(e, ast.Name)]
+
+
+def _has_cycle(edges: set[tuple[str, str]]) -> bool:
+    graph: dict[str, set[str]] = {}
+    for a, b in edges:
+        graph.setdefault(a, set()).add(b)
+    seen: dict[str, int] = {}  # 1 = đang thăm, 2 = xong
+
+    def visit(node: str) -> bool:
+        if seen.get(node):
+            return seen[node] == 1
+        seen[node] = 1
+        found = any(visit(m) for m in graph.get(node, ()))
+        seen[node] = 2
+        return found
+
+    return any(visit(n) for n in list(graph))
+
+
+DBT_SELECT_RE = re.compile(r"(?:--select|--models|-s|-m)[ =]+([^\s'\"]+)")
+DBT_TARGET_RE = re.compile(r"(?:--target|-t)[ =]+([^\s'\"]+)|--profile[ =]+([^\s'\"]+)")
+
+
+def _valid_schedule(value: object) -> bool:
+    if value is None:
+        return True
+    presets = ("@once", "@continuous", "@hourly", "@daily", "@weekly", "@monthly", "@quarterly", "@yearly", "@annually")
+    return isinstance(value, str) and (value in presets or len(value.split()) == 5)
+
+
+def dag_structure_issues(tree: ast.AST, models: set[str] | None = None) -> list[str]:
+    """Cấu trúc phụ thuộc (vòng lặp, task mồ côi, model không có), cấu hình (lịch, retries) và đích sandbox."""
+    tasks = {
+        t.id
+        for n in ast.walk(tree)
+        if isinstance(n, ast.Assign) and isinstance(n.value, ast.Call)
+        if any(k.arg == "task_id" for k in n.value.keywords)
+        for t in n.targets
+        if isinstance(t, ast.Name)
+    }
+    edges = {
+        (a, b) if isinstance(n.op, ast.RShift) else (b, a)
+        for n in ast.walk(tree)
+        if isinstance(n, ast.BinOp) and isinstance(n.op, ast.RShift | ast.LShift)
+        for a in _ends(n.left, tail=True)
+        for b in _ends(n.right, tail=False)
+    }
+    issues = ["DAG có vòng lặp phụ thuộc giữa các task."] if _has_cycle(edges) else []
+    if orphans := sorted(tasks - {t for e in edges for t in e}) if edges else []:  # không có `>>`: đã báo thiếu thứ tự
+        issues.append(f"DAG có task mồ côi (không nối với task nào): {', '.join(orphans)}.")
+    schedules = [
+        n.value for n in ast.walk(tree) if isinstance(n, ast.keyword) and n.arg in ("schedule", "schedule_interval")
+    ]
+    if any(isinstance(v, ast.Constant) and not _valid_schedule(v.value) for v in schedules):
+        issues.append("DAG có lịch chạy không hợp lệ (dùng None, @hourly/@daily/... hoặc biểu thức cron 5 trường).")
+    retries = [n.value for n in ast.walk(tree) if isinstance(n, ast.keyword) and n.arg == "retries"]
+    retries += [v for n in ast.walk(tree) if isinstance(n, ast.Dict) for k, v in zip(n.keys, n.values, strict=True)
+                if isinstance(k, ast.Constant) and k.value == "retries"]  # fmt: skip
+    if any(not (isinstance(v, ast.Constant) and type(v.value) is int and 0 <= v.value <= 10) for v in retries):
+        issues.append("DAG có `retries` không hợp lệ (phải là số nguyên 0–10).")
+    texts = [n.value for n in ast.walk(tree) if isinstance(n, ast.Constant) and isinstance(n.value, str)]
+    for target, profile in (m.groups() for t in texts for m in DBT_TARGET_RE.finditer(t)):
+        if (target and target != "sandbox") or (profile and profile != "p113_sandbox"):
+            issues.append("DAG chạy dbt trên đích khác sandbox (--target/--profile): bị chặn.")
+            break
+    selected = {re.sub(r"^[+@]|[+*]$", "", m) for t in texts for m in DBT_SELECT_RE.findall(t)}
+    if models is not None and (unknown := sorted(x for x in selected if re.fullmatch(r"\w+", x) and x not in models)):
+        issues.append(f"DAG chọn model không có trong dự án dbt: {', '.join(unknown)}.")
+    return issues
+
+
+def check_dag(source: str, models: set[str] | None = None) -> list[str]:
+    """Kiểm tra DAG Airflow bằng AST (không cần cài Airflow). `models`: tên model của dự án (đối chiếu `--select`)."""
     try:
         tree = ast.parse(source)
     except SyntaxError as exc:
@@ -105,7 +183,7 @@ def check_dag(source: str) -> list[str]:
     if SECRET_RE.search(source):
         issues.append("DAG có vẻ ghi cứng mật khẩu/chuỗi kết nối — dùng Airflow Connection/Variable.")
     preflight = _preflight_issues(tree) if "DAG" in calls else []
-    return issues + preflight + dangerous_dag_code(tree)
+    return issues + preflight + dag_structure_issues(tree, models) + dangerous_dag_code(tree)
 
 
 # Airflow chạy code cấp module của DAG mỗi lần đọc file: chặn lệnh hệ thống, mạng, chạy code động, đọc file
@@ -281,7 +359,8 @@ def run_safety_checks(state: PipelineState) -> list[str]:
     model_issues, outputs = check_models(models, catalog)
     tests = {p: s for p, s in files.items() if p.startswith("tests/") and p.endswith(".sql")}
     test_issues = [f"{p}: {e}" for p, s in tests.items() for e in check_sql(s, catalog)[0]]
-    dag_issues = [f"{p}: {e}" for p, s in files.items() if p.startswith("dags/") for e in check_dag(s)]
+    names = {_model_name(p) for p in models}
+    dag_issues = [f"{p}: {e}" for p, s in files.items() if p.startswith("dags/") for e in check_dag(s, names)]
     defensive = _defensive_test_issues(state, files)
     all_issues = issues + model_issues + test_issues + dag_issues + _mart_columns_issue(state, outputs) + defensive
     if all_issues:

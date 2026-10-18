@@ -1,0 +1,100 @@
+# Bộ eval hiệu năng cố định (Optimize.md bước 2). Mỗi ca là một dự án dbt nhỏ: model `target` viết chậm cố ý (điểm nghẽn
+# đã biết) + vài model nhẹ làm nhiễu, chạy trên dữ liệu tất định sinh bằng range() (không cần mạng).
+#
+# - bản gốc = các model dưới đây, trước khi optimizer sửa.
+# - kết quả kỳ vọng = expected/<id>.csv: chạy `reference` (câu SQL đúng viết độc lập, không lấy từ pipeline) trên bộ "large"
+#   rồi đóng băng bằng `python eval/run_perf.py --freeze`. Lần chạy sau so bảng đích với file này, không tính lại.
+# - bottleneck.model / operators: model và (tiền tố) toán tử DuckDB phải nằm trong N model đầu của báo cáo điểm nghẽn.
+#   Ca đối chứng không có điểm nghẽn (model: null): "giữ nguyên" là đúng.
+
+data:
+  rows: {large: 1000000, small: 3000}  # số đơn hàng; bộ "small" để đối chiếu thêm khi tối ưu
+  tables:
+    orders: >-
+      select range as order_id, range % 5000 as customer_id,
+      round((range * 7919) % 100000 / 100.0, 2) as amount,
+      ['paid', 'refunded', 'pending'][range % 3 + 1] as status,
+      timestamp '2026-01-01' + to_seconds(range * 37) as created_at
+      from range({rows})
+    customers: select range % 5000 as customer_id, 'C' || (range % 40) as city, range // 5000 as version from range(100000)
+    bands: select range * 10.0 as lo, (range + 1) * 10.0 as hi, 'B' || range as band from range(100)
+
+decoys:  # model nhẹ có ở mọi ca
+  m_status_count: select status, count(*) as n from {{ source('raw', 'orders') }} group by status
+  m_city_list: select distinct city from {{ source('raw', 'customers') }}
+
+cases:
+  - id: range_join
+    pattern: nối theo khoảng (>= và <) thay vì tính nhóm trực tiếp
+    target: m_band_revenue
+    sql: >-
+      select b.band, count(*) as n, sum(o.amount) as revenue
+      from {{ source('raw', 'orders') }} o join {{ source('raw', 'bands') }} b on o.amount >= b.lo and o.amount < b.hi
+      group by b.band
+    reference: >-
+      select 'B' || cast(floor(amount / 10) as integer) as band, count(*) as n, sum(amount) as revenue
+      from raw.orders group by 1
+    bottleneck: {model: m_band_revenue, operators: [PIECEWISE_MERGE_JOIN, IE_JOIN, NESTED_LOOP_JOIN, BLOCKWISE_NL_JOIN]}
+
+  - id: fanout_join
+    pattern: nối với bảng khách có nhiều phiên bản mỗi khóa (nhân dòng) rồi chia lại
+    target: m_city_revenue
+    sql: >-
+      select c.city, sum(o.amount) / count(distinct c.version) as revenue
+      from {{ source('raw', 'orders') }} o join {{ source('raw', 'customers') }} c on o.customer_id = c.customer_id
+      group by c.city
+    reference: >-
+      select c.city, sum(o.amount) as revenue
+      from raw.orders o join (select customer_id, city from raw.customers where version = 0) c using (customer_id)
+      group by c.city
+    bottleneck: {model: m_city_revenue, operators: [HASH_JOIN, HASH_GROUP_BY]}
+
+  - id: distinct_star
+    pattern: DISTINCT * trên dữ liệu đã nhân đôi bằng UNION ALL
+    target: m_status_orders
+    sql: >-
+      select status, count(*) as n
+      from (select distinct * from (select * from {{ source('raw', 'orders') }}
+            union all select * from {{ source('raw', 'orders') }}) u) t
+      group by status
+    reference: select status, count(*) as n from raw.orders group by status
+    bottleneck: {model: m_status_orders, operators: [HASH_GROUP_BY]}
+
+  - id: window_dedupe
+    pattern: row_number() để khử trùng khi khóa vốn đã duy nhất
+    target: m_status_dedup
+    sql: >-
+      select status, count(*) as n
+      from (select *, row_number() over (partition by order_id order by created_at) as rn
+            from {{ source('raw', 'orders') }}) t
+      where rn = 1 group by status
+    reference: select status, count(*) as n from raw.orders group by status
+    bottleneck: {model: m_status_dedup, operators: [WINDOW, STREAMING_WINDOW, HASH_GROUP_BY]}  # DuckDB có thể đổi thành gom nhóm
+
+  - id: union_distinct
+    pattern: UNION (khử trùng) giữa hai tập vốn không giao nhau
+    target: m_status_union
+    sql: >-
+      select status, count(*) as n
+      from (select order_id, status from {{ source('raw', 'orders') }} where amount > 10
+            union select order_id, status from {{ source('raw', 'orders') }} where amount <= 10) t
+      group by status
+    reference: select status, count(*) as n from raw.orders group by status
+    bottleneck: {model: m_status_union, operators: [HASH_GROUP_BY]}
+
+  - id: order_in_subquery
+    pattern: ORDER BY trong truy vấn con không ảnh hưởng kết quả cuối
+    target: m_status_amount
+    sql: >-
+      select status, sum(amount) as revenue
+      from (select * from {{ source('raw', 'orders') }} order by created_at, amount) t
+      group by status
+    reference: select status, sum(amount) as revenue from raw.orders group by status
+    bottleneck: {model: m_status_amount, operators: [ORDER_BY]}
+
+  - id: control_clean
+    pattern: đối chứng — không có điểm nghẽn, optimizer phải giữ nguyên
+    target: m_status_clean
+    sql: select status, sum(amount) as revenue from {{ source('raw', 'orders') }} group by status
+    reference: select status, sum(amount) as revenue from raw.orders group by status
+    bottleneck: {model: null, operators: []}

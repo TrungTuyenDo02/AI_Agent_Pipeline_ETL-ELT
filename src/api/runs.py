@@ -13,8 +13,10 @@ from pydantic import BaseModel, Field
 
 from src.agents import runner
 from src.agents.nodes.clarify import valid_answers
+from src.agents.review_gate import review_gate
 from src.agents.runner import ResumeRequest, RunStateError
 from src.agents.stages import pipeline_stages, stage_of
+from src.agents.tools.dbt_tools import archived_tests
 from src.api.deps import (
     CurrentUser,
     Engineer,
@@ -135,6 +137,15 @@ def get_run(run_id: str, user: LoggedIn) -> RunDetail:
         retryable=not busy and str(record.status) == "failed" and not runner.retry_problem(run_id),
         patch={k: v for k, v in (values.get("patch") or {}).items() if k != "parent_workspace"},
         drift=_drift_view(run_id, values, pending),
+        review_gate=review_gate(values).model_dump(mode="json"),
+        dbt_tests=archived_tests(
+            Path(values["workspace"]),
+            (values.get("sandbox") or {}).get("dbt_invocation", ""),
+            values.get("test_files", {}),
+        )
+        if values.get("workspace")
+        else [],
+        reviews=[r.model_dump(mode="json", exclude={"run_id"}) for r in get_store().list_reviews(run_id)],
     )
 
 

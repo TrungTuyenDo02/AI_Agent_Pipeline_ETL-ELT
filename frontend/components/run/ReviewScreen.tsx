@@ -10,8 +10,11 @@ import { ReviewGuide } from "../guide/Guide";
 import { Card, Empty, ErrorBox, Loading } from "../ui";
 import { DecisionForm } from "./DecisionForm";
 import { EvidencePanel } from "./EvidencePanel";
+import { DbtTestsCard, ReviewGateCard } from "./ReviewGateCard";
 import { CostFigures, OptimizationFigures } from "./ReviewFigures";
 import { useRun } from "./RunContext";
+
+const OPT_TEST = "tests/assert_opt_assumption_"; // test giả định do optimizer thêm (compare.assumption_tests)
 
 interface FileGroup {
   title: string;
@@ -23,7 +26,11 @@ function groupFiles(files: RunFiles): FileGroup[] {
   return [
     { title: "Model dbt", paths: code.filter((p) => p.startsWith("models/")) },
     { title: "DAG Airflow", paths: code.filter((p) => p.startsWith("dags/")) },
-    { title: "Khác", paths: code.filter((p) => !p.startsWith("models/") && !p.startsWith("dags/")) },
+    { title: "Test bảo vệ bản tối ưu (giả định dữ liệu)", paths: code.filter((p) => p.startsWith(OPT_TEST)) },
+    {
+      title: "Khác",
+      paths: code.filter((p) => !p.startsWith("models/") && !p.startsWith("dags/") && !p.startsWith(OPT_TEST)),
+    },
     { title: "Test (sinh mù code)", paths: Object.keys(files.test_files).sort() },
   ].filter((group) => group.paths.length > 0);
 }
@@ -254,6 +261,8 @@ export function ReviewScreen() {
   return (
     <>
       <ReviewGuide />
+      <ReviewGateCard />
+      <DbtTestsCard />
       <EvidencePanel />
       <div className="grid-2 review-top">
         <div className="decision">

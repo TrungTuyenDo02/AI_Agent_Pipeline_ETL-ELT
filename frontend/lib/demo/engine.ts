@@ -38,10 +38,12 @@ export interface DemoRun {
   answers?: Record<string, string | string[]>;
   reviewRounds: number;
   updatedAt: number;
+  /** Biến thể của ảnh chụp chờ duyệt: `skipped` = không có bản sửa, `legacy` = checkpoint cũ (chưa có số đo mới). */
+  variant?: "skipped" | "legacy";
 }
 
 export interface DemoState {
-  v: 1;
+  v: 2;
   seq: number;
   runs: DemoRun[];
   /** Sổ lỗi: mục Reviewer đã duyệt/bỏ trong phiên khách */
@@ -125,7 +127,25 @@ export function initialState(now: number): DemoState {
     reviewRounds: 0,
     updatedAt: now,
   };
-  return { v: 1, seq: 0, runs: [running, waiting, stopped, approved], errorDecisions: {} };
+  const variants = (["skipped", "legacy"] as const).map((variant, i) =>
+    finishedRun(
+      {
+        id: variant === "skipped" ? "mau-giu-nguyen" : "mau-checkpoint-cu",
+        kind: "main",
+        request:
+          variant === "skipped"
+            ? "Doanh thu ngày 3 kênh (mẫu: optimizer giữ nguyên bản gốc)"
+            : "Doanh thu ngày 3 kênh (mẫu: lần chạy cũ, chưa có số đo từng model)",
+        requester: owner,
+        createdAt: now - (70 + 20 * i) * MINUTE,
+        reviewRounds: 0,
+        variant,
+      },
+      "build",
+      2 * MINUTE,
+    ),
+  );
+  return { v: 2, seq: 0, runs: [running, waiting, ...variants, stopped, approved], errorDecisions: {} };
 }
 
 export function loadState(now = Date.now()): DemoState {
@@ -133,7 +153,7 @@ export function loadState(now = Date.now()): DemoState {
   if (raw) {
     try {
       const parsed = JSON.parse(raw) as DemoState;
-      if (parsed.v === 1 && Array.isArray(parsed.runs)) return parsed;
+      if (parsed.v === 2 && Array.isArray(parsed.runs)) return parsed;
     } catch {
       // hỏng: dựng lại bộ mẫu
     }
@@ -214,6 +234,41 @@ function iso(ms: number): string {
 }
 
 /** Chi tiết lần chạy như GET /runs/{id} trả về. */
+/** Ca demo "giữ nguyên" và "checkpoint cũ" dựng từ ảnh chụp chờ duyệt thật (ca "có bản sửa"). */
+function applyVariant(detail: RunDetail, variant: DemoRun["variant"]): RunDetail {
+  const opt = detail.optimization;
+  if (variant === "skipped") {
+    const reason = "Mẫu: không có bản viết lại nào nhanh hơn ngưỡng và giữ đúng kết quả; giữ nguyên bản gốc.";
+    const gate = detail.review_gate;
+    const kept = "Không áp dụng bản tối ưu: giữ nguyên bản gốc.";
+    return {
+      ...detail,
+      optimization: { ...opt, decision: "skipped", proposed_sql: "", after: null, improvement_pct: null, reason },
+      review_gate: gate && {
+        ...gate,
+        extra: gate.extra.map((c) => (c.id === "optimization" ? { ...c, status: "passed", reason: kept } : c)),
+      },
+    };
+  }
+  if (variant === "legacy") {
+    const sandbox = { ...detail.sandbox };
+    delete sandbox.model_timings;
+    delete sandbox.wall_ms;
+    delete sandbox.dbt_invocation;
+    const rest = { ...opt };
+    delete rest.bottlenecks;
+    const strip = (m: typeof opt.before) => (m ? { median_ms: m.median_ms, runs: m.runs } : m);
+    const measured = (detail.evidence.measured ?? []).filter((m) => !["Đo hiệu năng", "Điểm nghẽn"].includes(m.node));
+    return {
+      ...detail,
+      sandbox,
+      optimization: { ...rest, before: strip(opt.before), after: strip(opt.after) },
+      evidence: { ...detail.evidence, measured },
+    };
+  }
+  return detail;
+}
+
 export function buildDetail(run: DemoRun, now: number): RunDetail {
   let detail: RunDetail;
   let eventCount: number;
@@ -234,7 +289,7 @@ export function buildDetail(run: DemoRun, now: number): RunDetail {
     }
     eventCount = frame.events_count;
   } else {
-    detail = withRunId(FIXTURES.snapshots[SNAPSHOT_OF[run.phase as Waiting]], run.id);
+    detail = applyVariant(withRunId(FIXTURES.snapshots[SNAPSHOT_OF[run.phase as Waiting]], run.id), run.variant);
     eventCount = detail.events.length;
   }
   if (run.kind === "main") {

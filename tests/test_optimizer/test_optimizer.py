@@ -50,17 +50,25 @@ def test_compare_results_detects_differences(other: QueryResult, message: str):
 
 
 @pytest.mark.parametrize(
-    ("before", "after", "cost", "decision"),
-    [(100.0, 50.0, 0.0, "applied"), (100.0, 95.0, 0.0, "skipped"), (100.0, 50.0, 1000.0, "skipped")],
+    ("before", "after", "cost", "spread", "decision"),
+    [
+        (100.0, 50.0, 0.0, 2.0, "applied"),
+        (100.0, 95.0, 0.0, 2.0, "skipped"),
+        (100.0, 50.0, 1000.0, 2.0, "skipped"),
+        (100.0, 50.0, 0.0, None, "skipped"),  # thiếu IQR: không đủ bằng chứng kết luận nhanh hơn
+        (100.0, 50.0, 0.0, 60.0, "skipped"),  # chênh lệch nằm trong độ phân tán đo được
+    ],
 )
-def test_decide_gate(before: float, after: float, cost: float, decision: str):
-    result, reason, gain = decide(QueryMetrics(median_ms=before, runs=3), QueryMetrics(median_ms=after, runs=3), cost)
+def test_decide_gate(before: float, after: float, cost: float, spread: float | None, decision: str):
+    metrics = [QueryMetrics(median_ms=ms, runs=3, spread_ms=spread) for ms in (before, after)]
+    result, reason, gain = decide(*metrics, cost)
     assert result == decision and reason
     assert gain == pytest.approx(100 * (before - after) / before, abs=0.1)
 
 
 def _candidate(sql: str, before_ms: float) -> dict:
-    return {"original_sql": ORIGINAL, "sql": sql, "before": {"median_ms": before_ms, "runs": 3}, "attempt": 1}
+    before = {"median_ms": before_ms, "runs": 3, "spread_ms": 0.0}
+    return {"original_sql": ORIGINAL, "sql": sql, "before": before, "attempt": 1}
 
 
 def test_benchmark_reports_peak_memory(datasets: dict[str, str]):
@@ -69,13 +77,41 @@ def test_benchmark_reports_peak_memory(datasets: dict[str, str]):
     metrics = benchmark_query(Path(datasets["large"]), ORIGINAL, runs=2)
     assert metrics.median_ms > 0 and metrics.runs == 2
     assert metrics.peak_memory_mb is not None and metrics.peak_memory_mb > 0
+    assert metrics.spread_ms is not None and metrics.spread_ms >= 0  # IQR = Q3 − Q1
+    assert benchmark_query(Path(datasets["small"]), ORIGINAL, runs=1).spread_ms is None  # 1 lần đo: chưa đo được IQR
 
 
-def test_equivalent_rewrite_is_measured_and_decided(datasets: dict[str, str]):
+def _paired(monkeypatch: pytest.MonkeyPatch, before_ms: float, after_ms: float) -> list[tuple]:
+    """Cố định kết quả đo xen kẽ (logic quyết định, không phụ thuộc tốc độ máy); ghi lại câu nào được đo."""
+    calls: list[tuple] = []
+
+    def fake(db: Path, first: str, second: str, runs: int):
+        calls.append((first, second))
+        return (QueryMetrics(median_ms=before_ms, runs=runs, spread_ms=1.0),
+                QueryMetrics(median_ms=after_ms, runs=runs, spread_ms=1.0))  # fmt: skip
+
+    monkeypatch.setattr("src.agents.nodes.compare.benchmark_pair", fake)
+    return calls
+
+
+def test_equivalent_rewrite_is_measured_and_decided(datasets: dict[str, str], monkeypatch: pytest.MonkeyPatch):
     rewrite = ORIGINAL.replace(" union ", " union all ")
-    report = evaluate_candidate(_candidate(rewrite, before_ms=1e6), datasets)
+    calls = _paired(monkeypatch, 100.0, 10.0)
+    report = evaluate_candidate(_candidate(rewrite, before_ms=999.0), datasets)
     assert all(c.equal for c in report.equivalence) and len(report.equivalence) == 5
     assert report.decision == "applied" and report.after is not None
+    assert calls == [(ORIGINAL, rewrite)]  # bản gốc và bản sửa đo cùng phiên
+    assert report.before.median_ms == 100.0  # dùng số đo cùng phiên, không dùng số đo bản gốc của lượt đầu (999)
+
+
+def test_benchmark_pair_measures_both_in_same_session(datasets: dict[str, str]):
+    from src.agents.tools.duckdb_tools import benchmark_pair
+
+    before, after = benchmark_pair(
+        Path(datasets["large"]), ORIGINAL, ORIGINAL.replace(" union ", " union all "), runs=4
+    )
+    assert before.runs == after.runs == 4 and before.median_ms > 0 and after.median_ms > 0
+    assert before.spread_ms is not None and after.spread_ms is not None
 
 
 def test_rewrite_with_different_result_is_rejected(datasets: dict[str, str]):
@@ -85,9 +121,52 @@ def test_rewrite_with_different_result_is_rejected(datasets: dict[str, str]):
     assert report.after is None  # không đo tốc độ khi kết quả đã lệch
 
 
-def test_small_gain_is_skipped(datasets: dict[str, str]):
-    report = evaluate_candidate(_candidate(ORIGINAL.replace(" union ", " union all "), before_ms=0.0001), datasets)
+FILTERED = "select k, sum(v) as total from raw.a where v > 3 group by k"
+TWICE = "select k, count(*) as n from (select k from raw.a union all select k from raw.a) t group by k"
+
+
+@pytest.mark.parametrize(
+    ("original", "wrong"),
+    [
+        (FILTERED, FILTERED.replace("v > 3", "v >= 3")),  # đổi toán tử so sánh
+        (FILTERED, FILTERED.replace(" where v > 3", "")),  # bỏ điều kiện lọc
+        (TWICE, TWICE.replace("from (select k", "from (select distinct k from (select k").replace(") t", ")) t")),
+    ],
+    ids=["comparison_operator", "dropped_filter", "added_distinct"],
+)
+def test_deliberately_wrong_rewrite_is_rejected_and_original_kept(datasets: dict[str, str], original: str, wrong: str):
+    report = evaluate_candidate({**_candidate(wrong, before_ms=1e6), "original_sql": original}, datasets)
+    assert report.decision == "skipped" and "lệch" in report.reason and report.original_sql == original
+    assert any(not c.equal for c in report.equivalence)
+
+
+def test_small_gain_is_skipped(datasets: dict[str, str], monkeypatch: pytest.MonkeyPatch):
+    _paired(monkeypatch, 100.0, 95.0)
+    report = evaluate_candidate(_candidate(ORIGINAL.replace(" union ", " union all "), before_ms=1e6), datasets)
     assert report.decision == "skipped" and "ngưỡng" in report.reason
+
+
+def test_applied_rule_ships_assumptions_as_dbt_tests():
+    from src.agents.nodes.compare import assumption_tests
+
+    candidate = {
+        "assumptions": [
+            {
+                "text": "raw.a không\ntrùng dòng",
+                "check_sql": "SELECT count(*) FROM raw.a WHERE k IN (SELECT k FROM main.stg_b)",
+            },
+            {"text": "không có câu kiểm", "check_sql": ""},
+        ]
+    }
+    tests = assumption_tests(candidate, ["stg_b"])
+    assert list(tests) == ["tests/assert_opt_assumption_1.sql"]  # giả định không có câu kiểm thì không sinh test rỗng
+    sql = tests["tests/assert_opt_assumption_1.sql"]
+    assert "{{ source('raw', 'a') }}" in sql and "{{ ref('stg_b') }}" in sql and "raw.a" not in sql.split("\n", 1)[1]
+    assert "where violations <> 0" in sql and "không trùng dòng" in sql  # dbt test: có dòng = vi phạm = lỗi
+    from src.agents.nodes.safety import check_sql
+
+    catalog = {"raw": {"a": {"k": "VARCHAR"}}, "main": {"stg_b": {"k": "VARCHAR"}}}
+    assert check_sql(sql, catalog)[0] == []  # test sinh ra qua được V1 (như mọi file tests/)
 
 
 def test_identical_proposal_is_skipped_without_benchmark(datasets: dict[str, str]):
@@ -206,3 +285,98 @@ def test_missing_optimizer_key_keeps_original_instead_of_failing_run(datasets: d
     assert usage is None and "ANTHROPIC_API_KEY" in candidate["invalid"]
     report = evaluate_candidate({**candidate, "original_sql": ORIGINAL, "attempt": 1}, datasets)
     assert report.decision == "skipped"
+
+
+# ---- Tín hiệu điểm nghẽn (bằng chứng thực thi) khi sqlglot không thấy mẫu ----
+RANGE_JOIN = "select b.band, count(*) as n from raw.orders o join raw.bands b on o.amount >= b.lo and o.amount < b.hi group by b.band"
+FANOUT_JOIN = (
+    "select c.city, sum(o.amount) / count(distinct c.version) as revenue "
+    "from raw.orders o join raw.customers c on o.customer_id = c.customer_id group by c.city"
+)
+CLEAN = "select status, sum(amount) as revenue from raw.orders group by status"
+
+
+def _exec_db(path: Path, rows: int) -> str:
+    """Dữ liệu giống eval/benchmarks/perf: đơn hàng, dải giá (nối theo khoảng), khách nhiều phiên bản (nối nhân dòng)."""
+    with duckdb.connect(str(path)) as con:
+        con.execute("CREATE SCHEMA raw")
+        con.execute(
+            "CREATE TABLE raw.orders AS SELECT range AS order_id, range % 5000 AS customer_id, "
+            f"round((range * 7919) % 100000 / 100.0, 2) AS amount, ['paid', 'pending'][range % 2 + 1] AS status FROM range({rows})"
+        )
+        con.execute(
+            "CREATE TABLE raw.bands AS SELECT range * 10.0 AS lo, (range + 1) * 10.0 AS hi, 'B' || range AS band FROM range(100)"
+        )
+        con.execute(
+            "CREATE TABLE raw.customers AS SELECT range % 5000 AS customer_id, 'C' || (range % 40) AS city, "
+            "range // 5000 AS version FROM range(100000)"
+        )
+    return str(path)
+
+
+@pytest.fixture(scope="module")
+def exec_dbs(tmp_path_factory) -> dict[str, str]:
+    root = tmp_path_factory.mktemp("exec")
+    return {"small": _exec_db(root / "small.duckdb", 3000), "large": _exec_db(root / "large.duckdb", 300_000)}
+
+
+def test_execution_findings_catch_missed_patterns_but_not_clean_query(exec_dbs: dict[str, str]):
+    from src.agents.tools.bottleneck import execution_findings
+    from src.agents.tools.slow_patterns import detect_slow_patterns
+
+    large = Path(exec_dbs["large"])
+    assert detect_slow_patterns(RANGE_JOIN) == [] and detect_slow_patterns(FANOUT_JOIN) == []  # hai ca sqlglot bỏ sót
+    assert [f.rule for f in execution_findings(large, RANGE_JOIN, 10, 30)] == ["exec_non_equi_join"]
+    fanout = {f.rule: f.message for f in execution_findings(large, FANOUT_JOIN, 10, 30)}
+    assert "exec_join_fanout" in fanout and "không thêm DISTINCT" in fanout["exec_join_fanout"]
+    assert "không mặc định sai nghiệp vụ" in fanout["exec_join_fanout"]
+    assert execution_findings(large, CLEAN, 10, 30) == []  # đối chứng: không có mẫu cụ thể
+    assert execution_findings(large, RANGE_JOIN, 1e9, 30) == []  # chạy nhanh hơn ngưỡng: không tối ưu hàng loạt
+    assert execution_findings(Path(exec_dbs["small"]), RANGE_JOIN, 100, 30) == []  # dữ liệu nhỏ, dưới ngưỡng mặc định
+    assert execution_findings(large, "select nope from raw.orders", 0, 30) == []  # lỗi: giữ luồng cũ
+
+
+def test_matching_timing_requires_same_model_sql_version_and_top_n(tmp_path: Path):
+    import json
+
+    from src.agents.tools.bottleneck import matching_timing
+    from src.agents.tools.dbt_tools import source_sha
+
+    runs = tmp_path / "target" / "runs"
+    runs.mkdir(parents=True)
+    results = [{"unique_id": "model.p.m", "source_sha": source_sha("select 1\n")}, {"unique_id": "model.p.d"}]
+    (runs / "inv.json").write_text(json.dumps({"results": results}), encoding="utf-8")
+    sandbox = {
+        "dbt_invocation": "inv",
+        "model_timings": [{"model": "m", "execute_ms": 90.0}, {"model": "d", "execute_ms": 5.0}],
+    }
+    assert matching_timing(tmp_path, sandbox, "m", "select 1\r\n", 3) == 90.0  # cùng SQL (khác xuống dòng)
+    assert matching_timing(tmp_path, sandbox, "m", "select 2", 3) is None  # lệch phiên bản SQL
+    assert matching_timing(tmp_path, sandbox, "d", "select 1", 3) is None  # không có dấu phiên bản
+    slower = {**sandbox, "model_timings": [*sandbox["model_timings"], {"model": "x", "execute_ms": 500.0}]}
+    assert matching_timing(tmp_path, slower, "m", "select 1", 1) is None  # không trong top N
+    assert matching_timing(tmp_path, {**sandbox, "dbt_invocation": "khac"}, "m", "select 1", 3) is None  # thiếu báo cáo
+    assert matching_timing(tmp_path, {}, "m", "select 1", 3) is None
+
+
+def test_signal_lets_optimizer_investigate_and_keeps_all_checks(exec_dbs: dict[str, str]):
+    from src.agents.tools.bottleneck import execution_findings
+
+    skipped, _ = optimize_standalone(OptimizeJob(sql=RANGE_JOIN, datasets=exec_dbs))
+    assert skipped.decision == "skipped" and "Không phát hiện" in skipped.reason  # luồng cũ: bỏ sót
+    signals = execution_findings(Path(exec_dbs["large"]), RANGE_JOIN, 10, 30)
+    report, _ = optimize_standalone(OptimizeJob(sql=RANGE_JOIN, datasets=exec_dbs, signals=signals))
+    assert "Không phát hiện" not in report.reason and [f.rule for f in report.findings] == ["exec_non_equi_join"]
+    if report.decision == "applied":  # áp dụng thì vẫn qua đủ đối chiếu kết quả trên mọi bộ
+        assert report.equivalence and all(c.equal for c in report.equivalence)
+    clean, usages = optimize_standalone(OptimizeJob(sql=CLEAN, datasets=exec_dbs, signals=[]))
+    assert clean.decision == "skipped" and usages == []
+
+
+def test_optimizer_node_keeps_old_flow_without_matching_report(pipeline_state: dict):
+    from src.agents.nodes.optimizer import execution_signal
+
+    sql = "select 1 as x"
+    assert execution_signal({**pipeline_state, "sandbox": {}}, sql) == []  # checkpoint cũ / chưa có số đo
+    stale = {"dbt_invocation": "khong-co", "model_timings": [{"model": "fct_daily_revenue", "execute_ms": 1e6}]}
+    assert execution_signal({**pipeline_state, "sandbox": stale}, sql) == []  # không có báo cáo khớp phiên bản

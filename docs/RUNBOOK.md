@@ -270,8 +270,21 @@ Trên GitHub: tab **Actions → Eval → Run workflow** (chạy phần không c�
 
 ### 4.2 Benchmark
 
+- Eval hiệu năng cố định (mock, 7 ca + TPC-H): `python eval/run_perf.py --repeat 2`, xem
+  [eval/benchmarks/README.md](../eval/benchmarks/README.md). Không chạy trong CI (TPC-H cần mạng lần đầu); test nhỏ có trong CI.
 - TPC-H (đo tốc độ Optimizer, cần mạng lần đầu): `python eval/benchmarks/tpch/run_tpch.py --sf 0.1`
 - ELT-Bench (đo độ đúng toàn luồng): xem [eval/benchmarks/README.md](../eval/benchmarks/README.md).
+
+### 4.3 Đo thời gian model và điểm nghẽn
+
+- Mỗi lần V2 chạy `dbt build`, số đo từng model (compile/execute, materialization, số dòng nếu adapter báo) nằm trong
+  `sandbox.model_timings`; bản đầy đủ kèm SQL đã biên dịch ở `pipelines/workspaces/<run_id>/target/runs/<invocation_id>.json`.
+- Báo cáo điểm nghẽn: `optimization.bottlenecks` (top `PERF_TOP_N` model, giới hạn `PERF_ANALYZE_SEC` giây). "Tổng thời gian các
+  model" và "thời gian thực cả pipeline" là hai con số khác nhau, không cộng dồn.
+- Ba con số thời gian tách biệt: tổng các model, một lệnh `dbt build` (invocation), cả DAG Airflow (hiện "chưa đo").
+- Nút duyệt tắt và API Duyệt trả 409 khi một trong 4 kiểm tra bắt buộc không đạt hoặc chưa kiểm chứng; lý do ghi trong
+  thông báo lỗi và ở khối "Kiểm tra trước khi duyệt" của màn Reviewer. Airflow chạy thật hiện
+  ghi "chưa kiểm chứng" (máy không cài Airflow, DAG chỉ kiểm bằng AST).
 
 ## 5. Bật LLM thật (khi có khóa)
 

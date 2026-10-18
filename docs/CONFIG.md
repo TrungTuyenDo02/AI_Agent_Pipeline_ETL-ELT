@@ -109,10 +109,14 @@ Luật cố định (mẫu tấn công prompt, động từ nghiệp vụ, bản
 | Biến | Ý nghĩa | Mặc định | Bí mật |
 |---|---|---|---|
 | `OPT_MIN_GAIN_PCT` | Chỉ áp dụng khi nhanh hơn ít nhất ngưỡng này (%) | `15` | không |
+| `PERF_TOP_N` | Số model chậm nhất được `EXPLAIN ANALYZE` trong báo cáo điểm nghẽn | `3` | không |
+| `PERF_ANALYZE_SEC` | Giới hạn thời gian phân tích điểm nghẽn (giây); hết giờ → "chưa phân tích được" | `10` | không |
 | `OPT_RUNS_PER_MONTH` | Số lần chạy mỗi tháng, để tính tiền tiết kiệm/năm | `30` | không |
 | `OPT_COMPUTE_COST_PER_HOUR_USD` | Giá tính toán mỗi giờ (USD) | `0.5` | không |
 | `OPT_MAX_ATTEMPTS` | Số ứng viên viết lại tối đa | `3` | không |
-| `OPT_BENCH_RUNS` | Số lần đo tốc độ (lấy trung vị) | `5` | không |
+| `OPT_BENCH_RUNS` | Số lần đo tốc độ (lấy trung vị và IQR; cần ≥ 2 để có IQR, thiếu IQR thì không kết luận nhanh hơn) | `5` | không |
+| `OPT_SIGNAL_MIN_MS` | Optimizer chỉ dùng bằng chứng thực thi (báo cáo điểm nghẽn, ADR 0018) khi truy vấn chạy ≥ ngưỡng này (ms) trên bộ dữ liệu đo | `100` | không |
+| `OPT_BENCH_THREADS` | Số luồng DuckDB cố định khi đo trước/sau; `0` = mặc định của DuckDB | `0` | không |
 | `COMPARE_ABS_TOL` | Sai số tuyệt đối khi so kết quả hai query | `1e-6` | không |
 
 ## Từ điển nghiệp vụ

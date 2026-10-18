@@ -26,6 +26,7 @@ from pydantic import BaseModel
 from src.agents.graph import build_graph
 from src.agents.nodes.common import remember_fixes
 from src.agents.progress import NodeStart, StepEvent, describe, node_started
+from src.agents.review_gate import gate_problems
 from src.config import get_settings
 from src.models.evidence import ReviewDecision
 from src.models.schemas import RunRecord, RunStatus
@@ -423,6 +424,8 @@ def check_review(decision: ReviewDecision, role: str) -> None:
     if problem:
         raise PermissionDeniedError(problem)
     check_resumable(decision.run_id, "review")
+    if decision.decision == "approve" and (problems := gate_problems(get_values(decision.run_id))):
+        raise RunStateError("Chưa được duyệt: kiểm tra bắt buộc chưa đạt hoặc chưa kiểm chứng. " + " | ".join(problems))
 
 
 def submit_review(decision: ReviewDecision, role: str, on_event: EventCallback | None = None) -> RunOutcome:

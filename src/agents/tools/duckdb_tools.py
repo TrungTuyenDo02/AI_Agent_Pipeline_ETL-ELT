@@ -1,9 +1,11 @@
 """Công cụ DuckDB (code tin cậy của hệ thống, không chạy code do LLM sinh trừ khi đã qua V1)."""
 
 import json
+import re
 import sqlite3
 import statistics
 import tempfile
+import threading
 import time
 from contextlib import closing
 from pathlib import Path
@@ -12,6 +14,7 @@ import duckdb
 from pydantic import BaseModel, Field
 
 from src.agents.tools.pii import mask_rows
+from src.config import get_settings
 from src.models.evidence import QueryMetrics
 from src.models.spec import SourceRef
 
@@ -212,13 +215,21 @@ def explain_error(db_path: Path, sql: str) -> str:
 EXPLAIN_KEYS = ("Table", "Join Type", "Conditions", "Filters", "Groups", "Aggregates", "Partitions", "Order By")
 
 
+LITERAL_RE = re.compile(r"'(?:[^']|'')*'|(?<![\w.#])-?\d+(?:\.\d+)?(?![\w.])")
+
+
+def mask_literals(text: str) -> str:
+    """Bỏ hằng số (chuỗi, số) khỏi điều kiện trong kế hoạch: chỉ giữ cấu trúc toán tử trước khi đưa cho LLM."""
+    return LITERAL_RE.sub("?", text)
+
+
 def _operator_line(node: dict, depth: int) -> str:
     info = node.get("extra_info") or {}
     extras = []
     for key in EXPLAIN_KEYS:
         if value := info.get(key):
             text = ", ".join(map(str, value)) if isinstance(value, list) else str(value)
-            extras.append(f"{key}: {text[:80]}")
+            extras.append(f"{key}: {mask_literals(text)[:80]}")
     timing = f"{node.get('operator_timing', 0):.4f}s"
     head = (
         f"{'  ' * depth}{node.get('operator_name', '?').strip()} rows={node.get('operator_cardinality', 0)} t={timing}"
@@ -226,13 +237,25 @@ def _operator_line(node: dict, depth: int) -> str:
     return head + (" | " + "; ".join(extras) if extras else "")
 
 
+def explain_plan(db_path: Path, sql: str, timeout_sec: float | None = None) -> dict:
+    """`EXPLAIN ANALYZE` dạng JSON trên kết nối chỉ-đọc; quá `timeout_sec` thì ngắt (duckdb.InterruptException)."""
+    with connect_read(db_path) as con:
+        timer = threading.Timer(timeout_sec, con.interrupt) if timeout_sec else None
+        if timer:
+            timer.start()
+        try:
+            return json.loads(con.execute(f"EXPLAIN (ANALYZE, FORMAT JSON) {sql}").fetchall()[0][-1])
+        finally:
+            if timer:
+                timer.cancel()
+
+
 def explain_outline(db_path: Path, sql: str) -> str:
     """Cây toán tử gọn (EXPLAIN ANALYZE dạng JSON): mỗi dòng một toán tử, số dòng ra, thời gian, điều kiện chính.
 
-    Gọn hơn nhiều so với bảng kẻ khung của EXPLAIN ANALYZE mà vẫn đủ thông tin cho Optimizer.
+    Gọn hơn nhiều so với bảng kẻ khung của EXPLAIN ANALYZE mà vẫn đủ thông tin cho Optimizer. Hằng số đã được che.
     """
-    with connect_read(db_path) as con:
-        plan = json.loads(con.execute(f"EXPLAIN (ANALYZE, FORMAT JSON) {sql}").fetchall()[0][-1])
+    plan = explain_plan(db_path, sql)
     lines: list[str] = []
 
     def walk(node: dict, depth: int) -> None:
@@ -247,17 +270,47 @@ def explain_outline(db_path: Path, sql: str) -> str:
     return f"total {plan.get('latency', 0):.4f}s\n" + "\n".join(lines)
 
 
+def _bench_connection(db_path: Path) -> duckdb.DuckDBPyConnection:
+    con = connect_read(db_path)
+    if threads := get_settings().opt_bench_threads:
+        con.execute(f"SET threads = {int(threads)}")  # cố định số luồng để so trước/sau công bằng
+    return con
+
+
+def _once_ms(con: duckdb.DuckDBPyConnection, sql: str) -> float:
+    start = time.perf_counter()
+    con.execute(sql).fetchall()
+    return (time.perf_counter() - start) * 1000
+
+
+def _metrics(timings: list[float], peak_mb: float | None) -> QueryMetrics:
+    """Trung vị + IQR (Q3 − Q1, mili giây; cần ≥ 2 lần đo)."""
+    q1, _, q3 = statistics.quantiles(timings, n=4, method="inclusive") if len(timings) >= 2 else (None, None, None)
+    spread = round(q3 - q1, 3) if q1 is not None and q3 is not None else None
+    return QueryMetrics(
+        median_ms=round(statistics.median(timings), 3), runs=len(timings), peak_memory_mb=peak_mb, spread_ms=spread
+    )
+
+
 def benchmark_query(db_path: Path, sql: str, runs: int) -> QueryMetrics:
-    """Đo thời gian: 1 lần khởi động + `runs` lần, lấy trung vị (mili giây)."""
-    timings: list[float] = []
-    with connect_read(db_path) as con:
+    """Đo thời gian: 1 lần khởi động + `runs` lần, lấy trung vị và IQR."""
+    with _bench_connection(db_path) as con:
         con.execute(sql).fetchall()
-        for _ in range(runs):
-            start = time.perf_counter()
-            con.execute(sql).fetchall()
-            timings.append((time.perf_counter() - start) * 1000)
-        peak_mb = _peak_buffer_mb(con, sql)
-    return QueryMetrics(median_ms=round(statistics.median(timings), 3), runs=runs, peak_memory_mb=peak_mb)
+        timings = [_once_ms(con, sql) for _ in range(runs)]
+        return _metrics(timings, _peak_buffer_mb(con, sql))
+
+
+def benchmark_pair(db_path: Path, first: str, second: str, runs: int) -> tuple[QueryMetrics, QueryMetrics]:
+    """Đo hai câu xen kẽ A/B trên CÙNG kết nối, cùng thời điểm (mỗi câu 1 lần khởi động + `runs` lần, đổi thứ tự mỗi vòng để
+    không bên nào luôn chạy trước): máy trôi tốc độ thì ảnh hưởng đều hai bên, không bị tính thành lợi ích."""
+    times: dict[str, list[float]] = {"a": [], "b": []}
+    with _bench_connection(db_path) as con:
+        con.execute(first).fetchall()
+        con.execute(second).fetchall()
+        for i in range(runs):
+            for key, sql in (("a", first), ("b", second)) if i % 2 == 0 else (("b", second), ("a", first)):
+                times[key].append(_once_ms(con, sql))
+        return _metrics(times["a"], _peak_buffer_mb(con, first)), _metrics(times["b"], _peak_buffer_mb(con, second))
 
 
 def _peak_buffer_mb(con: duckdb.DuckDBPyConnection, sql: str) -> float | None:

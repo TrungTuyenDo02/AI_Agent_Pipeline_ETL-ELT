@@ -156,3 +156,68 @@
 ---
 
 <!-- Format: copy khối trên cho mỗi ngày làm việc. Status: ✅ Done · 🔄 Doing · ⚠️ Chưa sửa · ⏳ Chưa làm -->
+
+### 2026-10-18 — Đo hiệu năng và báo cáo điểm nghẽn (Optimize.md, bước 1, 3, 4; chưa làm bước 2 eval và bước 5 giao diện)
+
+- Làm gì: đọc thời gian từng model từ `run_results.json` + `manifest.json`, lưu riêng theo `invocation_id`
+  (`dbt_tools.read_run_results`); báo cáo điểm nghẽn top N bằng `EXPLAIN ANALYZE` có giới hạn thời gian
+  (`tools/bottleneck.py`, gắn ở `package`); che hằng số trong kế hoạch thực thi trước khi vào prompt optimizer; DAG kiểm thêm vòng
+  lặp, task mồ côi, `--select` model không có, lịch/`retries` sai, sai đích sandbox (chặn); 4 kiểm tra bắt buộc vào bằng chứng và
+  chặn duyệt (`runner.check_review`).
+- Vì sao: Optimize.md yêu cầu số đo theo artifact dbt, phát hiện tách đã đo / giả thuyết, và không duyệt khi thiếu kiểm tra bắt buộc.
+  Hợp đồng chỉ thêm trường tùy chọn (ADR 0017), không thêm khóa state, không đổi tên node.
+- Kết quả đo: test mới `tests/test_verifiers/test_perf.py` (8), ca DAG cố tình sai (7) và ca SQL cố tình sai (đổi toán tử, bỏ lọc,
+  thêm DISTINCT) đều bị bắt; test dbt thật xác nhận `execute_ms` khớp artifact đã lưu.
+- Lịch là tùy chọn: Airflow 2 cho phép bỏ `schedule` (mặc định hằng ngày) và bộ mẫu V1 hợp lệ dựa vào đó, nên chỉ kiểm giá trị khi có.
+- Sửa kèm: `eval/run_extract.py` mở SQLite bằng `with sqlite3.connect(...)` (chỉ commit, không đóng); trên Windows file còn bị khóa
+  khi dọn thư mục tạm nên script thoát mã 1 dù 21/21 ca đạt. Đổi sang `closing(...)` + `commit()`; lỗi có từ trước, lộ ra khi thứ
+  tự thu gom bộ nhớ thay đổi.
+
+### 2026-10-18 — Optimize.md bước 5: hiển thị kết quả, cổng duyệt 3 trạng thái
+
+- Làm gì: `src/agents/review_gate.py` (V) tính 4 kiểm tra bắt buộc với trạng thái đạt / không đạt / chưa kiểm chứng (thiếu bằng
+  chứng không tính là đạt); API trả `review_gate` + `reviews`, endpoint Duyệt chặn 409 cùng logic. `QueryMetrics.spread_ms` = IQR;
+  optimizer chỉ kết luận nhanh hơn khi có IQR của cả hai bản và chênh lệch vượt IQR. Thời gian tách: tổng model, `dbt_wall_ms`
+  (một invocation), `dag_wall_ms` (chưa đo). Web: bảng thời gian mọi model, thẻ điểm nghẽn (Đã đo / Giả thuyết / Chưa kiểm
+  chứng), IQR trước/sau, khối "Kiểm tra trước khi duyệt" + lịch sử duyệt, nút Duyệt tắt khi cổng chưa đạt. Chế độ khách có 3 ca:
+  có bản sửa, giữ nguyên, checkpoint cũ.
+- Vì sao: Optimize.md bước 5 và quyết định của chủ dự án (gate ở backend, IQR, không coi thiếu bằng chứng là đạt).
+- Kết quả: test cổng 3 trạng thái, test gọi thẳng API Duyệt (dbt test lỗi, checkpoint cũ thiếu bằng chứng → 409, duyệt thật sau
+  đó ghi người duyệt + thời điểm), test luật IQR; frontend lint, format, typecheck, contrast, lint:text, build đạt.
+
+### 2026-10-18 — Optimize.md bước 2: bộ eval hiệu năng cố định (mock)
+
+- Làm gì: `eval/run_perf.py` + `eval/benchmarks/perf/cases.yaml` (6 ca điểm nghẽn đã biết + 1 đối chứng, dữ liệu tất định 1 triệu
+  dòng, đáp án đóng băng `perf/expected/*.csv` từ SQL tham chiếu viết độc lập) + 13 ca TPC-H sf 0.1. Chỉ gọi hàm có sẵn
+  (`run_dbt_build`, `analyze_bottlenecks`, `optimize_standalone`, `benchmark_query`). Đầu ra `eval/results/<eval_id>/summary.md`,
+  `cases.csv`, `details.json`. `OPT_BENCH_THREADS` cố định luồng DuckDB khi đo (eval dùng 2). TPC-H dùng lại extension/dữ liệu
+  đã tải khi không có mạng. Mặc định ép `LLM_PROVIDER=mock` (bỏ qua `.env`), chỉ số DAG ở mock ghi "không đánh giá năng lực LLM".
+- Kết quả đo (`perf-20261018-194755-4e5b0ac-mock`, 2 lượt, 5 lần đo + 1 khởi động, 2 luồng): đúng kỳ vọng 20/20; đúng model +
+  toán tử điểm nghẽn trong top 3: 6/6; áp dụng 15 bản tối ưu, tự kiểm lại giữ kết quả bản gốc 15/15, cả 15 nhanh hơn vượt nhiễu
+  (76–96% ở ca rõ, 17–27% ở q03); giữ nguyên 5 (gồm ca đối chứng). Kết luận hai lượt giống nhau; **thời gian lệch quá ngưỡng nhiễu
+  ở 6 ca (5–20% giữa hai lượt trên laptop) → "kết quả chưa ổn định", nghiệm thu chưa đạt**. Chưa chạy LLM thật: chi phí 0 USD.
+- Phát hiện: bộ dò dấu hiệu tĩnh của optimizer không bắt được `range_join` và `fanout_join` (bỏ qua với "không phát hiện dấu hiệu
+  query chậm") trong khi báo cáo điểm nghẽn tìm đúng; chưa sửa trong đợt này (ghi vào Hạn chế).
+
+### 2026-10-18 — Optimizer dùng báo cáo điểm nghẽn làm tín hiệu bổ sung (ADR 0018)
+
+- Làm gì: `bottleneck.matching_timing` (báo cáo V2 khớp model + `source_sha` của SQL gốc + top N) và `execution_findings`
+  (EXPLAIN ANALYZE đúng SQL trên bộ `large`, ≥ `OPT_SIGNAL_MIN_MS`, mẫu `exec_non_equi_join` / `exec_join_fanout`); optimizer
+  dùng khi sqlglot không thấy mẫu, thiếu/lệch/lỗi thì giữ luồng cũ. Eval dùng cùng điều kiện.
+- Vì sao: eval bước 2 cho thấy sqlglot bỏ sót nối theo khoảng và nối nhân dòng trong khi báo cáo điểm nghẽn tìm đúng.
+- Kết quả: test hai ca bỏ sót có tín hiệu, ca đối chứng và dữ liệu nhỏ (dưới ngưỡng) không có tín hiệu, lệch phiên bản SQL / thiếu
+  báo cáo / SQL lỗi → luồng cũ; bản áp dụng vẫn qua đủ đối chiếu.
+
+### 2026-10-18 — Sửa hai lỗ hổng của optimizer sau đánh giá (ADR 0017, mục Bổ sung)
+
+- Giả định dữ liệu của luật đã áp dụng → dbt test đi cùng pipeline (`compare.assumption_tests`): trước đây chỉ kiểm trên 6 bộ thử,
+  dữ liệu thật vi phạm về sau thì bản tối ưu cho kết quả khác bản gốc mà không ai biết.
+- Đo trước/sau xen kẽ cùng phiên (`duckdb_tools.benchmark_pair`) thay vì so với số đo bản gốc của lượt đầu.
+- Kết quả: 66 test optimizer đạt (thêm test test giả định qua được V1, dùng đúng `ref`/`source`; test đo cặp cùng phiên).
+
+### 2026-10-18 — Hiện cho người dùng những gì hệ thống kiểm (Engineer và Reviewer)
+
+- API trả `dbt_tests` (đọc artifact dbt đã lưu của lần V2 cuối, phân loại Testgen / bảo vệ bản tối ưu / khai báo).
+- Màn Reviewer: thẻ "dbt test đã chạy trên sandbox" liệt kê từng test; tab Code có nhóm "Test bảo vệ bản tối ưu".
+- Màn Tối ưu: ghi chú cách đo mới (xen kẽ cùng phiên, trung vị + IQR); thẻ đối chiếu liệt kê test bảo vệ đã thêm vào pipeline.
+- Tổng quan: ô "Tối ưu" ghi "Nhanh hơn x%" / "Giữ nguyên" (trước đây "+x%" dễ đọc nhầm là chậm hơn), bấm vào mở tab Tối ưu.

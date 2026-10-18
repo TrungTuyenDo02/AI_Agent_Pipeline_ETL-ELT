@@ -24,6 +24,17 @@ class SafetyResult(_Contract):
     issues: list[str] = Field(default_factory=list)
 
 
+class ModelTiming(_Contract):
+    """Số đo một model từ `run_results.json` (đơn vị ms; None = artifact không có)."""
+
+    model: str
+    status: str
+    compile_ms: float | None = None
+    execute_ms: float | None = None
+    rows: int | None = None
+    materialized: str = ""
+
+
 class SandboxResult(_Contract):
     """V2 → Codegen/Optimizer/Review: kết quả `dbt build` trong sandbox."""
 
@@ -35,6 +46,10 @@ class SandboxResult(_Contract):
     models_total: int = 0
     tests_ok: int = 0
     tests_total: int = 0
+    # Tùy chọn (checkpoint cũ không có): số đo từng model của lần `dbt build` này và thời gian thực của cả lệnh
+    dbt_invocation: str = ""
+    model_timings: list[ModelTiming] | None = None
+    wall_ms: float | None = None
 
 
 class PlanDecision(_Contract):
