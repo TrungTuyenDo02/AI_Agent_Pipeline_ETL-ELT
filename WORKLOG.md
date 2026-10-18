@@ -144,6 +144,7 @@
 | TrungTuyenDo02 | Trang `/docs` công khai, tiến độ đọc từ `lib/projectStatus.ts`, liên kết Tài liệu | ✅ Done | Mở được khi chưa đăng nhập; ý dài nhất 54 từ; đổi 2 mục → thanh 1/10 đúng; CI 1205 đạt | — |
 | TrungTuyenDo02 | Hoàn thiện tạm dừng/tiếp tục lần chạy (ADR 0016): sửa 2 test sai giả định, lỗi tham số PostgreSQL | ✅ Done | Pause API 17/17 trên SQLite; PostgreSQL 16 tạm 63/63; nút chỉ hiện cho người tạo; CI 1211 đạt | — |
 | TrungTuyenDo02 | Sửa lỗi review: run vá mất đầu vào khi tạm dừng xếp hàng; tiếp tục đồng thời vượt hạn mức | ✅ Done | 3 test tái hiện lỗi trước khi sửa; đầu vào bản vá lưu lúc tạo; kiểm hạn mức trong khóa hàng đợi; CI 1214 đạt | — |
+| Claude Code | Landing `/docs`: nhịp màu theo khối, màu nhấn phụ, khối Cách hoạt động, chữ gom vào `content/landing.ts` | ✅ Done | Tương phản AA mọi cặp; build đạt; chụp 1440px, 375px, sáng/tối không tràn; mỗi đoạn tối đa 2 dòng | — |
 ---
 
 <!-- Format: copy khối trên cho mỗi ngày làm việc. Status: ✅ Done · 🔄 Doing · ⚠️ Chưa sửa · ⏳ Chưa làm -->
