@@ -1,9 +1,11 @@
 """Công cụ DuckDB (code tin cậy của hệ thống, không chạy code do LLM sinh trừ khi đã qua V1)."""
 
 import json
+import re
 import sqlite3
 import statistics
 import tempfile
+import threading
 import time
 from contextlib import closing
 from pathlib import Path
@@ -212,13 +214,21 @@ def explain_error(db_path: Path, sql: str) -> str:
 EXPLAIN_KEYS = ("Table", "Join Type", "Conditions", "Filters", "Groups", "Aggregates", "Partitions", "Order By")
 
 
+LITERAL_RE = re.compile(r"'(?:[^']|'')*'|(?<![\w.#])-?\d+(?:\.\d+)?(?![\w.])")
+
+
+def mask_literals(text: str) -> str:
+    """Bỏ hằng số (chuỗi, số) khỏi điều kiện trong kế hoạch: chỉ giữ cấu trúc toán tử trước khi đưa cho LLM."""
+    return LITERAL_RE.sub("?", text)
+
+
 def _operator_line(node: dict, depth: int) -> str:
     info = node.get("extra_info") or {}
     extras = []
     for key in EXPLAIN_KEYS:
         if value := info.get(key):
             text = ", ".join(map(str, value)) if isinstance(value, list) else str(value)
-            extras.append(f"{key}: {text[:80]}")
+            extras.append(f"{key}: {mask_literals(text)[:80]}")
     timing = f"{node.get('operator_timing', 0):.4f}s"
     head = (
         f"{'  ' * depth}{node.get('operator_name', '?').strip()} rows={node.get('operator_cardinality', 0)} t={timing}"
@@ -226,13 +236,25 @@ def _operator_line(node: dict, depth: int) -> str:
     return head + (" | " + "; ".join(extras) if extras else "")
 
 
+def explain_plan(db_path: Path, sql: str, timeout_sec: float | None = None) -> dict:
+    """`EXPLAIN ANALYZE` dạng JSON trên kết nối chỉ-đọc; quá `timeout_sec` thì ngắt (duckdb.InterruptException)."""
+    with connect_read(db_path) as con:
+        timer = threading.Timer(timeout_sec, con.interrupt) if timeout_sec else None
+        if timer:
+            timer.start()
+        try:
+            return json.loads(con.execute(f"EXPLAIN (ANALYZE, FORMAT JSON) {sql}").fetchall()[0][-1])
+        finally:
+            if timer:
+                timer.cancel()
+
+
 def explain_outline(db_path: Path, sql: str) -> str:
     """Cây toán tử gọn (EXPLAIN ANALYZE dạng JSON): mỗi dòng một toán tử, số dòng ra, thời gian, điều kiện chính.
 
-    Gọn hơn nhiều so với bảng kẻ khung của EXPLAIN ANALYZE mà vẫn đủ thông tin cho Optimizer.
+    Gọn hơn nhiều so với bảng kẻ khung của EXPLAIN ANALYZE mà vẫn đủ thông tin cho Optimizer. Hằng số đã được che.
     """
-    with connect_read(db_path) as con:
-        plan = json.loads(con.execute(f"EXPLAIN (ANALYZE, FORMAT JSON) {sql}").fetchall()[0][-1])
+    plan = explain_plan(db_path, sql)
     lines: list[str] = []
 
     def walk(node: dict, depth: int) -> None:

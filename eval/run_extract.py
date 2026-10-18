@@ -11,6 +11,7 @@ import sqlite3
 import sys
 import tempfile
 import time
+from contextlib import closing
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -46,7 +47,7 @@ def materialize(dataset: Path, work: Path) -> Path:
     tables = json.loads((dataset / "native_tables.json").read_text(encoding="utf-8"))["tables"]
     with (
         duckdb.connect(str(home / "warehouse.duckdb")) as con,
-        sqlite3.connect(home / "sqlite" / "warehouse.sqlite") as sql,
+        closing(sqlite3.connect(home / "sqlite" / "warehouse.sqlite")) as sql,
     ):
         for table in tables:
             schema, name, columns = table["schema"], table["name"], table["columns"]
@@ -62,6 +63,7 @@ def materialize(dataset: Path, work: Path) -> Path:
                 definition = ", ".join(f"{quote(c)} {'INTEGER' if t == 'BIGINT' else 'TEXT'}" for c, t in columns)
                 sql.execute(f"CREATE TABLE {quote(name)} ({definition})")
                 sql.executemany(f"INSERT INTO {quote(name)} VALUES ({placeholders})", table["rows"])
+        sql.commit()
         parquet = str(home / "parquet" / "orders.parquet").replace("'", "''")
         con.execute(f"COPY main.orders TO '{parquet}' (FORMAT PARQUET)")
     return home

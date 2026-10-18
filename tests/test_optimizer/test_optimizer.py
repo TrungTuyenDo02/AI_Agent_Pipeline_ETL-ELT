@@ -85,6 +85,25 @@ def test_rewrite_with_different_result_is_rejected(datasets: dict[str, str]):
     assert report.after is None  # không đo tốc độ khi kết quả đã lệch
 
 
+FILTERED = "select k, sum(v) as total from raw.a where v > 3 group by k"
+TWICE = "select k, count(*) as n from (select k from raw.a union all select k from raw.a) t group by k"
+
+
+@pytest.mark.parametrize(
+    ("original", "wrong"),
+    [
+        (FILTERED, FILTERED.replace("v > 3", "v >= 3")),  # đổi toán tử so sánh
+        (FILTERED, FILTERED.replace(" where v > 3", "")),  # bỏ điều kiện lọc
+        (TWICE, TWICE.replace("from (select k", "from (select distinct k from (select k").replace(") t", ")) t")),
+    ],
+    ids=["comparison_operator", "dropped_filter", "added_distinct"],
+)
+def test_deliberately_wrong_rewrite_is_rejected_and_original_kept(datasets: dict[str, str], original: str, wrong: str):
+    report = evaluate_candidate({**_candidate(wrong, before_ms=1e6), "original_sql": original}, datasets)
+    assert report.decision == "skipped" and "lệch" in report.reason and report.original_sql == original
+    assert any(not c.equal for c in report.equivalence)
+
+
 def test_small_gain_is_skipped(datasets: dict[str, str]):
     report = evaluate_candidate(_candidate(ORIGINAL.replace(" union ", " union all "), before_ms=0.0001), datasets)
     assert report.decision == "skipped" and "ngưỡng" in report.reason

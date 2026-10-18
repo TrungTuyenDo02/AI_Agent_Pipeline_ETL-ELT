@@ -156,3 +156,19 @@
 ---
 
 <!-- Format: copy khối trên cho mỗi ngày làm việc. Status: ✅ Done · 🔄 Doing · ⚠️ Chưa sửa · ⏳ Chưa làm -->
+
+### 2026-10-18 — Đo hiệu năng và báo cáo điểm nghẽn (Optimize.md, bước 1, 3, 4; chưa làm bước 2 eval và bước 5 giao diện)
+
+- Làm gì: đọc thời gian từng model từ `run_results.json` + `manifest.json`, lưu riêng theo `invocation_id`
+  (`dbt_tools.read_run_results`); báo cáo điểm nghẽn top N bằng `EXPLAIN ANALYZE` có giới hạn thời gian
+  (`tools/bottleneck.py`, gắn ở `package`); che hằng số trong kế hoạch thực thi trước khi vào prompt optimizer; DAG kiểm thêm vòng
+  lặp, task mồ côi, `--select` model không có, lịch/`retries` sai, sai đích sandbox (chặn); 4 kiểm tra bắt buộc vào bằng chứng và
+  chặn duyệt (`runner.check_review`).
+- Vì sao: Optimize.md yêu cầu số đo theo artifact dbt, phát hiện tách đã đo / giả thuyết, và không duyệt khi thiếu kiểm tra bắt buộc.
+  Hợp đồng chỉ thêm trường tùy chọn (ADR 0017), không thêm khóa state, không đổi tên node.
+- Kết quả đo: test mới `tests/test_verifiers/test_perf.py` (8), ca DAG cố tình sai (7) và ca SQL cố tình sai (đổi toán tử, bỏ lọc,
+  thêm DISTINCT) đều bị bắt; test dbt thật xác nhận `execute_ms` khớp artifact đã lưu.
+- Lịch là tùy chọn: Airflow 2 cho phép bỏ `schedule` (mặc định hằng ngày) và bộ mẫu V1 hợp lệ dựa vào đó, nên chỉ kiểm giá trị khi có.
+- Sửa kèm: `eval/run_extract.py` mở SQLite bằng `with sqlite3.connect(...)` (chỉ commit, không đóng); trên Windows file còn bị khóa
+  khi dọn thư mục tạm nên script thoát mã 1 dù 21/21 ca đạt. Đổi sang `closing(...)` + `commit()`; lỗi có từ trước, lộ ra khi thứ
+  tự thu gom bộ nhớ thay đổi.

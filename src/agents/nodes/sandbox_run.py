@@ -13,7 +13,7 @@ from src.agents.tools.dbt_tools import DbtResult, run_dbt_build, write_generated
 from src.agents.tools.duckdb_tools import RAW_SCHEMA, connect_read
 from src.agents.tools.pii import mask_rows
 from src.agents.tools.sql_tools import SOURCE_RE, SqlCheckError, render_dbt_sql
-from src.models.contracts import SandboxResult, hand_off
+from src.models.contracts import ModelTiming, SandboxResult, hand_off
 from src.models.evidence import DatasetCheck
 from src.services.connectors.base import normalize_type
 
@@ -85,11 +85,17 @@ def type_mismatches(db: Path, spec) -> list[str]:  # noqa: ANN001 — PipelineSp
 def _summary(result: DbtResult) -> dict:
     tests = [r for r in result.results if r.unique_id.startswith("test.")]
     models = [r for r in result.results if r.unique_id.startswith("model.")]
+    timings = [
+        {"model": r.unique_id.rsplit(".", 1)[-1], **r.model_dump(include=set(ModelTiming.model_fields) - {"model"})}
+        for r in models
+    ]
     return {
         "models_ok": sum(r.status == "success" for r in models),
         "models_total": len(models),
         "tests_ok": sum(r.status in ("pass", "warn") for r in tests),
         "tests_total": len(tests),
+        **({"dbt_invocation": result.invocation_id, "model_timings": timings} if result.invocation_id else {}),
+        **({"wall_ms": result.elapsed_ms} if result.elapsed_ms is not None else {}),
     }
 
 

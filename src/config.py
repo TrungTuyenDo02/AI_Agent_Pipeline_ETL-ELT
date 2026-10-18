@@ -216,6 +216,8 @@ class Settings(BaseSettings):
     opt_compute_cost_per_hour_usd: float = Field(default=0.5, ge=0.0)
     opt_max_attempts: int = Field(default=3, ge=1)
     opt_bench_runs: int = Field(default=5, ge=1)
+    perf_top_n: int = Field(default=3, ge=0)  # số model chậm nhất được EXPLAIN ANALYZE trong báo cáo điểm nghẽn
+    perf_analyze_sec: float = Field(default=10.0, ge=0.0)  # giới hạn thời gian phân tích điểm nghẽn
     compare_abs_tol: float = Field(default=1e-6, ge=0.0)
 
     # LangSmith (tùy chọn)

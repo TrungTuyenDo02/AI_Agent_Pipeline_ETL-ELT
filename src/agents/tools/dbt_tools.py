@@ -6,8 +6,10 @@ import re
 import shutil
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 
+import duckdb
 import yaml
 from pydantic import BaseModel, Field
 
@@ -24,6 +26,10 @@ class DbtNodeResult(BaseModel):
     unique_id: str
     status: str
     message: str = ""
+    compile_ms: float | None = None
+    execute_ms: float | None = None
+    rows: int | None = None  # chỉ khi adapter báo `rows_affected`
+    materialized: str = ""
 
 
 class DbtResult(BaseModel):
@@ -33,6 +39,8 @@ class DbtResult(BaseModel):
     results: list[DbtNodeResult] = Field(default_factory=list)
     log_tail: str = ""
     timed_out: bool = False
+    invocation_id: str = ""
+    elapsed_ms: float | None = None  # thời gian thực của cả lệnh dbt (không phải tổng các model)
 
 
 def workspace_path(run_id: str) -> Path:
@@ -152,15 +160,77 @@ def _dbt_env() -> dict[str, str]:
     return env
 
 
-def _read_run_results(workspace: Path) -> list[DbtNodeResult]:
+def _phase_ms(result: dict, phase: str) -> float | None:
+    for item in result.get("timing") or []:
+        if item.get("name") == phase and item.get("started_at") and item.get("completed_at"):
+            start, end = (
+                datetime.fromisoformat(item[k].replace("Z", "+00:00")) for k in ("started_at", "completed_at")
+            )
+            return round((end - start).total_seconds() * 1000, 3)
+    return None
+
+
+def _manifest(workspace: Path) -> dict:
+    try:
+        return json.loads((workspace / "target" / "manifest.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def read_run_results(workspace: Path) -> DbtResult:
+    """Số đo từng model/test từ `run_results.json` + `manifest.json` (run lỗi một phần vẫn giữ số đo đã có).
+
+    Lưu thêm bản riêng `target/runs/<invocation_id>.json` (kèm SQL đã biên dịch, phiên bản dbt/DuckDB) để lệnh dbt sau
+    không ghi đè; SQL chỉ nằm trong workspace, không vào state.
+    """
     path = workspace / "target" / "run_results.json"
     if not path.exists():
-        return []
+        return DbtResult(ok=False)
     data = json.loads(path.read_text(encoding="utf-8"))
-    return [
-        DbtNodeResult(unique_id=r["unique_id"], status=r["status"], message=str(r.get("message") or ""))
-        for r in data.get("results", [])
-    ]
+    manifest, meta = _manifest(workspace), data.get("metadata") or {}
+    nodes = manifest.get("nodes") or {}
+    results, archived = [], []
+    for r in data.get("results", []):
+        rows = (r.get("adapter_response") or {}).get("rows_affected")
+        node = DbtNodeResult(
+            unique_id=r["unique_id"],
+            status=r["status"],
+            message=str(r.get("message") or ""),
+            compile_ms=_phase_ms(r, "compile"),
+            execute_ms=_phase_ms(r, "execute"),
+            rows=rows if isinstance(rows, int) and rows >= 0 else None,
+            materialized=str((nodes.get(r["unique_id"]) or {}).get("config", {}).get("materialized", "")),
+        )
+        results.append(node)
+        archived.append({**node.model_dump(), "sql": r.get("compiled_code") or ""})
+    elapsed = data.get("elapsed_time")
+    run = DbtResult(
+        ok=False,
+        results=results,
+        invocation_id=str(meta.get("invocation_id", "")),
+        elapsed_ms=round(elapsed * 1000, 3) if isinstance(elapsed, int | float) else None,
+    )
+    if run.invocation_id:
+        archive = {
+            "invocation_id": run.invocation_id,
+            "generated_at": meta.get("generated_at"),
+            "dbt_version": meta.get("dbt_version"),
+            "adapter": (manifest.get("metadata") or {}).get("adapter_type"),
+            "duckdb_version": duckdb.__version__,
+            "elapsed_ms": run.elapsed_ms,
+            "results": archived,
+        }
+        (workspace / "target" / "runs").mkdir(parents=True, exist_ok=True)
+        (workspace / "target" / "runs" / f"{run.invocation_id}.json").write_text(json.dumps(archive), encoding="utf-8")
+    return run
+
+
+def read_archived_run(workspace: Path, invocation_id: str) -> dict:
+    """Bản đã lưu của một lần `dbt build`; không có thì {}."""
+    try:
+        return json.loads((workspace / "target" / "runs" / f"{invocation_id}.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
 
 
 OK_STATUSES = (
@@ -226,9 +296,9 @@ def run_dbt_build(workspace: Path) -> DbtResult:
         )
     except subprocess.TimeoutExpired:
         return DbtResult(ok=False, timed_out=True, log_tail="dbt build vượt quá thời gian cho phép.")
-    results = _read_run_results(workspace)
-    ok = proc.returncode == 0 and all(r.status in OK_STATUSES for r in results)
-    return DbtResult(ok=ok, results=results, log_tail=_log_tail(proc))
+    run = read_run_results(workspace)
+    ok = proc.returncode == 0 and all(r.status in OK_STATUSES for r in run.results)
+    return run.model_copy(update={"ok": ok, "log_tail": _log_tail(proc)})
 
 
 def _log_tail(proc: subprocess.CompletedProcess) -> str:

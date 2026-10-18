@@ -45,6 +45,35 @@ class DatasetCheck(BaseModel):
     detail: str = ""
 
 
+class Bottleneck(BaseModel):
+    """Một phát hiện điểm nghẽn: hiện tượng, bằng chứng (đã đo) → giả thuyết, bước kiểm tra tiếp (chưa kiểm chứng)."""
+
+    model: str
+    rank: int
+    execute_ms: float | None = None
+    analyzed: bool = True  # False = "chưa phân tích được" (lý do ở `unknown`)
+    operator: str = ""  # toán tử tốn thời gian nhất theo EXPLAIN ANALYZE
+    phenomenon: str = ""
+    evidence: list[str] = Field(default_factory=list)
+    hypothesis: str = ""
+    next_step: str = ""
+    unknown: str = ""
+
+
+class PerfReport(BaseModel):
+    """Đo thời gian từng model (artifact dbt) + phân tích top N model chậm nhất. Không có số đo → `measured=False` ("chưa đo")."""
+
+    measured: bool = False
+    model_total_ms: float | None = Field(
+        default=None, description="Tổng thời gian execute các model (không phải thời gian thực)"
+    )
+    pipeline_wall_ms: float | None = Field(default=None, description="Thời gian thực của cả lệnh dbt build")
+    analysis_ms: float = Field(default=0.0, description="Chi phí phân tích (EXPLAIN ANALYZE), 0 token")
+    top_n: int = 0
+    findings: list[Bottleneck] = Field(default_factory=list)
+    note: str = ""
+
+
 class OptimizationReport(BaseModel):
     """Báo cáo E4 + V3: số liệu trước/sau và quyết định áp dụng hay giữ nguyên."""
 
@@ -63,6 +92,7 @@ class OptimizationReport(BaseModel):
     warehouse_hints: list[str] = Field(
         default_factory=list, description="Gợi ý chỉ áp dụng cho kho khác, không thực thi"
     )
+    bottlenecks: PerfReport | None = None  # tùy chọn: checkpoint cũ không có
 
 
 class ReviewDecision(BaseModel):

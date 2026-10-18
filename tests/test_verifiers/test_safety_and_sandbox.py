@@ -1,9 +1,12 @@
 """Test V1 An toàn (lệnh nguy hiểm, tên bịa, DAG) và V2 Sandbox (dbt build thật trên DuckDB)."""
 
+from pathlib import Path
+
 import pytest
 
 from src.agents.nodes.safety import check_dag, check_models, safety_node
 from src.agents.nodes.sandbox_run import sandbox_run_node
+from src.agents.tools.dbt_tools import read_archived_run
 
 MART = "models/marts/fct_daily_revenue.sql"
 GOOD_DAG = (
@@ -94,6 +97,13 @@ def test_sandbox_runs_dbt_build_and_tests(pipeline_state: dict):
     assert box["models_ok"] == box["models_total"] == 1
     assert box["tests_ok"] == box["tests_total"] >= 3  # grain không rỗng + grain không trùng + đối soát
     assert box["target_rows"] == 30 and len(box["sample"]) == 10
+    # Bước đo: thời gian từng model khớp artifact dbt đã lưu riêng theo invocation_id
+    archived = read_archived_run(Path(pipeline_state["workspace"]), box["dbt_invocation"])
+    models = {r["unique_id"].rsplit(".", 1)[-1]: r for r in archived["results"] if r["unique_id"].startswith("model.")}
+    assert [t["model"] for t in box["model_timings"]] == list(models) == ["fct_daily_revenue"]
+    assert box["model_timings"][0]["execute_ms"] == models["fct_daily_revenue"]["execute_ms"] > 0
+    assert box["model_timings"][0]["materialized"] == "table" and box["wall_ms"] == archived["elapsed_ms"] > 0
+    assert "select" in models["fct_daily_revenue"]["sql"].lower() and archived["dbt_version"]
 
 
 @pytest.mark.slow

@@ -109,6 +109,8 @@ Luật cố định (mẫu tấn công prompt, động từ nghiệp vụ, bản
 | Biến | Ý nghĩa | Mặc định | Bí mật |
 |---|---|---|---|
 | `OPT_MIN_GAIN_PCT` | Chỉ áp dụng khi nhanh hơn ít nhất ngưỡng này (%) | `15` | không |
+| `PERF_TOP_N` | Số model chậm nhất được `EXPLAIN ANALYZE` trong báo cáo điểm nghẽn | `3` | không |
+| `PERF_ANALYZE_SEC` | Giới hạn thời gian phân tích điểm nghẽn (giây); hết giờ → "chưa phân tích được" | `10` | không |
 | `OPT_RUNS_PER_MONTH` | Số lần chạy mỗi tháng, để tính tiền tiết kiệm/năm | `30` | không |
 | `OPT_COMPUTE_COST_PER_HOUR_USD` | Giá tính toán mỗi giờ (USD) | `0.5` | không |
 | `OPT_MAX_ATTEMPTS` | Số ứng viên viết lại tối đa | `3` | không |

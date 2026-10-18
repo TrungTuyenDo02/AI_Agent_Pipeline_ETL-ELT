@@ -273,6 +273,15 @@ Trên GitHub: tab **Actions → Eval → Run workflow** (chạy phần không c�
 - TPC-H (đo tốc độ Optimizer, cần mạng lần đầu): `python eval/benchmarks/tpch/run_tpch.py --sf 0.1`
 - ELT-Bench (đo độ đúng toàn luồng): xem [eval/benchmarks/README.md](../eval/benchmarks/README.md).
 
+### 4.3 Đo thời gian model và điểm nghẽn
+
+- Mỗi lần V2 chạy `dbt build`, số đo từng model (compile/execute, materialization, số dòng nếu adapter báo) nằm trong
+  `sandbox.model_timings`; bản đầy đủ kèm SQL đã biên dịch ở `pipelines/workspaces/<run_id>/target/runs/<invocation_id>.json`.
+- Báo cáo điểm nghẽn: `optimization.bottlenecks` (top `PERF_TOP_N` model, giới hạn `PERF_ANALYZE_SEC` giây). "Tổng thời gian các
+  model" và "thời gian thực cả pipeline" là hai con số khác nhau, không cộng dồn.
+- Nút duyệt bị từ chối (409) khi một trong 4 kiểm tra bắt buộc không đạt; lý do ghi trong thông báo lỗi. Airflow chạy thật hiện
+  ghi "chưa kiểm chứng" (máy không cài Airflow, DAG chỉ kiểm bằng AST).
+
 ## 5. Bật LLM thật (khi có khóa)
 
 1. Lấy khóa ở <https://platform.openai.com/api-keys> và <https://console.anthropic.com> (cả hai cần nạp tiền; xem `docs/guide/cost-management.md`).
