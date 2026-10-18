@@ -91,3 +91,9 @@ demo_data/
 # Biến triển khai Render (chứa bí mật)
 .env.render
 .env_render
+
+# Font Galey: giấy phép "Personal Use Only", không phát tán qua repo công khai hay bản deploy (docs/BRANDING.md)
+frontend/public/fonts/galey/*.ttf
+frontend/public/fonts/galey/*.otf
+frontend/public/fonts/galey/*.woff
+frontend/public/fonts/galey/*.woff2

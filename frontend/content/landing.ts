@@ -10,9 +10,9 @@ export type Tone = "primary" | "ai" | "ok" | "highlight" | "guide" | "warn";
 
 export const LANDING = {
   meta: {
-    title: "Giới thiệu dự án · P-113 Pipeline Agent",
+    title: "Giới thiệu dự án · PipeSmith",
     description:
-      "P-113 thử nghiệm dùng AI hỗ trợ xây dựng và tối ưu pipeline dữ liệu: làm rõ yêu cầu, lập kế hoạch, sinh code, chạy thử và để người dùng duyệt.",
+      "PipeSmith hỗ trợ xây dựng và tối ưu pipeline dữ liệu: làm rõ yêu cầu, lập kế hoạch, sinh code, chạy thử và để người dùng duyệt.",
   },
   skip: "Bỏ qua tới nội dung",
   quickLinks: "Liên kết nhanh",
@@ -27,7 +27,7 @@ export const LANDING = {
     { id: "huong-di", label: "Hướng đi" },
   ],
   hero: {
-    kicker: "Giới thiệu dự án P-113 · bản demo nghiên cứu",
+    kicker: "PipeSmith · Dự án P-113 · Bản demo nghiên cứu",
     title: "Từ một câu yêu cầu đến pipeline dữ liệu có kiểm chứng",
     lead: "Bạn mô tả bảng số liệu cần có. **AI viết pipeline, code chạy thử và đo**, bạn xem bằng chứng rồi mới duyệt.",
     cta: "Trải nghiệm demo",

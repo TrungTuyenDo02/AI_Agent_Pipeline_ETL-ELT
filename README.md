@@ -1,10 +1,12 @@
-# P-113 — Agent viết và tối ưu pipeline ELT/ETL
+# PipeSmith — Agent viết và tối ưu pipeline ELT/ETL (P-113)
 
 [![CI](https://github.com/TrungTuyenDo02/AI_Agent_Pipeline_ETL-ELT/actions/workflows/ci.yml/badge.svg)](https://github.com/TrungTuyenDo02/AI_Agent_Pipeline_ETL-ELT/actions/workflows/ci.yml)
 
 > Nói bằng lời bạn cần bảng dữ liệu gì → agent sinh dbt + DAG Airflow, chạy thử trong sandbox, đo và tối ưu query, rồi **chờ người duyệt** trước khi merge.
 
 **Live URL:** chưa có (chưa deploy) • **Video demo:** chưa có ([kịch bản](docs/video-demo.md)) • **Báo cáo:** [docs/BAO_CAO.md](docs/BAO_CAO.md)
+
+Tên hiển thị là **PipeSmith**, đồng hành cùng linh vật mèo pixel **Pip** bám góc màn hình trên Trang chủ và các trang ứng dụng, gồm chế độ khách. Có thể kéo đổi góc, bấm xem lời nhắn hoặc ẩn; trong trang lần chạy, Pip đổi tư thế theo trạng thái, thỉnh thoảng đi đoạn ngắn khi đang làm và đứng yên trên điện thoại hoặc khi bật giảm chuyển động. Chữ PipeSmith dùng Galey SemiBold được chủ dự án cung cấp; [nhận diện thương hiệu](docs/BRANDING.md) ghi cách dùng asset và giấy phép font.
 
 ## Demo
 

@@ -45,6 +45,11 @@
   --guide-soft: light-dark(#e0f5f1, #0f2e2b);
   --guide-ink: light-dark(#0b4f49, #a7f3e4);
   --guide-on: light-dark(#ffffff, #0b0b0f);
+  /* Lời nhắn Pip: xanh ngọc nhạt riêng ở chế độ sáng, giữ nền tối trung tính. */
+  --pip-bubble-bg: light-dark(#d9f3eb, #16161b);
+  --pip-bubble-ink: light-dark(#0b4f49, #f5f5f7);
+  --pip-bubble-muted: light-dark(#34665d, #a1a1a6);
+  --pip-bubble-edge: light-dark(#8cc7b9, #2c2c33);
   --shadow-color: light-dark(rgb(0 0 0 / 7%), rgb(0 0 0 / 50%));
   /* Màu nhấn phụ (hổ phách) cho số liệu, biểu tượng nổi bật: tương phản với xanh dương chính, chỉ dùng ~10% diện tích */
   --highlight: light-dark(#8f4700, #fbbf24);

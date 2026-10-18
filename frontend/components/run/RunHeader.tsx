@@ -10,6 +10,7 @@ import { useApp } from "../AppContext";
 import { RunGuideDone, RunGuideSteps, StatusExplain } from "../guide/Guide";
 import { ErrorBox, Loading, StatusBadge } from "../ui";
 import { PauseControl } from "./PauseControl";
+import { PipCompanion } from "./PipCompanion";
 import { PipelineTrack } from "./PipelineTrack";
 import { RetryBanner } from "./RetryBanner";
 import { useRun } from "./RunContext";
@@ -100,6 +101,7 @@ export function RunHeader() {
       </div>
       <StatusExplain status={record.status} />
       <PauseControl />
+      <PipCompanion key={record.id} detail={detail} guest={guest} />
       <RunGuideDone />
       <RunGuideSteps />
       <PipelineTrack />

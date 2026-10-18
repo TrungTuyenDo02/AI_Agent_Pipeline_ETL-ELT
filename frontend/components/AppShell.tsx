@@ -9,10 +9,12 @@ import type { Role } from "@/lib/types";
 import { useDriftAlerts } from "@/lib/useDriftAlerts";
 
 import { GuestStrip } from "./GuestBar";
+import { PipeSmithWordmark } from "./PipeSmithWordmark";
 import { GuideBanner } from "./guide/Guide";
 import { Icon, SparkIcon } from "./icons";
 import { NotificationBell } from "./NotificationBell";
 import { BottomNav, PrimaryNav, type NavLinkItem } from "./PrimaryNav";
+import { PipCompanion } from "./run/PipCompanion";
 import { AvatarMenu, ModeBadges, RoleChip, ThemeToggle } from "./Topbar";
 
 // Bố cục: thanh trên hai hàng (logo · vai trò, giới thiệu, giao diện, chuông, avatar | điều hướng chính + Yêu cầu mới),
@@ -50,9 +52,7 @@ function TopBar() {
       <div className="topbar-row">
         <Link href="/" className="brand">
           <SparkIcon size={22} className="brand-spark" />
-          <span>
-            P-113<span className="brand-more"> Agent Studio</span>
-          </span>
+          <PipeSmithWordmark />
         </Link>
         <div className="topbar-tools">
           <RoleChip />
@@ -123,6 +123,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { auth, user, guest } = useApp();
   // Trang công khai: đăng nhập, /demo (tự bật chế độ khách rồi về trang chủ), /docs (giới thiệu dự án)
   const onPublic = ["/login", "/demo", "/docs"].some((path) => pathname.startsWith(path));
+  const segments = pathname.split("/");
+  const onRunDetail = segments[1] === "runs" && Boolean(segments[2]) && segments[2] !== "new";
   const navItems = useNavItems(user?.role ?? "engineer");
 
   // Mọi trang (trừ trang công khai) cần phiên; hết phiên → về đăng nhập, quay lại đúng trang sau khi đăng nhập
@@ -155,6 +157,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Footer />
       </div>
       <BottomNav items={navItems} isActive={(href) => isActive(pathname, href)} canCreate={user?.role === "engineer"} />
+      {!onRunDetail && <PipCompanion guest={guest} />}
     </div>
   );
 }

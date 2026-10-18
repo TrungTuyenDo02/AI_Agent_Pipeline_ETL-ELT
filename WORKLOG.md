@@ -144,9 +144,14 @@
 | TrungTuyenDo02 | Trang `/docs` công khai, tiến độ đọc từ `lib/projectStatus.ts`, liên kết Tài liệu | ✅ Done | Mở được khi chưa đăng nhập; ý dài nhất 54 từ; đổi 2 mục → thanh 1/10 đúng; CI 1205 đạt | — |
 | TrungTuyenDo02 | Hoàn thiện tạm dừng/tiếp tục lần chạy (ADR 0016): sửa 2 test sai giả định, lỗi tham số PostgreSQL | ✅ Done | Pause API 17/17 trên SQLite; PostgreSQL 16 tạm 63/63; nút chỉ hiện cho người tạo; CI 1211 đạt | — |
 | TrungTuyenDo02 | Sửa lỗi review: run vá mất đầu vào khi tạm dừng xếp hàng; tiếp tục đồng thời vượt hạn mức | ✅ Done | 3 test tái hiện lỗi trước khi sửa; đầu vào bản vá lưu lúc tạo; kiểm hạn mức trong khóa hàng đợi; CI 1214 đạt | — |
-| Claude Code | Landing `/docs`: nhịp màu theo khối, màu nhấn phụ, khối Cách hoạt động, chữ gom vào `content/landing.ts` | ✅ Done | Tương phản AA mọi cặp; build đạt; chụp 1440px, 375px, sáng/tối không tràn; mỗi đoạn tối đa 2 dòng | — |
-| Claude Code | Trang đăng nhập: sửa chồng lớp, ba điểm nổi bật, demo động kèm bảng kết quả, số liệu phần trăm | ✅ Done | Số từ README (93%, 86%, 6/6, 92%, 7×); bảng là 3/30 dòng thật fct_daily_revenue của lần chạy mẫu; màn hẹp form lên trước | — |
-| Claude Code | Kiểm chữ giao diện: `npm run lint:text` tự viết, sửa viết hoa đầu nhãn, thêm vào CI | ✅ Done | Sửa 19 chuỗi, ghi `docs/spellcheck-report.md`; lint:text sạch; thuật ngữ thống nhất "duyệt" | — |
+| TrungTuyen | Hiển thị PipeSmith và linh vật Pip theo trạng thái lần chạy | ✅ Done | Frontend-check đạt; sáu tư thế; Galey SemiBold tải thật, kiểm laptop và điện thoại không tràn ngang | — |
+| TrungTuyen | Pip bám mép: kéo đổi góc, lưu vị trí, bong bóng và đường đi ngắn | ✅ Done | Frontend-check đạt; 26 kiểm tra Chromium đạt trên desktop, điện thoại và chế độ giảm chuyển động | — |
+| TrungTuyen | Hiện Pip ngay trên Trang chủ và danh sách, gồm chế độ khách | ✅ Done | Frontend-check đạt; 12 kiểm tra Chromium đạt; không trùng linh vật khi chuyển trang, ẩn/hiện giữ xuyên trang | — |
+| TrungTuyen | Đổi bong bóng Pip chế độ sáng sang xanh ngọc nhạt | ✅ Done | Build, định dạng và tương phản đạt (thấp nhất 4,76:1); kiểm sáng/tối, laptop và điện thoại đạt | — |
+| TrungTuyen | Landing `/docs`: nhịp màu theo khối, màu nhấn phụ, khối Cách hoạt động, chữ gom vào `content/landing.ts` | ✅ Done | Tương phản AA mọi cặp; build đạt; chụp 1440px, 375px, sáng/tối không tràn; mỗi đoạn tối đa 2 dòng | — |
+| TrungTuyen | Trang đăng nhập: sửa chồng lớp, ba điểm nổi bật, demo động kèm bảng kết quả, số liệu phần trăm | ✅ Done | Số từ README (93%, 86%, 6/6, 92%, 7×); bảng là 3/30 dòng thật fct_daily_revenue của lần chạy mẫu; màn hẹp form lên trước | — |
+| TrungTuyen | Kiểm chữ giao diện: `npm run lint:text` tự viết, sửa viết hoa đầu nhãn, thêm vào CI | ✅ Done | Sửa 19 chuỗi, ghi `docs/spellcheck-report.md`; lint:text sạch; thuật ngữ thống nhất "duyệt" | — |
+
 ---
 
 <!-- Format: copy khối trên cho mỗi ngày làm việc. Status: ✅ Done · 🔄 Doing · ⚠️ Chưa sửa · ⏳ Chưa làm -->

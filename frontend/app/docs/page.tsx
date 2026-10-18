@@ -6,6 +6,8 @@ import type { ReactNode } from "react";
 import { DocsSectionNav } from "@/components/docs/DocsSectionNav";
 import { DocsReveal, DocsThemeToggle } from "@/components/docs/DocsTools";
 import { Rich } from "@/components/docs/Rich";
+import { PipeSmithWordmark } from "@/components/PipeSmithWordmark";
+import { PipSprite } from "@/components/PipSprite";
 import { Icon, SparkIcon } from "@/components/icons";
 import { LANDING as L } from "@/content/landing";
 
@@ -91,9 +93,7 @@ export default function DocsPage() {
         <div className="docs-container docs-top-inner">
           <Link href="/" className="docs-brand">
             <SparkIcon size={22} className="brand-spark" />
-            <span>
-              P-113<span className="docs-brand-more"> Agent Studio</span>
-            </span>
+            <PipeSmithWordmark />
           </Link>
           <nav className="docs-top-links" aria-label={L.quickLinks}>
             <Link href="/login" className="btn docs-top-btn">
@@ -112,6 +112,13 @@ export default function DocsPage() {
             <div className="docs-hero-text">
               <p className="docs-kicker">{L.hero.kicker}</p>
               <h1 id="tong-quan-title">{L.hero.title}</h1>
+              <div className="pip-intro">
+                <PipSprite pose="notes" size={80} label="Pip đang ghi chép yêu cầu" />
+                <div className="pip-intro-copy">
+                  <strong>Pip, người bạn nhỏ của PipeSmith</strong>
+                  <p>Ghi chép, làm việc và chờ bạn duyệt từng bước.</p>
+                </div>
+              </div>
               <p className="docs-lead">
                 <Rich text={L.hero.lead} />
               </p>

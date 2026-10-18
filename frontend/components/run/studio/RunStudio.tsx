@@ -31,7 +31,7 @@ export function RunStudio() {
     </>
   );
   return (
-    <div className="studio-flow">
+    <div className="studio-flow" id="run-workspace" tabIndex={-1}>
       <StageGuide />
       {settled ? (
         <details className="card done-group">
