@@ -5685,9 +5685,9 @@ body:has(.login-page)::after {
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 18px;
-  padding: 48px clamp(28px, 5vw, 72px) 28px clamp(88px, 7vw, 120px);
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 28px clamp(28px, 5vw, 72px) 24px clamp(88px, 7vw, 120px);
   color: var(--login-hero-ink);
   isolation: isolate;
 }
@@ -5711,30 +5711,21 @@ body:has(.login-page)::after {
 }
 
 .login-hero h2 {
-  max-width: 18ch;
-  font-size: clamp(34px, 4.2vw, 54px);
+  max-width: 26ch;
+  margin: 4px 0 0;
+  font-size: clamp(24px, 2.4vw, 34px);
   font-weight: 800;
-  line-height: 1.08;
+  line-height: 1.15;
   letter-spacing: -0.025em;
   text-shadow: 0 2px 18px rgb(0 0 0 / 35%);
 }
 
 .login-hero-sub {
-  max-width: 56ch;
+  max-width: 72ch;
   margin: 0;
-  color: var(--login-hero-muted);
-  font-size: 16px;
-  line-height: 1.6;
-}
-
-.login-hero blockquote {
-  max-width: 52ch;
-  margin: 0;
-  padding-left: 14px;
-  border-left: 3px solid var(--login-hero-edge);
   color: var(--login-hero-muted);
   font-size: 14px;
-  font-style: italic;
+  line-height: 1.5;
 }
 
 .login-hero-foot {
@@ -5873,7 +5864,7 @@ body:has(.login-page)::after {
   }
 
   .login-hero h2 {
-    font-size: 30px;
+    font-size: 24px;
   }
 }
 
@@ -6210,281 +6201,8 @@ body:has(.login-page)::after {
   line-height: 1.4;
 }
 
-/* demo động ~8 giây: yêu cầu → code hiện từng dòng → chạy thử đạt → thẻ kết quả; cùng một chu kỳ nên luôn khớp nhau */
-.login-demo {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 0;
-  padding: 14px;
-  border: 1px solid var(--login-hero-edge);
-  border-radius: 16px;
-  background: var(--console-bg);
-  color: var(--console-text);
-}
-
-.login-demo-tag {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  padding: 1px 8px;
-  border: 1px solid var(--login-hero-edge);
-  border-radius: 999px;
-  color: var(--console-muted);
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.login-demo-request {
-  margin: 0;
-  padding-right: 110px;
-  font-size: 14px;
-  font-weight: 600;
-  animation: login-demo-request 8s ease-out infinite;
-}
-
-.login-demo-request span {
-  display: block;
-  margin-bottom: 2px;
-  color: var(--console-muted);
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.login-demo-code {
-  border-left: 2px solid var(--k-agent);
-  padding-left: 10px;
-  animation: login-demo-code 8s infinite;
-}
-
-.login-demo-file {
-  color: var(--console-muted);
-  font-family: var(--mono);
-  font-size: 11px;
-}
-
-.login-demo-code pre {
-  margin: 2px 0 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--console-text);
-  font-size: 12px;
-  line-height: 1.55;
-  white-space: pre-wrap;
-}
-
-.login-demo-foot {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: stretch;
-  gap: 10px;
-}
-
-/* bảng kết quả cuối (dòng thật của lần chạy mẫu): nhỏ, đủ để người xem tự kiểm */
-.login-demo-table {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-  padding: 8px 10px;
-  border: 1px solid var(--login-hero-edge);
-  border-radius: 12px;
-  animation: login-demo-table 8s infinite;
-}
-
-.login-demo-table-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 2px 8px;
-  font-size: 12px;
-}
-
-.login-demo-table-head code {
-  color: var(--console-muted);
-  font-family: var(--mono);
-  font-size: 11px;
-}
-
-.login-demo-table table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11.5px;
-  font-variant-numeric: tabular-nums;
-}
-
-.login-demo-table th,
-.login-demo-table td {
-  padding: 2px 4px;
-  border-bottom: 1px solid var(--login-hero-edge);
-  text-align: right;
-  white-space: nowrap;
-}
-
-.login-demo-table th:first-child,
-.login-demo-table td:first-child {
-  padding-left: 0;
-  text-align: left;
-}
-
-.login-demo-table th {
-  position: static;
-  background: transparent;
-  color: var(--console-muted);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: 0;
-}
-
-.login-demo-table small {
-  color: var(--console-muted);
-  font-size: 11px;
-}
-
-.login-demo-run {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--console-ok);
-  font-size: 12px;
-  font-weight: 700;
-  animation: login-demo-run 8s infinite;
-}
-
-.login-demo-result {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: 12px;
-  background: var(--login-hero-card-solid);
-  color: var(--login-hero-ink);
-  animation: login-demo-result 8s infinite;
-}
-
-.login-demo-result b {
-  color: var(--k-human);
-  font-size: 26px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.login-demo-result > span {
-  display: flex;
-  flex-direction: column;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.login-demo-result small {
-  color: var(--login-hero-muted);
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.35;
-}
-
-@keyframes login-demo-request {
-  0% {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  6%,
-  92% {
-    opacity: 1;
-    transform: none;
-  }
-
-  100% {
-    opacity: 0;
-  }
-}
-
-/* code hiện từng dòng (3 bước) */
-@keyframes login-demo-code {
-  0%,
-  12% {
-    clip-path: inset(0 0 100% 0);
-    animation-timing-function: steps(4, end);
-  }
-
-  40%,
-  92% {
-    clip-path: inset(0);
-    opacity: 1;
-  }
-
-  100% {
-    clip-path: inset(0);
-    opacity: 0;
-  }
-}
-
-@keyframes login-demo-run {
-  0%,
-  46% {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-
-  52%,
-  92% {
-    opacity: 1;
-    transform: none;
-  }
-
-  100% {
-    opacity: 0;
-  }
-}
-
-@keyframes login-demo-table {
-  0%,
-  54% {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  60%,
-  92% {
-    opacity: 1;
-    transform: none;
-  }
-
-  100% {
-    opacity: 0;
-  }
-}
-
-@keyframes login-demo-result {
-  0%,
-  64% {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  72%,
-  92% {
-    opacity: 1;
-    transform: none;
-  }
-
-  100% {
-    opacity: 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .canvas-node,
-  .login-demo-request,
-  .login-demo-code,
-  .login-demo-run,
-  .login-demo-table,
-  .login-demo-result {
+  .canvas-node {
     animation: none;
   }
 }
@@ -6504,15 +6222,6 @@ body:has(.login-page)::after {
   }
 
   .canvas-points {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .login-demo-request {
-    padding-right: 0;
-    padding-top: 22px;
-  }
-
-  .login-demo-foot {
     grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -313,11 +313,10 @@ export default function LoginPage() {
         </div>
         <h2>{t.heroTitle}</h2>
         <p className="login-hero-sub">{t.heroSub}</p>
-        <blockquote>{t.quote}</blockquote>
         <div className="pip-intro">
           <PipSprite
             pose="idle"
-            size={72}
+            size={48}
             label={lang === "vi" ? "Pip, chú mèo pixel của PipeSmith" : "Pip, PipeSmith's pixel cat"}
           />
           <div className="pip-intro-copy">
