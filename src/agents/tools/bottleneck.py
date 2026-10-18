@@ -117,7 +117,7 @@ def analyze_bottlenecks(workspace: Path, db: Path, sandbox: dict, top_n: int, bu
     return PerfReport(
         measured=True,
         model_total_ms=total,
-        pipeline_wall_ms=sandbox.get("wall_ms"),
+        dbt_wall_ms=sandbox.get("wall_ms"),
         analysis_ms=round((time.perf_counter() - start) * 1000, 3),
         top_n=top_n,
         findings=findings,

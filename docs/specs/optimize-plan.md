@@ -91,3 +91,12 @@ Không đụng các file trang đăng nhập đang sửa dở (`login/`, `global
 - **Chi phí**: chỉ số DAG với LLM thật cần chạy golden agent bằng LLM thật. Trước khi chạy sẽ báo số tiền ước tính; nếu không
   thì chỉ báo số mock và ghi rõ.
 - **Kích thước TPC-H**: sf 0.1 (khoảng 1 phút) hay sf 1 (sát thực tế hơn, khoảng 300 MB)?
+
+## Trạng thái bước 5 (2026-10-18)
+
+- Đã làm theo quyết định của chủ dự án: `review_gate` ở backend (3 trạng thái, endpoint Duyệt chặn 409), `spread_ms` = IQR,
+  tách tổng model / dbt invocation / DAG (DAG "chưa đo"), 3 ca demo trong chế độ khách (`mau-cho-duyet` có bản sửa,
+  `mau-giu-nguyen`, `mau-checkpoint-cu`). Không đụng file đăng nhập và README đang sửa dở.
+- Tiếp theo: bước 2 (eval) theo mục "Bước 2" ở trên, chạy bằng mock; TPC-H mặc định sf 0.1 (cho phép `--sf 1`, dùng lại file
+  `data/tpch_sf<sf>.duckdb` đã tải); tỷ lệ DAG qua lần đầu ở mock ghi "không đánh giá năng lực LLM"; `--repeat 2` lệch kết luận
+  → "kết quả chưa ổn định".

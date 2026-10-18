@@ -270,7 +270,7 @@ def explain_outline(db_path: Path, sql: str) -> str:
 
 
 def benchmark_query(db_path: Path, sql: str, runs: int) -> QueryMetrics:
-    """Đo thời gian: 1 lần khởi động + `runs` lần, lấy trung vị (mili giây)."""
+    """Đo thời gian: 1 lần khởi động + `runs` lần, lấy trung vị và IQR (Q3 − Q1, mili giây; cần ≥ 2 lần đo)."""
     timings: list[float] = []
     with connect_read(db_path) as con:
         con.execute(sql).fetchall()
@@ -279,7 +279,11 @@ def benchmark_query(db_path: Path, sql: str, runs: int) -> QueryMetrics:
             con.execute(sql).fetchall()
             timings.append((time.perf_counter() - start) * 1000)
         peak_mb = _peak_buffer_mb(con, sql)
-    return QueryMetrics(median_ms=round(statistics.median(timings), 3), runs=runs, peak_memory_mb=peak_mb)
+    q1, _, q3 = statistics.quantiles(timings, n=4, method="inclusive") if runs >= 2 else (None, None, None)
+    spread = round(q3 - q1, 3) if q1 is not None and q3 is not None else None
+    return QueryMetrics(
+        median_ms=round(statistics.median(timings), 3), runs=runs, peak_memory_mb=peak_mb, spread_ms=spread
+    )
 
 
 def _peak_buffer_mb(con: duckdb.DuckDBPyConnection, sql: str) -> float | None:

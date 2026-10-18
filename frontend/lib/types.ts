@@ -161,6 +161,69 @@ export interface QueryMetrics {
   median_ms: number;
   runs: number;
   peak_memory_mb?: number | null;
+  /** Độ phân tán IQR (Q3 − Q1, ms) của các lần đo; thiếu = "chưa đo" (dữ liệu cũ). */
+  spread_ms?: number | null;
+}
+
+/** Số đo một model từ artifact dbt (`run_results.json`); null = artifact không có. */
+export interface ModelTiming {
+  model: string;
+  status: string;
+  compile_ms?: number | null;
+  execute_ms?: number | null;
+  rows?: number | null;
+  materialized?: string;
+}
+
+/** Một phát hiện điểm nghẽn: hiện tượng + bằng chứng (đã đo) → giả thuyết + bước tiếp (chưa kiểm chứng). */
+export interface Bottleneck {
+  model: string;
+  rank: number;
+  execute_ms?: number | null;
+  analyzed: boolean;
+  operator?: string;
+  phenomenon?: string;
+  evidence?: string[];
+  hypothesis?: string;
+  next_step?: string;
+  unknown?: string;
+}
+
+export interface PerfReport {
+  measured: boolean;
+  /** Tổng thời gian execute các model (không phải thời gian thực). */
+  model_total_ms?: number | null;
+  /** Thời gian thực của lệnh `dbt build` (một invocation). */
+  dbt_wall_ms?: number | null;
+  /** Thời gian thực của cả DAG Airflow; null = chưa đo (chưa chạy Airflow thật). */
+  dag_wall_ms?: number | null;
+  analysis_ms?: number;
+  top_n?: number;
+  findings?: Bottleneck[];
+  note?: string;
+}
+
+export interface ReviewRecord {
+  reviewer: string;
+  decision: "approve" | "reject";
+  note: string;
+  decided_at: string;
+}
+
+export type GateStatus = "passed" | "failed" | "unverified";
+
+export interface GateCheck {
+  id: string;
+  name: string;
+  status: GateStatus;
+  reason: string;
+}
+
+/** Cổng duyệt do backend tính (endpoint Duyệt kiểm lại cùng logic). Thiếu = API cũ → coi là chưa kiểm chứng. */
+export interface ReviewGate {
+  passed: boolean;
+  checks: GateCheck[];
+  extra: GateCheck[];
 }
 
 export interface Optimization {
@@ -177,6 +240,7 @@ export interface Optimization {
   llm_cost_usd?: number;
   explanation?: string;
   warehouse_hints?: string[];
+  bottlenecks?: PerfReport | null;
 }
 
 export interface Sandbox {
@@ -188,6 +252,9 @@ export interface Sandbox {
   models_total?: number;
   tests_ok?: number;
   tests_total?: number;
+  dbt_invocation?: string;
+  model_timings?: ModelTiming[] | null;
+  wall_ms?: number | null;
 }
 
 export interface AnsweredQuestion {
@@ -219,6 +286,9 @@ export interface RunDetail {
   value_filters?: ValueFilter[];
   reconciliation?: RowReconciliation[];
   drift?: RunDrift;
+  review_gate?: ReviewGate;
+  /** Lịch sử duyệt J2 (người duyệt, thời điểm, quyết định, ghi chú). */
+  reviews?: ReviewRecord[];
 }
 
 /** Mục 8: một đề xuất sửa do code dựng (Reviewer quyết, agent không tự áp dụng). */

@@ -10,6 +10,7 @@ import { ReviewGuide } from "../guide/Guide";
 import { Card, Empty, ErrorBox, Loading } from "../ui";
 import { DecisionForm } from "./DecisionForm";
 import { EvidencePanel } from "./EvidencePanel";
+import { ReviewGateCard } from "./ReviewGateCard";
 import { CostFigures, OptimizationFigures } from "./ReviewFigures";
 import { useRun } from "./RunContext";
 
@@ -254,6 +255,7 @@ export function ReviewScreen() {
   return (
     <>
       <ReviewGuide />
+      <ReviewGateCard />
       <EvidencePanel />
       <div className="grid-2 review-top">
         <div className="decision">

@@ -172,3 +172,15 @@
 - Sửa kèm: `eval/run_extract.py` mở SQLite bằng `with sqlite3.connect(...)` (chỉ commit, không đóng); trên Windows file còn bị khóa
   khi dọn thư mục tạm nên script thoát mã 1 dù 21/21 ca đạt. Đổi sang `closing(...)` + `commit()`; lỗi có từ trước, lộ ra khi thứ
   tự thu gom bộ nhớ thay đổi.
+
+### 2026-10-18 — Optimize.md bước 5: hiển thị kết quả, cổng duyệt 3 trạng thái
+
+- Làm gì: `src/agents/review_gate.py` (V) tính 4 kiểm tra bắt buộc với trạng thái đạt / không đạt / chưa kiểm chứng (thiếu bằng
+  chứng không tính là đạt); API trả `review_gate` + `reviews`, endpoint Duyệt chặn 409 cùng logic. `QueryMetrics.spread_ms` = IQR;
+  optimizer chỉ kết luận nhanh hơn khi có IQR của cả hai bản và chênh lệch vượt IQR. Thời gian tách: tổng model, `dbt_wall_ms`
+  (một invocation), `dag_wall_ms` (chưa đo). Web: bảng thời gian mọi model, thẻ điểm nghẽn (Đã đo / Giả thuyết / Chưa kiểm
+  chứng), IQR trước/sau, khối "Kiểm tra trước khi duyệt" + lịch sử duyệt, nút Duyệt tắt khi cổng chưa đạt. Chế độ khách có 3 ca:
+  có bản sửa, giữ nguyên, checkpoint cũ.
+- Vì sao: Optimize.md bước 5 và quyết định của chủ dự án (gate ở backend, IQR, không coi thiếu bằng chứng là đạt).
+- Kết quả: test cổng 3 trạng thái, test gọi thẳng API Duyệt (dbt test lỗi, checkpoint cũ thiếu bằng chứng → 409, duyệt thật sau
+  đó ghi người duyệt + thời điểm), test luật IQR; frontend lint, format, typecheck, contrast, lint:text, build đạt.

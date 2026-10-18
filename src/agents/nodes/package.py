@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 
 from src.agents.nodes.common import sandbox_db
+from src.agents.review_gate import review_gate
 from src.agents.state import PipelineState
 from src.agents.tools.bottleneck import analyze_bottlenecks
 from src.agents.tools.sql_tools import value_filters
@@ -58,37 +59,19 @@ def _run_items(state: PipelineState) -> list[MeasuredItem]:
     ]
 
 
-def required_checks(state: PipelineState) -> list[tuple[str, bool]]:
-    """4 kiểm tra bắt buộc trước khi duyệt (đọc từ state: chạy được với checkpoint cũ). Mục 4 lúc chạy thật = test do
-    Testgen viết độc lập từ đặc tả + đối soát số dòng + kiểu cột theo đặc tả (đều trong V2); đáp án cố định chỉ có ở eval."""
-    sandbox, safety = state.get("sandbox") or {}, state.get("safety") or {}
-    ran = bool(sandbox.get("passed"))
-    files = state.get("code_files") or {}
-    return [
-        ("Model dbt chạy được trên sandbox", ran and 0 < sandbox.get("models_ok", 0) == sandbox.get("models_total", 0)),
-        (
-            "DAG nạp được, phụ thuộc đúng, cấu hình hợp lệ, đích sandbox (kiểm AST)",
-            bool(safety.get("passed")) and any(p.startswith("dags/") for p in files),
-        ),
-        ("dbt tests đạt", ran and 0 < sandbox.get("tests_ok", 0) == sandbox.get("tests_total", 0)),
-        ("Kết quả khớp kỳ vọng (test độc lập của Testgen, đối soát, kiểu cột)", ran and bool(state.get("test_files"))),
-    ]
-
-
-def required_failures(state: PipelineState) -> list[str]:
-    """Kiểm tra bắt buộc chưa đạt (rỗng = được duyệt)."""
-    return [name for name, passed in required_checks(state) if not passed]
-
-
 def _required_items(state: PipelineState) -> list[MeasuredItem]:
-    items = [
-        MeasuredItem(node="Kiểm tra bắt buộc", check=name, result="Đạt" if passed else "Không đạt", passed=passed)
-        for name, passed in required_checks(state)
-    ]
-    note = "chưa kiểm chứng (môi trường không có Airflow; chỉ kiểm AST)"
+    """Cổng duyệt vào bằng chứng: chưa kiểm chứng → passed=None (không tính là đạt)."""
+    gate = review_gate(state)
+    label = {"passed": "Đạt", "failed": "Không đạt", "unverified": "Chưa kiểm chứng"}
     return [
-        *items,
-        MeasuredItem(node="Bổ sung", check="Airflow chạy thật trên sandbox, chạy lại không nhân đôi", result=note),
+        MeasuredItem(
+            node=node,
+            check=c.name,
+            result=f"{label[c.status]}: {c.reason}",
+            passed={"passed": True, "failed": False}.get(c.status),
+        )
+        for node, items in (("Kiểm tra bắt buộc", gate.checks), ("Bổ sung", gate.extra))
+        for c in items
     ]
 
 
@@ -217,7 +200,8 @@ def _perf_items(perf: dict | None) -> list[MeasuredItem]:
         return [MeasuredItem(node="Đo hiệu năng", check="Thời gian từng model", result="chưa đo")] if perf else []
     items = [
         MeasuredItem(node="Đo hiệu năng", check="Tổng thời gian các model", result=_ms(perf.get("model_total_ms"))),
-        MeasuredItem(node="Đo hiệu năng", check="Thời gian thực cả pipeline", result=_ms(perf.get("pipeline_wall_ms"))),
+        MeasuredItem(node="Đo hiệu năng", check="Thời gian lệnh dbt build", result=_ms(perf.get("dbt_wall_ms"))),
+        MeasuredItem(node="Đo hiệu năng", check="Thời gian toàn DAG (Airflow)", result=_ms(perf.get("dag_wall_ms"))),
     ]
     for f in perf.get("findings", []):
         result = (

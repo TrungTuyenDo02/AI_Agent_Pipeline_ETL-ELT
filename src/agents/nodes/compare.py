@@ -128,6 +128,17 @@ def decide(before: QueryMetrics, after: QueryMetrics, llm_cost_usd: float) -> tu
     if gain < settings.opt_min_gain_pct:
         change = f"chậm hơn {-gain}%" if gain < 0 else f"chỉ nhanh hơn {gain}%"
         return "skipped", f"Bản viết lại {change} (ngưỡng {settings.opt_min_gain_pct}%): giữ nguyên bản gốc.", gain
+    if before.spread_ms is None or after.spread_ms is None:
+        reason = "Thiếu độ phân tán (IQR) của bản gốc hoặc bản sửa: chưa đủ bằng chứng kết luận nhanh hơn; giữ nguyên."
+        return "skipped", reason, gain
+    noise = max(before.spread_ms, after.spread_ms)
+    if before.median_ms - after.median_ms <= noise:
+        diff = round(before.median_ms - after.median_ms, 3)
+        return (
+            "skipped",
+            f"Chênh {diff} ms nằm trong độ phân tán đo được (IQR {noise} ms): chưa kết luận nhanh hơn.",
+            gain,
+        )
     saved_s = (before.median_ms - after.median_ms) / 1000 * settings.opt_runs_per_month
     saved_usd = compute_cost_usd(saved_s, settings.opt_compute_cost_per_hour_usd)
     if llm_cost_usd > 0 and saved_usd * 12 < llm_cost_usd:

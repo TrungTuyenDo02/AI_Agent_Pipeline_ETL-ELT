@@ -35,6 +35,9 @@ class QueryMetrics(BaseModel):
     median_ms: float
     runs: int
     peak_memory_mb: float | None = None
+    # Độ phân tán IQR = Q3 − Q1 (statistics.quantiles n=4, method="inclusive") của `runs` lần đo sau 1 lần khởi động.
+    # None = chưa đo (dữ liệu cũ hoặc runs < 2): không đủ bằng chứng để kết luận nhanh hơn.
+    spread_ms: float | None = None
 
 
 class DatasetCheck(BaseModel):
@@ -67,7 +70,8 @@ class PerfReport(BaseModel):
     model_total_ms: float | None = Field(
         default=None, description="Tổng thời gian execute các model (không phải thời gian thực)"
     )
-    pipeline_wall_ms: float | None = Field(default=None, description="Thời gian thực của cả lệnh dbt build")
+    dbt_wall_ms: float | None = Field(default=None, description="Thời gian thực của một lệnh dbt build (invocation)")
+    dag_wall_ms: float | None = Field(default=None, description="Thời gian thực của cả DAG Airflow; None = chưa đo")
     analysis_ms: float = Field(default=0.0, description="Chi phí phân tích (EXPLAIN ANALYZE), 0 token")
     top_n: int = 0
     findings: list[Bottleneck] = Field(default_factory=list)
@@ -93,6 +97,23 @@ class OptimizationReport(BaseModel):
         default_factory=list, description="Gợi ý chỉ áp dụng cho kho khác, không thực thi"
     )
     bottlenecks: PerfReport | None = None  # tùy chọn: checkpoint cũ không có
+
+
+class GateCheck(BaseModel):
+    """Một kiểm tra của cổng duyệt: đạt / không đạt / chưa kiểm chứng (thiếu bằng chứng, không tính là đạt)."""
+
+    id: str
+    name: str
+    status: Literal["passed", "failed", "unverified"]
+    reason: str = ""
+
+
+class ReviewGate(BaseModel):
+    """Cổng duyệt J2: chỉ mở khi cả 4 kiểm tra bắt buộc đạt. `extra` là kiểm tra bổ sung, không chặn duyệt."""
+
+    passed: bool
+    checks: list[GateCheck]
+    extra: list[GateCheck] = Field(default_factory=list)
 
 
 class ReviewDecision(BaseModel):

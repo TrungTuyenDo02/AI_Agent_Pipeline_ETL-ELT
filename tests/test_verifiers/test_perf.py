@@ -5,7 +5,8 @@ from pathlib import Path
 
 import duckdb
 
-from src.agents.nodes.package import package_node, required_failures
+from src.agents.nodes.package import package_node
+from src.agents.review_gate import gate_problems, review_gate
 from src.agents.tools.bottleneck import analyze_bottlenecks
 from src.agents.tools.dbt_tools import read_archived_run, read_run_results
 from src.agents.tools.duckdb_tools import explain_outline
@@ -78,7 +79,9 @@ def test_bottleneck_report_finds_known_model_and_operator(tmp_path: Path):
     first = report.findings[0]
     assert (first.rank, first.model, first.analyzed) == (1, "slow_range", True)
     assert "JOIN" in first.operator and first.hypothesis and first.next_step and first.unknown
-    assert report.model_total_ms == 100.0 and report.pipeline_wall_ms == 70.0  # hai con số tách biệt, không cộng dồn
+    assert (
+        report.model_total_ms == 100.0 and report.dbt_wall_ms == 70.0 and report.dag_wall_ms is None
+    )  # hai con số tách biệt, không cộng dồn
     assert report.analysis_ms > 0
     text = json.dumps(report.model_dump(), ensure_ascii=False)
     assert "'3'" not in text and "a.g = 3" not in text and "i > 100" not in text  # không mang hằng số/SQL vào báo cáo
@@ -118,14 +121,25 @@ def _passed_state(tmp_path: Path) -> dict:
     }
 
 
-def test_required_checks_gate_approval(tmp_path: Path):
+def test_review_gate_three_states(tmp_path: Path):
     state = _passed_state(tmp_path)
-    assert required_failures(state) == []
-    assert required_failures({}) and len(required_failures({})) == 4  # checkpoint cũ/thiếu số liệu: không cho duyệt
+    gate = review_gate(state)
+    assert gate.passed and gate_problems(state) == [] and len(gate.checks) == 4
+    assert {c.id: c.status for c in gate.extra} == {"airflow_run": "unverified", "optimization": "passed"}
+    empty = review_gate({})  # checkpoint cũ/thiếu bằng chứng: chưa kiểm chứng, không tự coi là đạt
+    assert not empty.passed and {c.status for c in empty.checks} == {"unverified"}
     failing = {**state, "sandbox": {**state["sandbox"], "tests_ok": 3}}
-    assert required_failures(failing) == ["dbt tests đạt"]
+    assert [c.id for c in review_gate(failing).checks if c.status == "failed"] == ["dbt_tests"]
+    assert "3/4 test đạt" in gate_problems(failing)[0]
     no_dag = {**state, "code_files": {"models/marts/m.sql": ""}}
-    assert any("DAG" in f for f in required_failures(no_dag))
+    assert {c.id: c.status for c in review_gate(no_dag).checks}["dag"] == "failed"
+    no_tests = {**state, "test_files": {}}
+    assert {c.id: c.status for c in review_gate(no_tests).checks}["expected"] == "failed"
+    no_safety = {k: v for k, v in state.items() if k != "safety"}
+    assert {c.id: c.status for c in review_gate(no_safety).checks}["dag"] == "unverified"
+    applied = {**state, "optimization": {**state["optimization"], "decision": "applied", "equivalence": []}}
+    assert {c.id: c.status for c in review_gate(applied).extra}["optimization"] == "unverified"
+    assert review_gate(applied).passed  # bổ sung không chặn duyệt
 
 
 def test_package_attaches_bottlenecks_and_separates_measured_from_unverified(tmp_path: Path):
@@ -135,11 +149,12 @@ def test_package_attaches_bottlenecks_and_separates_measured_from_unverified(tmp
     assert update["optimization"]["decision"] == "skipped"  # không có bản sửa vẫn có báo cáo
     measured = {(m["node"], m["check"]): m for m in update["evidence"]["measured"]}
     assert measured[("Đo hiệu năng", "Tổng thời gian các model")]["result"] == "100.0 ms"
-    assert measured[("Đo hiệu năng", "Thời gian thực cả pipeline")]["result"] == "70.0 ms"
+    assert measured[("Đo hiệu năng", "Thời gian lệnh dbt build")]["result"] == "70.0 ms"
+    assert measured[("Đo hiệu năng", "Thời gian toàn DAG (Airflow)")]["result"] == "chưa đo"
     assert all(m["passed"] for (node, _), m in measured.items() if node == "Kiểm tra bắt buộc")
-    assert (
-        "chưa kiểm chứng" in measured[("Bổ sung", "Airflow chạy thật trên sandbox, chạy lại không nhân đôi")]["result"]
-    )
+    assert [m["passed"] for m in update["evidence"]["measured"] if m["node"] == "Kiểm tra bắt buộc"] == [True] * 4
+    airflow = measured[("Bổ sung", "Airflow chạy thật trên sandbox, chạy lại không nhân đôi dữ liệu")]
+    assert airflow["result"].startswith("Chưa kiểm chứng") and airflow["passed"] is None
     assert not any(perf["findings"][0]["hypothesis"] in m["result"] for m in update["evidence"]["measured"])
 
 

@@ -279,7 +279,9 @@ Trên GitHub: tab **Actions → Eval → Run workflow** (chạy phần không c�
   `sandbox.model_timings`; bản đầy đủ kèm SQL đã biên dịch ở `pipelines/workspaces/<run_id>/target/runs/<invocation_id>.json`.
 - Báo cáo điểm nghẽn: `optimization.bottlenecks` (top `PERF_TOP_N` model, giới hạn `PERF_ANALYZE_SEC` giây). "Tổng thời gian các
   model" và "thời gian thực cả pipeline" là hai con số khác nhau, không cộng dồn.
-- Nút duyệt bị từ chối (409) khi một trong 4 kiểm tra bắt buộc không đạt; lý do ghi trong thông báo lỗi. Airflow chạy thật hiện
+- Ba con số thời gian tách biệt: tổng các model, một lệnh `dbt build` (invocation), cả DAG Airflow (hiện "chưa đo").
+- Nút duyệt tắt và API Duyệt trả 409 khi một trong 4 kiểm tra bắt buộc không đạt hoặc chưa kiểm chứng; lý do ghi trong
+  thông báo lỗi và ở khối "Kiểm tra trước khi duyệt" của màn Reviewer. Airflow chạy thật hiện
   ghi "chưa kiểm chứng" (máy không cài Airflow, DAG chỉ kiểm bằng AST).
 
 ## 5. Bật LLM thật (khi có khóa)

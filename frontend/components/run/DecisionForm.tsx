@@ -8,6 +8,7 @@ import { useApp, useHasRole } from "../AppContext";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { RoleNote } from "../Topbar";
 import { Card, ErrorBox } from "../ui";
+import { gateProblems } from "./ReviewGateCard";
 import { useRun } from "./RunContext";
 
 export function DecisionForm() {
@@ -21,6 +22,7 @@ export function DecisionForm() {
   if (!detail) return null;
   const blocked = Boolean(detail.drift?.recheck?.blocked); // cấu trúc nguồn đã đổi sau lúc sinh code
   const waiting = detail.record.status === "waiting_review" && !detail.busy && reviewer;
+  const gate = gateProblems(detail); // kiểm tra bắt buộc chưa đạt / chưa kiểm chứng: không cho duyệt (API cũng chặn)
 
   async function decide(decision: "approve" | "reject") {
     setSending(true);
@@ -66,6 +68,19 @@ export function DecisionForm() {
             </span>
           </div>
         )}
+        {detail.record.status === "waiting_review" && gate.length > 0 && (
+          <div className="alert danger" role="alert">
+            <span>
+              Chưa duyệt được: kiểm tra bắt buộc chưa đạt hoặc chưa kiểm chứng.
+              <ul className="plain">
+                {gate.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+              Có thể từ chối kèm ghi chú để agent sửa.
+            </span>
+          </div>
+        )}
         {detail.record.status === "waiting_review" && <RoleNote need="reviewer" />}
         <label htmlFor="review-note">Ghi chú (bắt buộc khi từ chối — agent sẽ sửa theo ghi chú)</label>
         <textarea
@@ -90,7 +105,7 @@ export function DecisionForm() {
           <button
             type="button"
             className="btn ok"
-            disabled={!waiting || sending || blocked}
+            disabled={!waiting || sending || blocked || gate.length > 0}
             onClick={() => setConfirming(true)}
           >
             Duyệt

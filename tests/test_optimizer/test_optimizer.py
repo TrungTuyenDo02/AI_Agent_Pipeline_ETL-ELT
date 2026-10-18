@@ -50,17 +50,25 @@ def test_compare_results_detects_differences(other: QueryResult, message: str):
 
 
 @pytest.mark.parametrize(
-    ("before", "after", "cost", "decision"),
-    [(100.0, 50.0, 0.0, "applied"), (100.0, 95.0, 0.0, "skipped"), (100.0, 50.0, 1000.0, "skipped")],
+    ("before", "after", "cost", "spread", "decision"),
+    [
+        (100.0, 50.0, 0.0, 2.0, "applied"),
+        (100.0, 95.0, 0.0, 2.0, "skipped"),
+        (100.0, 50.0, 1000.0, 2.0, "skipped"),
+        (100.0, 50.0, 0.0, None, "skipped"),  # thiếu IQR: không đủ bằng chứng kết luận nhanh hơn
+        (100.0, 50.0, 0.0, 60.0, "skipped"),  # chênh lệch nằm trong độ phân tán đo được
+    ],
 )
-def test_decide_gate(before: float, after: float, cost: float, decision: str):
-    result, reason, gain = decide(QueryMetrics(median_ms=before, runs=3), QueryMetrics(median_ms=after, runs=3), cost)
+def test_decide_gate(before: float, after: float, cost: float, spread: float | None, decision: str):
+    metrics = [QueryMetrics(median_ms=ms, runs=3, spread_ms=spread) for ms in (before, after)]
+    result, reason, gain = decide(*metrics, cost)
     assert result == decision and reason
     assert gain == pytest.approx(100 * (before - after) / before, abs=0.1)
 
 
 def _candidate(sql: str, before_ms: float) -> dict:
-    return {"original_sql": ORIGINAL, "sql": sql, "before": {"median_ms": before_ms, "runs": 3}, "attempt": 1}
+    before = {"median_ms": before_ms, "runs": 3, "spread_ms": 0.0}
+    return {"original_sql": ORIGINAL, "sql": sql, "before": before, "attempt": 1}
 
 
 def test_benchmark_reports_peak_memory(datasets: dict[str, str]):
@@ -69,6 +77,8 @@ def test_benchmark_reports_peak_memory(datasets: dict[str, str]):
     metrics = benchmark_query(Path(datasets["large"]), ORIGINAL, runs=2)
     assert metrics.median_ms > 0 and metrics.runs == 2
     assert metrics.peak_memory_mb is not None and metrics.peak_memory_mb > 0
+    assert metrics.spread_ms is not None and metrics.spread_ms >= 0  # IQR = Q3 − Q1
+    assert benchmark_query(Path(datasets["small"]), ORIGINAL, runs=1).spread_ms is None  # 1 lần đo: chưa đo được IQR
 
 
 def test_equivalent_rewrite_is_measured_and_decided(datasets: dict[str, str]):

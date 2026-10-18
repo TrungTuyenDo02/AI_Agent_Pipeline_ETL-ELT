@@ -164,3 +164,46 @@ async def test_status_reports_review_mode(client: AsyncClient):
 async def test_error_book_listing(client: AsyncClient):
     response = await client.get(f"{API}/errors")
     assert response.status_code == 200 and isinstance(response.json(), list)
+
+
+@pytest.mark.slow
+async def test_review_gate_blocks_direct_approve_api(
+    client: AsyncClient, login, seeded_sources: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Cổng duyệt do backend tính: gọi thẳng API Duyệt khi kiểm tra bắt buộc không đạt / chưa kiểm chứng → 409, không ghi duyệt."""
+    from src.agents import runner
+
+    run_id = await _create_and_answer(client)
+    detail = (await client.get(f"{API}/runs/{run_id}")).json()
+    gate = detail["review_gate"]
+    assert gate["passed"] and [c["id"] for c in gate["checks"]] == ["model_run", "dag", "dbt_tests", "expected"]
+    assert {c["id"]: c["status"] for c in gate["extra"]}["airflow_run"] == "unverified"
+    assert detail["sandbox"]["model_timings"] and detail["optimization"]["bottlenecks"]["measured"]
+    assert detail["reviews"] == []
+    real = runner.get_values(run_id)
+    reviewer = await login("reviewer")
+    tampered = {
+        "failed": {**real, "sandbox": {**real["sandbox"], "tests_ok": real["sandbox"]["tests_total"] - 1}},
+        "legacy": {k: v for k, v in real.items() if k != "test_files"},  # checkpoint cũ thiếu bằng chứng
+    }
+    for case, values in tampered.items():
+        monkeypatch.setattr(runner, "get_values", lambda _run_id, values=values: values)
+        shown = (await client.get(f"{API}/runs/{run_id}")).json()["review_gate"]
+        status = {c["id"]: c["status"] for c in shown["checks"]}
+        assert not shown["passed"]
+        assert status["dbt_tests" if case == "failed" else "expected"] == (
+            "failed" if case == "failed" else "unverified"
+        )
+        blocked = await reviewer.post(f"{API}/runs/{run_id}/review", json={"decision": "approve"})
+        assert blocked.status_code == 409 and "kiểm tra bắt buộc" in blocked.json()["detail"], case
+    monkeypatch.undo()
+    assert (await client.get(f"{API}/runs/{run_id}")).json()["record"]["status"] == "waiting_review"
+    assert (await reviewer.post(f"{API}/runs/{run_id}/review", json={"decision": "approve"})).status_code == 202
+    get_jobs().wait(run_id)
+    reviews = (await client.get(f"{API}/runs/{run_id}")).json()["reviews"]
+    assert (
+        len(reviews) == 1
+        and reviews[0]["decision"] == "approve"
+        and reviews[0]["reviewer"]
+        and reviews[0]["decided_at"]
+    )

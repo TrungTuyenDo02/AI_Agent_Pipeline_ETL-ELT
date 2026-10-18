@@ -11,10 +11,18 @@
   (chưa kiểm chứng). Giả thuyết không vào `evidence.measured`. Lỗi → "chưa phân tích được", không làm hỏng lần chạy.
 - Báo hai con số tách biệt: tổng thời gian các model và thời gian thực của cả lệnh dbt.
 - Kế hoạch thực thi đưa cho LLM (`explain_outline`) đã che hằng số; báo cáo điểm nghẽn chỉ chứa tên toán tử, thời gian, số dòng.
-- 4 kiểm tra bắt buộc (model chạy, DAG, dbt tests, kết quả khớp kỳ vọng) chặn duyệt ở `runner.check_review` (API 409, CLI).
+- 4 kiểm tra bắt buộc (model chạy, DAG, dbt tests, kết quả khớp kỳ vọng) tính ở `src/agents/review_gate.py`, 3 trạng thái
+  `passed`/`failed`/`unverified`; thiếu bằng chứng (checkpoint cũ) = `unverified`, không tính là đạt. Cổng chặn duyệt ở
+  `runner.check_review` (API 409, CLI) và trả trong `GET /runs/{id}` (`review_gate`) để web tắt nút Duyệt.
   Lúc chạy thật, "khớp kỳ vọng" = test độc lập của Testgen + đối soát số dòng + kiểu cột; đáp án cố định chỉ có ở eval.
 
 ## Hợp đồng (chỉ thêm trường tùy chọn, checkpoint cũ vẫn đọc được)
 
 `SandboxResult.dbt_invocation/model_timings/wall_ms`, `ModelTiming`, `OptimizationReport.bottlenecks` (`PerfReport`, `Bottleneck`).
-Không đổi tên node, không thêm khóa state.
+`QueryMetrics.spread_ms` (IQR = Q3 − Q1, `statistics.quantiles(n=4, method="inclusive")`, cần ≥ 2 lần đo), `GateCheck`,
+`ReviewGate`; API thêm `review_gate`, `reviews`. Không đổi tên node, không thêm khóa state.
+
+## Kết luận nhanh hơn
+
+Chỉ `applied` khi đạt `OPT_MIN_GAIN_PCT` **và** có IQR của cả bản gốc lẫn bản sửa **và** chênh lệch trung vị lớn hơn IQR lớn
+nhất của hai bên. Thiếu IQR hoặc chênh trong độ phân tán → `skipped` (giữ bản gốc, ghi lý do).

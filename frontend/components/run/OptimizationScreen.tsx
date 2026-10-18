@@ -7,7 +7,12 @@ import { CodeDiff } from "../CodeDiff";
 import { SampleTag } from "../GuestBar";
 import { GuideNote } from "../guide/Guide";
 import { Card, Empty, PassMark } from "../ui";
+import { Bottlenecks, ModelTimings } from "./PerfPanels";
 import { useRun } from "./RunContext";
+
+function spread(value: number | null | undefined): string {
+  return value == null ? "chưa đo" : `${formatNumber(value)} ms`;
+}
 
 /** Thẻ so sánh Trước / Sau (CLAUDE.md yêu cầu 6): mọi số do code đo (V3), không do LLM nói. */
 function BeforeAfter({ report }: { report: Optimization }) {
@@ -52,6 +57,14 @@ function BeforeAfter({ report }: { report: Optimization }) {
               <td>Thời gian chạy (trung vị)</td>
               <td className="num">{before != null ? `${formatNumber(before)} ms` : "—"}</td>
               <td className="num">{after != null ? `${formatNumber(after)} ms` : "—"}</td>
+            </tr>
+            <tr>
+              <td>
+                Độ phân tán (IQR)
+                <small className="muted ba-note">Q3 − Q1 của các lần đo</small>
+              </td>
+              <td className="num">{spread(report.before?.spread_ms)}</td>
+              <td className="num">{report.after ? spread(report.after.spread_ms) : "—"}</td>
             </tr>
             <tr>
               <td>
@@ -126,7 +139,10 @@ function Findings({ report }: { report: Optimization }) {
       )}
       {report.warehouse_hints && report.warehouse_hints.length > 0 && (
         <div style={{ marginTop: 12 }}>
-          <h3>Gợi ý cho kho khác (không thực thi)</h3>
+          <h3>
+            Gợi ý cho kho khác (không thực thi) <span className="badge muted">Chưa kiểm chứng</span>
+          </h3>
+          <p className="small muted">Gợi ý partition/index không tính là lợi ích đã đạt và không tự áp dụng.</p>
           <ul className="plain muted">
             {report.warehouse_hints.map((hint) => (
               <li key={hint}>{hint}</li>
@@ -149,6 +165,7 @@ export function OptimizationScreen() {
         <Card title="Tối ưu query">
           <Empty>Chưa tới bước tối ưu (E4 chạy sau khi code qua sandbox).</Empty>
         </Card>
+        {detail.sandbox.model_timings?.length ? <ModelTimings sandbox={detail.sandbox} /> : null}
       </>
     );
   }
@@ -156,6 +173,10 @@ export function OptimizationScreen() {
     <>
       <GuideNote id="optimize" />
       <BeforeAfter report={report} />
+      <div className="grid-2">
+        <ModelTimings sandbox={detail.sandbox} perf={report.bottlenecks} />
+        <Bottlenecks perf={report.bottlenecks} />
+      </div>
       <div className="grid-2">
         <Equivalence report={report} />
         <Findings report={report} />
