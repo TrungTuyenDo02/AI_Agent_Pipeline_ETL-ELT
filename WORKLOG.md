@@ -151,6 +151,7 @@
 | TrungTuyen | Landing `/docs`: nhịp màu theo khối, màu nhấn phụ, khối Cách hoạt động, chữ gom vào `content/landing.ts` | ✅ Done | Tương phản AA mọi cặp; build đạt; chụp 1440px, 375px, sáng/tối không tràn; mỗi đoạn tối đa 2 dòng | — |
 | TrungTuyen | Trang đăng nhập: sửa chồng lớp, ba điểm nổi bật, demo động kèm bảng kết quả, số liệu phần trăm | ✅ Done | Số từ README (93%, 86%, 6/6, 92%, 7×); bảng là 3/30 dòng thật fct_daily_revenue của lần chạy mẫu; màn hẹp form lên trước | — |
 | TrungTuyen | Kiểm chữ giao diện: `npm run lint:text` tự viết, sửa viết hoa đầu nhãn, thêm vào CI | ✅ Done | Sửa 19 chuỗi, ghi `docs/spellcheck-report.md`; lint:text sạch; thuật ngữ thống nhất "duyệt" | — |
+| TrungTuyen | README: ảnh trang giới thiệu, đăng nhập; bảng màn hình và thao tác theo vai | ✅ Done | Ảnh chụp bản build 1440×900; nhãn nút đối chiếu với code; liên kết README kiểm bằng check_md_links | — |
 
 ---
 

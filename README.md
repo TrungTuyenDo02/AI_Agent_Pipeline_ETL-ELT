@@ -12,8 +12,10 @@ Tên hiển thị là **PipeSmith**, đồng hành cùng linh vật mèo pixel *
 
 Chụp ở chế độ mô phỏng (`LLM_PROVIDER=mock`), dữ liệu giả lập.
 
-| Duyệt kế hoạch (J1b), trước khi sinh code | Duyệt code: bằng chứng "Code đo \| LLM nói" |
+| Trang giới thiệu `/docs` (công khai) | Đăng nhập: điểm nổi bật, demo động, kết quả demo |
 |---|---|
+| ![Trang giới thiệu](docs/screenshots/web_landing.png) | ![Trang đăng nhập](docs/screenshots/web_login.png) |
+| **Duyệt kế hoạch (J1b), trước khi sinh code** | **Duyệt code: bằng chứng "Code đo \| LLM nói"** |
 | ![Duyệt kế hoạch](docs/screenshots/web_plan_review.png) | ![Duyệt code](docs/screenshots/web_review.png) |
 
 ## Vấn đề → Giải pháp
@@ -46,6 +48,9 @@ Nguyên tắc **J-E-V**: người **phán đoán** (J), agent **thực thi** (E)
 
 | Màn hình | Việc |
 |---|---|
+| **Giới thiệu** `/docs` (không cần đăng nhập) | Nhịp khối sáng/tối: hero, "Cách hoạt động" 4 bước (Yêu cầu → Sinh code → Chạy thử → Duyệt), demo, quy trình, kỹ thuật, công nghệ, hướng đi. Chữ ở `frontend/content/landing.ts` |
+| **Đăng nhập** `/login` | Form bên trái; bên phải 3 điểm nổi bật (An toàn, Có người duyệt, Tự tối ưu), demo động 8 giây kèm **Kết quả demo** (3/30 dòng thật của `fct_daily_revenue` từ lần chạy mẫu), luồng làm việc và 4 số đo lấy từ mục [Kết quả](#kết-quả). VI/EN, sáng/tối |
+| **Chế độ khách** `/demo` | Nút "Dùng thử với dữ liệu mẫu": đi trọn quy trình bằng dữ liệu dựng sẵn, có hướng dẫn từng bước, không gọi AI |
 | Lần chạy (J1, J1b, cứu hộ, duyệt J2) | Trả lời câu hỏi, duyệt kế hoạch (kèm thuật ngữ đã dùng, cảnh báo cấu trúc), duyệt code, xác nhận khi nguồn đổi cấu trúc |
 | **Nguồn dữ liệu** | Nguồn, phòng ban, độ nhạy cảm, mức AI được xem, nút "Kiểm tra lại cấu trúc"; tab **Từ điển nghiệp vụ** (Admin sửa) |
 | **Thay đổi cấu trúc** | Số đỏ ở chuông và tab, hình so sánh trước/sau, pipeline bị ảnh hưởng, "Tôi đã biết, dùng cấu trúc mới", kế hoạch bản vá (cái gì tự sửa, cái gì cần AI, cái gì cần bạn chọn) |
@@ -78,7 +83,18 @@ cd frontend && npm ci && cd ..      # một lần
 python demo/run_demo.py             # build + chạy; mở http://localhost:3000
 ```
 
-Trang đăng nhập giới thiệu luồng làm việc theo màu agent/code/người, các công cụ và 4 số đo; có nút VI/EN và sáng/tối. Hướng dẫn chạy và tài khoản demo nằm trong tài liệu bên dưới.
+Trang đăng nhập có ba điểm nổi bật, demo động kèm bảng kết quả thật của lần chạy mẫu, luồng làm việc theo màu agent/code/người và 4 số đo; có nút VI/EN và sáng/tối. Hướng dẫn chạy và tài khoản demo nằm trong tài liệu bên dưới.
+
+### Thao tác trên web
+
+| Vai | Làm gì |
+|---|---|
+| Người xem lần đầu | Mở `/docs` → **Trải nghiệm demo** (hoặc ở trang đăng nhập: **Dùng thử với dữ liệu mẫu**). Đi theo khung hướng dẫn; đổi vai Engineer/Reviewer ở dải trên cùng. Dữ liệu mẫu, không gọi AI |
+| Engineer | Đăng nhập → **Yêu cầu mới** → gõ một câu (nút **Thử ngay với ví dụ** điền sẵn) → **Bắt đầu ngay** → trả lời câu hỏi trắc nghiệm (**Gửi câu trả lời**) → xem kế hoạch → **Đồng ý, sinh code** hoặc **Yêu cầu sửa kế hoạch** → chờ chạy thử, kiểm chứng, tối ưu |
+| Reviewer | Đăng nhập → **Hàng đợi** → mở lần chạy → tab **Duyệt code**: xem diff, bảng "Code đo \| LLM nói", kết quả tối ưu → **Duyệt** hoặc **Từ chối và ghi chú**. Sau khi duyệt, **Tải gói code (.zip)** để đưa vào quy trình triển khai riêng |
+| Admin | Quản lý tài khoản, nguồn dữ liệu (phòng ban, độ nhạy cảm, mức AI được xem), từ điển nghiệp vụ, xem nhật ký kiểm toán |
+
+Kiểm giao diện trước khi đẩy: `python scripts/tasks.py frontend-check` (gồm `npm run check:contrast` cho tương phản AA và `npm run lint:text` cho chính tả, viết hoa; báo cáo ở [docs/spellcheck-report.md](docs/spellcheck-report.md)).
 Tạo nhiều tài khoản thử một lần: `python -m src.cli users bulk-create --mix 14/5/1` (Engineer/Reviewer/Admin, mật khẩu ngẫu nhiên, ghi ra `out/accounts.csv` chỉ trên máy).
 Chi tiết: [demo/README.md](demo/README.md). Các cách chạy khác: [docs/RUNBOOK.md](docs/RUNBOOK.md), [docs/DATABASE.md](docs/DATABASE.md).
 
