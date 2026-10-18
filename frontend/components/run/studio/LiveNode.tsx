@@ -76,7 +76,7 @@ export function ActivityTicker({ lines }: { lines: string[] }) {
   const line = lines[position];
   return (
     <div className="activity" aria-live="polite" aria-atomic="true">
-      <span className="activity-tag">đang làm</span>
+      <span className="activity-tag">Đang làm</span>
       <TypedLine key={`${position}-${line}`} text={line} instant={reduced} />
       {lines.length > 1 && (
         <span className="activity-count muted" aria-hidden>

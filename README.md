@@ -66,6 +66,7 @@ python -m venv .venv && source .venv/bin/activate       # Windows: .\.venv\Scrip
 pip install -r requirements.txt && cp .env.example .env # Windows: Copy-Item .env.example .env
 python scripts/tasks.py demo                            # chạy trọn luồng trong terminal: yêu cầu → duyệt
 python scripts/tasks.py ci                              # ruff + pytest (độ phủ ≥ 60%)
+python scripts/tasks.py frontend-check                  # web: lint, format, tsc, tương phản AA, chữ giao diện, build
 ```
 
 ### Chạy giao diện web (demo một lệnh, không cần PostgreSQL, không cần khóa API)

@@ -56,14 +56,14 @@ function BeforeAfter({ report }: { report: Optimization }) {
             <tr>
               <td>
                 Chi phí máy mỗi lần chạy
-                <small className="muted ba-note">tỉ lệ theo thời gian chạy</small>
+                <small className="muted ba-note">Tỉ lệ theo thời gian chạy</small>
               </td>
               <td className="num">100%</td>
               <td className="num">{before && after != null ? formatPct((100 * after) / before) : "—"}</td>
             </tr>
             <tr>
               <td>Độ đúng kết quả</td>
-              <td className="num">bản gốc</td>
+              <td className="num">Bản gốc</td>
               <td className="num">
                 <span className={checks.length && same === checks.length ? "badge ok" : "badge warn"}>
                   {correct}
@@ -119,7 +119,7 @@ function Findings({ report }: { report: Optimization }) {
       {report.explanation && (
         <div style={{ marginTop: 12 }}>
           <h3>
-            LLM giải thích <span className="badge muted">chưa kiểm chứng</span>
+            LLM giải thích <span className="badge muted">Chưa kiểm chứng</span>
           </h3>
           <p className="claimed-box">{report.explanation}</p>
         </div>

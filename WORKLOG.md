@@ -146,6 +146,7 @@
 | TrungTuyenDo02 | Sửa lỗi review: run vá mất đầu vào khi tạm dừng xếp hàng; tiếp tục đồng thời vượt hạn mức | ✅ Done | 3 test tái hiện lỗi trước khi sửa; đầu vào bản vá lưu lúc tạo; kiểm hạn mức trong khóa hàng đợi; CI 1214 đạt | — |
 | Claude Code | Landing `/docs`: nhịp màu theo khối, màu nhấn phụ, khối Cách hoạt động, chữ gom vào `content/landing.ts` | ✅ Done | Tương phản AA mọi cặp; build đạt; chụp 1440px, 375px, sáng/tối không tràn; mỗi đoạn tối đa 2 dòng | — |
 | Claude Code | Trang đăng nhập: sửa chồng lớp, ba điểm nổi bật, demo động kèm bảng kết quả, số liệu phần trăm | ✅ Done | Số từ README (93%, 86%, 6/6, 92%, 7×); bảng là 3/30 dòng thật fct_daily_revenue của lần chạy mẫu; màn hẹp form lên trước | — |
+| Claude Code | Kiểm chữ giao diện: `npm run lint:text` tự viết, sửa viết hoa đầu nhãn, thêm vào CI | ✅ Done | Sửa 19 chuỗi, ghi `docs/spellcheck-report.md`; lint:text sạch; thuật ngữ thống nhất "duyệt" | — |
 ---
 
 <!-- Format: copy khối trên cho mỗi ngày làm việc. Status: ✅ Done · 🔄 Doing · ⚠️ Chưa sửa · ⏳ Chưa làm -->

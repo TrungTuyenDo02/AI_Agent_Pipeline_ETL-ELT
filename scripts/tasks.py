@@ -67,7 +67,7 @@ TASKS: dict[str, list[list[str]]] = {
     "frontend-build": [[NPM, "--prefix", "frontend", "run", "build"]],
     "frontend-check": [
         [NPM, "--prefix", "frontend", "run", script]
-        for script in ("lint", "format:check", "typecheck", "check:contrast", "build")
+        for script in ("lint", "format:check", "typecheck", "check:contrast", "lint:text", "build")
     ],
     "docker-up": [["docker", "compose", "up", "--build", "-d"]],
     "docker-down": [["docker", "compose", "down"]],

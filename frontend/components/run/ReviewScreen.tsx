@@ -69,7 +69,7 @@ function DataChecksCard({
         outside || proposals.length ? (
           <span className="badge warn">{outside + proposals.length} điểm cần xem</span>
         ) : (
-          <span className="badge ok">không có cảnh báo</span>
+          <span className="badge ok">Không có cảnh báo</span>
         )
       }
     >
@@ -189,7 +189,7 @@ function FileList({
               )}
               {hasPrevious && files.previous_files[path] !== current[path] && (
                 <span className="badge warn" title="Đổi so với vòng trước">
-                  đổi
+                  Đổi
                 </span>
               )}
             </button>

@@ -160,7 +160,7 @@ function PipelineChoices({
             disabled={disabled}
             onChange={(e) => setPicked({ ...picked, incremental_column: e.target.value })}
           >
-            <option value="">— chọn cột —</option>
+            <option value="">— Chọn cột —</option>
             {columns.map((c) => (
               <option key={c} value={c}>
                 {c}

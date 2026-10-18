@@ -72,7 +72,7 @@ export function SampleTag() {
   if (!guest) return null;
   return (
     <span className="badge warn sample-tag" title="Số thời gian, token và chi phí trong chế độ khách là số liệu mẫu">
-      số liệu mẫu
+      Số liệu mẫu
     </span>
   );
 }

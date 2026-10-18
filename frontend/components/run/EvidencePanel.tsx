@@ -13,7 +13,7 @@ export function EvidencePanel() {
       <div className="evidence">
         <div className="evidence-col">
           <h3>
-            Code đo <span className="badge ok">đã đo bằng code, 0 token</span>
+            Code đo <span className="badge ok">Đã đo bằng code, 0 token</span>
           </h3>
           {measured.length === 0 && <Empty>Chưa có số đo.</Empty>}
           <ul className="measured-list">
@@ -32,7 +32,7 @@ export function EvidencePanel() {
         </div>
         <div className="evidence-col">
           <h3>
-            LLM nói <span className="badge muted">chưa kiểm chứng</span>
+            LLM nói <span className="badge muted">Chưa kiểm chứng</span>
           </h3>
           {claimed.length === 0 && <Empty>Agent không kèm giải thích.</Empty>}
           <ul className="claimed-list">

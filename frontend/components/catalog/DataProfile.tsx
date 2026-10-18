@@ -189,7 +189,7 @@ function ColumnCard({
         <strong className="mono" title={column.name}>
           {column.name}
         </strong>
-        {column.is_key && <span className="badge info">khóa</span>}
+        {column.is_key && <span className="badge info">Khóa</span>}
       </header>
       <QualityBar q={q} total={rows} />
       <div className="q-legend small">
@@ -393,7 +393,7 @@ function Issues({
                 {issue.column}
               </button>
             ) : (
-              <span className="chip muted">cả bảng</span>
+              <span className="chip muted">Cả bảng</span>
             )}
             <span>{issue.text}</span>
             {issue.level !== "info" && <IssueActions table={table} column={issue.column} text={issue.text} />}

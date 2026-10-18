@@ -34,7 +34,7 @@ function Tabs({ runId }: { runId: string }) {
           aria-current={pathname === tab.href ? "page" : undefined}
         >
           {tab.label}
-          {tab.flag && <span className="badge warn">chờ bạn</span>}
+          {tab.flag && <span className="badge warn">Chờ bạn</span>}
         </Link>
       ))}
     </nav>
@@ -76,9 +76,9 @@ export function RunHeader() {
           <StatusBadge status={record.status} />
           {detail.busy &&
             (detail.queue_position ? (
-              <span className="badge info">đang xếp hàng: còn {detail.queue_position} lần chạy phía trước</span>
+              <span className="badge info">Đang xếp hàng: còn {detail.queue_position} lần chạy phía trước</span>
             ) : (
-              <span className="badge info">agent đang chạy…</span>
+              <span className="badge info">Agent đang chạy…</span>
             ))}
           {hasCode &&
             (guest ? (

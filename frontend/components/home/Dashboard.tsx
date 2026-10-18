@@ -502,7 +502,7 @@ function AuditCard({ entries }: { entries: AuditEntry[] | null }) {
         <h2 className="row">
           <PulseIcon size={20} /> Nhật ký kiểm toán
         </h2>
-        <span className="small muted">chỉ ghi thêm, mới nhất trước</span>
+        <span className="small muted">Chỉ ghi thêm, mới nhất trước</span>
       </header>
       {entries && entries.length === 0 && <Empty>Chưa có hoạt động.</Empty>}
       <ul className="audit-list">

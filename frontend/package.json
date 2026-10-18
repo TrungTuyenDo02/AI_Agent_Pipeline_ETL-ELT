@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check:contrast": "node scripts/check-contrast.mjs",
+    "lint:text": "node scripts/lint-text.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

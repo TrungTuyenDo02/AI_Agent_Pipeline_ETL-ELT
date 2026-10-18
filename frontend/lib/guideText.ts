@@ -103,7 +103,7 @@ export const GUIDE_TRY = {
   title: "Bước 1: nói điều bạn cần",
   text: "Viết một câu nêu rõ: dữ liệu lấy từ đâu, muốn tính gì, theo ngày hay theo tháng.",
   button: "Thử ngay với ví dụ",
-  example: "gộp đơn hàng 3 nguồn, tính doanh thu ngày",
+  example: "Gộp đơn hàng 3 nguồn, tính doanh thu ngày",
 };
 
 export const GUIDE_GLOSSARY: { term: string; text: string }[] = [

@@ -215,7 +215,7 @@ function SourceRow({ source, isAdmin, onDone }: { source: SourceView; isAdmin: b
       <td>
         <strong>{source.name}</strong>
         <div className="muted small">{KINDS[source.kind]}</div>
-        {isAdmin && source.secret_ref && <div className="muted small mono">tham chiếu: {source.secret_ref}</div>}
+        {isAdmin && source.secret_ref && <div className="muted small mono">Tham chiếu: {source.secret_ref}</div>}
       </td>
       <td>{source.department_name}</td>
       <td>
