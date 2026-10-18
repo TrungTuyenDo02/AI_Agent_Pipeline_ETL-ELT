@@ -210,6 +210,15 @@ export interface ReviewRecord {
   decided_at: string;
 }
 
+/** Một dbt test của lần chạy sandbox cuối. `optimizer` = test giả định bảo vệ bản tối ưu; `testgen` = Testgen viết độc lập
+ * từ đặc tả; `declared` = khai báo trong yml (not_null, unique, test nguồn). */
+export interface DbtTestResult {
+  name: string;
+  status: string;
+  kind: "optimizer" | "testgen" | "declared";
+  message: string;
+}
+
 export type GateStatus = "passed" | "failed" | "unverified";
 
 export interface GateCheck {
@@ -287,6 +296,7 @@ export interface RunDetail {
   reconciliation?: RowReconciliation[];
   drift?: RunDrift;
   review_gate?: ReviewGate;
+  dbt_tests?: DbtTestResult[];
   /** Lịch sử duyệt J2 (người duyệt, thời điểm, quyết định, ghi chú). */
   reviews?: ReviewRecord[];
 }

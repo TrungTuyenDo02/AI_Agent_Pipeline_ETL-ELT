@@ -26,3 +26,10 @@
 
 Chỉ `applied` khi đạt `OPT_MIN_GAIN_PCT` **và** có IQR của cả bản gốc lẫn bản sửa **và** chênh lệch trung vị lớn hơn IQR lớn
 nhất của hai bên. Thiếu IQR hoặc chênh trong độ phân tán → `skipped` (giữ bản gốc, ghi lý do).
+
+## Bổ sung (2026-10-18, sau đánh giá)
+
+- Bản gốc và bản sửa đo **xen kẽ A/B trên cùng kết nối, cùng thời điểm** (`benchmark_pair`); quyết định dùng cặp số đo này,
+  không dùng số đo bản gốc của lượt đầu (eval cho thấy máy trôi 5–20% giữa các lượt, lớn hơn IQR).
+- Giả định dữ liệu của luật đã áp dụng (khóa duy nhất, không trùng dòng, hai nhánh UNION không giao nhau) được ghi thành dbt test
+  `tests/assert_opt_assumption_<n>.sql` trong `code_files`: chạy ở V2 và mỗi lần pipeline chạy thật; `opt_revert` bỏ luôn test.

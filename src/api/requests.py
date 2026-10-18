@@ -106,6 +106,9 @@ class RunDetail(BaseModel):
     drift: dict = {}  # cảnh báo cấu trúc nguồn: {warnings (lúc bắt đầu), recheck: {blocked, breaking, warnings} (ngay trước J2)}
     # Cổng duyệt J2 (src/agents/review_gate.py): {passed, checks [4 bắt buộc], extra}; endpoint Duyệt kiểm lại cùng logic
     review_gate: dict = {}
+    dbt_tests: list[
+        dict
+    ] = []  # từng dbt test của lần V2 cuối: {name, status, kind (optimizer|testgen|declared), message}
     reviews: list[dict] = []  # lịch sử J2: {reviewer, decision, note, decided_at}
 
 

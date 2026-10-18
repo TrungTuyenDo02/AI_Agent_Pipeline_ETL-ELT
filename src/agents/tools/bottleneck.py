@@ -9,10 +9,10 @@ from pathlib import Path
 
 import duckdb
 
-from src.agents.tools.dbt_tools import read_archived_run
+from src.agents.tools.dbt_tools import read_archived_run, source_sha
 from src.agents.tools.duckdb_tools import explain_plan
 from src.agents.tools.slow_patterns import detect_slow_patterns
-from src.models.evidence import Bottleneck, PerfReport
+from src.models.evidence import Bottleneck, Finding, PerfReport
 
 UNKNOWN = "Đo trên sandbox DuckDB với dữ liệu thử; chưa biết hành vi trên dữ liệu và kho thật."
 # Tiền tố tên toán tử DuckDB → (giả thuyết, bước kiểm tra tiếp)
@@ -122,3 +122,62 @@ def analyze_bottlenecks(workspace: Path, db: Path, sandbox: dict, top_n: int, bu
         top_n=top_n,
         findings=findings,
     )
+
+
+# Tín hiệu bổ sung cho optimizer khi sqlglot không thấy mẫu đáng nghi (bằng chứng thực thi, không phải phỏng đoán)
+NON_EQUI_JOINS = ("NESTED_LOOP_JOIN", "PIECEWISE_MERGE_JOIN", "IE_JOIN", "BLOCKWISE_NL_JOIN", "CROSS_PRODUCT")
+NON_EQUI_MIN_SHARE = 0.3  # phép nối không theo điều kiện bằng phải chiếm ≥ 30% thời gian toán tử
+FANOUT_RATIO = 2.0  # phép nối ra ≥ 2 lần số dòng đầu vào lớn nhất = nhân dòng
+
+
+def matching_timing(workspace: Path, sandbox: dict, model: str, code: str, top_n: int) -> float | None:
+    """Thời gian `model` ở lần V2 gần nhất nếu báo cáo KHỚP model và phiên bản SQL (`source_sha` của SQL gốc dbt đã chạy) và
+    model nằm trong top N chậm nhất. Thiếu số đo, lệch phiên bản, không trong top N → None (optimizer giữ luồng cũ)."""
+    timings = [t for t in sandbox.get("model_timings") or [] if t.get("execute_ms") is not None]
+    ranked = sorted(timings, key=lambda t: t["execute_ms"], reverse=True)[:top_n]
+    timing = next((t["execute_ms"] for t in ranked if t["model"] == model), None)
+    if timing is None:
+        return None
+    archived = read_archived_run(workspace, sandbox.get("dbt_invocation", ""))
+    entry = next((r for r in archived.get("results", []) if r["unique_id"].rsplit(".", 1)[-1] == model), {})
+    return timing if entry.get("source_sha") and entry["source_sha"] == source_sha(code) else None
+
+
+def execution_findings(db: Path, sql: str, min_ms: float, budget_sec: float) -> list[Finding]:
+    """EXPLAIN ANALYZE đúng `sql` trên đúng bộ dữ liệu optimizer sẽ đo. Chỉ báo khi chạy ≥ `min_ms` và có mẫu cụ thể: nối không
+    theo điều kiện bằng chiếm phần lớn thời gian, hoặc nối nhân dòng. Lỗi/hết giờ → [] (luồng cũ). Chỉ có tên toán tử, số dòng,
+    thời gian: không có hằng số."""
+    try:
+        plan = explain_plan(db, sql, timeout_sec=budget_sec or None)
+    except (duckdb.Error, ValueError, IndexError):
+        return []
+    latency_ms = float(plan.get("latency", 0)) * 1000
+    if latency_ms < min_ms:
+        return []
+    ops = _operators(plan)
+    total = sum(n.get("operator_timing", 0) for n in ops) or 1.0
+    found: dict[str, Finding] = {}
+    for op in ops:
+        name, rows = str(op.get("operator_name", "")).strip(), op.get("operator_cardinality", 0)
+        share = op.get("operator_timing", 0) / total
+        inputs = [c.get("operator_cardinality", 0) for c in op.get("children", [])]
+        if name.startswith(NON_EQUI_JOINS) and share >= NON_EQUI_MIN_SHARE:
+            found.setdefault(
+                "exec_non_equi_join",
+                Finding(
+                    rule="exec_non_equi_join",
+                    message=f"Bằng chứng thực thi: {name} chiếm {share:.0%} thời gian toán tử (truy vấn {latency_ms:.0f} ms "
+                    "trên bộ dữ liệu đo); nối không theo điều kiện bằng.",
+                ),
+            )
+        if name.startswith("HASH_JOIN") and inputs and rows >= FANOUT_RATIO * max(inputs):
+            found.setdefault(
+                "exec_join_fanout",
+                Finding(
+                    rule="exec_join_fanout",
+                    message=f"Bằng chứng thực thi: {name} ra {rows} dòng từ đầu vào {inputs} (nhân dòng; truy vấn "
+                    f"{latency_ms:.0f} ms). Chỉ là dấu hiệu cần điều tra, không mặc định sai nghiệp vụ: không thêm DISTINCT, "
+                    "không bỏ dòng; bản viết lại phải cho kết quả giống hệt bản gốc.",
+                ),
+            )
+    return list(found.values())

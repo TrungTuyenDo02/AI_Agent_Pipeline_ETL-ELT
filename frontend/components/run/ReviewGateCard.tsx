@@ -1,9 +1,9 @@
 "use client";
 
 import { formatTime } from "@/lib/format";
-import type { GateCheck, GateStatus, RunDetail } from "@/lib/types";
+import type { DbtTestResult, GateCheck, GateStatus, RunDetail } from "@/lib/types";
 
-import { Card, Empty } from "../ui";
+import { Card, Empty, PassMark } from "../ui";
 import { useRun } from "./RunContext";
 
 const STATUS: Record<GateStatus, [string, string]> = {
@@ -90,6 +90,42 @@ export function ReviewGateCard() {
               {formatTime(r.decided_at)} · <strong>{r.reviewer}</strong> ·{" "}
               {r.decision === "approve" ? "Duyệt" : "Từ chối"}
               {r.note ? `: ${r.note}` : ""}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+export const TEST_KINDS: Record<DbtTestResult["kind"], [string, string]> = {
+  optimizer: ["Bảo vệ bản tối ưu", "badge warn"],
+  testgen: ["Testgen (độc lập với code)", "badge ok"],
+  declared: ["Khai báo (yml)", "badge muted"],
+};
+
+/** Từng dbt test đã chạy ở lần sandbox cuối (V2): người duyệt thấy test nào bảo vệ cái gì, không chỉ con số x/y. */
+export function DbtTestsCard() {
+  const { detail } = useRun();
+  if (!detail) return null;
+  const tests = detail.dbt_tests ?? [];
+  const passed = tests.filter((t) => ["pass", "success", "warn"].includes(t.status)).length;
+  return (
+    <Card title={`dbt test đã chạy trên sandbox (${passed}/${tests.length} đạt)`}>
+      {tests.length === 0 ? (
+        <Empty>Chưa đo: lần chạy này chưa có danh sách test (chưa chạy sandbox hoặc dữ liệu cũ).</Empty>
+      ) : (
+        <ul className="measured-list">
+          {tests.map((t) => (
+            <li key={t.name} className={["pass", "success", "warn"].includes(t.status) ? undefined : "fail"}>
+              <PassMark passed={["pass", "success", "warn"].includes(t.status)} />
+              <div>
+                <div>
+                  <strong className="mono">{t.name}</strong>{" "}
+                  <span className={TEST_KINDS[t.kind][1]}>{TEST_KINDS[t.kind][0]}</span>
+                </div>
+                {t.message && <div className="node">{t.message}</div>}
+              </div>
             </li>
           ))}
         </ul>

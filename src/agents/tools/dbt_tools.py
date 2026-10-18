@@ -1,5 +1,6 @@
 """Công cụ dbt: dựng workspace từ mẫu, ghi file sinh ra, chạy `dbt build` trong tiến trình con có timeout."""
 
+import hashlib
 import json
 import os
 import re
@@ -170,6 +171,11 @@ def _phase_ms(result: dict, phase: str) -> float | None:
     return None
 
 
+def source_sha(sql: str) -> str:
+    """Dấu phiên bản của SQL gốc một model (bỏ khác biệt xuống dòng Windows/Linux và khoảng trắng đầu/cuối)."""
+    return hashlib.sha256(sql.replace("\r\n", "\n").strip().encode("utf-8")).hexdigest()
+
+
 def _manifest(workspace: Path) -> dict:
     try:
         return json.loads((workspace / "target" / "manifest.json").read_text(encoding="utf-8"))
@@ -202,7 +208,14 @@ def read_run_results(workspace: Path) -> DbtResult:
             materialized=str((nodes.get(r["unique_id"]) or {}).get("config", {}).get("materialized", "")),
         )
         results.append(node)
-        archived.append({**node.model_dump(), "sql": r.get("compiled_code") or ""})
+        raw = (nodes.get(r["unique_id"]) or {}).get("raw_code")
+        archived.append(
+            {
+                **node.model_dump(),
+                "sql": r.get("compiled_code") or "",
+                "source_sha": source_sha(raw) if isinstance(raw, str) else "",  # phiên bản SQL gốc đã chạy
+            }
+        )
     elapsed = data.get("elapsed_time")
     run = DbtResult(
         ok=False,
@@ -231,6 +244,28 @@ def read_archived_run(workspace: Path, invocation_id: str) -> dict:
         return json.loads((workspace / "target" / "runs" / f"{invocation_id}.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {}
+
+
+OPT_ASSUMPTION_PREFIX = "assert_opt_assumption_"  # test giả định do optimizer thêm (compare.assumption_tests)
+
+
+def archived_tests(workspace: Path, invocation_id: str, test_files: dict[str, str]) -> list[dict]:
+    """Từng dbt test của một lần build để người dùng xem: tên, trạng thái, loại (`optimizer` = bảo vệ bản tối ưu, `testgen` = do
+    Testgen viết độc lập từ đặc tả, `declared` = khai báo trong yml: not_null, unique, nguồn...). Không có artifact → []."""
+    tests = []
+    for r in read_archived_run(workspace, invocation_id).get("results", []):
+        if not r["unique_id"].startswith("test."):
+            continue
+        name = r["unique_id"].split(".")[2]
+        kind = (
+            "optimizer"
+            if name.startswith(OPT_ASSUMPTION_PREFIX)
+            else "testgen"
+            if f"tests/{name}.sql" in test_files
+            else "declared"
+        )
+        tests.append({"name": name, "status": r["status"], "kind": kind, "message": str(r.get("message") or "")[:300]})
+    return tests
 
 
 OK_STATUSES = (

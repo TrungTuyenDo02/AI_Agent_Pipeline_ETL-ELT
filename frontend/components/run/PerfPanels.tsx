@@ -45,39 +45,41 @@ export function ModelTimings({ sandbox, perf }: { sandbox: Sandbox; perf?: PerfR
   const measured = timings.filter((t) => t.execute_ms != null);
   const total = measured.length ? measured.reduce((sum, t) => sum + (t.execute_ms ?? 0), 0) : null;
   return (
-    <Card title="Thời gian từng model (đã đo)">
+    <Card title="Thời gian từng model">
       <TimeFigures perf={perf} sandbox={sandbox} total={total} />
       {timings.length === 0 ? (
         <Empty>Chưa đo: lần chạy này không có số đo từng model (dữ liệu cũ hoặc dbt không chạy xong).</Empty>
       ) : (
-        <table className="figures">
-          <thead>
-            <tr>
-              <th>Model</th>
-              <th>Trạng thái</th>
-              <th>Kiểu lưu</th>
-              <th className="num">Biên dịch</th>
-              <th className="num">Chạy</th>
-              <th className="num">Số dòng</th>
-              <th className="num">% tổng</th>
-            </tr>
-          </thead>
-          <tbody>
-            {timings.map((t) => (
-              <tr key={t.model}>
-                <td className="mono">{t.model}</td>
-                <td>{t.status}</td>
-                <td>{t.materialized || "—"}</td>
-                <td className="num">{ms(t.compile_ms)}</td>
-                <td className="num">{ms(t.execute_ms)}</td>
-                <td className="num">{t.rows == null ? NOT_MEASURED : formatNumber(t.rows)}</td>
-                <td className="num">
-                  {t.execute_ms != null && total ? `${Math.round((100 * t.execute_ms) / total)}%` : "—"}
-                </td>
+        <div className="table-wrap" role="region" aria-label="Thời gian từng model" tabIndex={0}>
+          <table className="figures">
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Trạng thái</th>
+                <th>Kiểu lưu</th>
+                <th className="num">Biên dịch</th>
+                <th className="num">Chạy</th>
+                <th className="num">Số dòng</th>
+                <th className="num">% tổng</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {timings.map((t) => (
+                <tr key={t.model}>
+                  <td className="mono">{t.model}</td>
+                  <td>{t.status}</td>
+                  <td>{t.materialized || "—"}</td>
+                  <td className="num">{ms(t.compile_ms)}</td>
+                  <td className="num">{ms(t.execute_ms)}</td>
+                  <td className="num">{t.rows == null ? NOT_MEASURED : formatNumber(t.rows)}</td>
+                  <td className="num">
+                    {t.execute_ms != null && total ? `${Math.round((100 * t.execute_ms) / total)}%` : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </Card>
   );

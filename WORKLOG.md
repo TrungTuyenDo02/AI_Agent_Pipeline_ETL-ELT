@@ -198,3 +198,26 @@
   ở 6 ca (5–20% giữa hai lượt trên laptop) → "kết quả chưa ổn định", nghiệm thu chưa đạt**. Chưa chạy LLM thật: chi phí 0 USD.
 - Phát hiện: bộ dò dấu hiệu tĩnh của optimizer không bắt được `range_join` và `fanout_join` (bỏ qua với "không phát hiện dấu hiệu
   query chậm") trong khi báo cáo điểm nghẽn tìm đúng; chưa sửa trong đợt này (ghi vào Hạn chế).
+
+### 2026-10-18 — Optimizer dùng báo cáo điểm nghẽn làm tín hiệu bổ sung (ADR 0018)
+
+- Làm gì: `bottleneck.matching_timing` (báo cáo V2 khớp model + `source_sha` của SQL gốc + top N) và `execution_findings`
+  (EXPLAIN ANALYZE đúng SQL trên bộ `large`, ≥ `OPT_SIGNAL_MIN_MS`, mẫu `exec_non_equi_join` / `exec_join_fanout`); optimizer
+  dùng khi sqlglot không thấy mẫu, thiếu/lệch/lỗi thì giữ luồng cũ. Eval dùng cùng điều kiện.
+- Vì sao: eval bước 2 cho thấy sqlglot bỏ sót nối theo khoảng và nối nhân dòng trong khi báo cáo điểm nghẽn tìm đúng.
+- Kết quả: test hai ca bỏ sót có tín hiệu, ca đối chứng và dữ liệu nhỏ (dưới ngưỡng) không có tín hiệu, lệch phiên bản SQL / thiếu
+  báo cáo / SQL lỗi → luồng cũ; bản áp dụng vẫn qua đủ đối chiếu.
+
+### 2026-10-18 — Sửa hai lỗ hổng của optimizer sau đánh giá (ADR 0017, mục Bổ sung)
+
+- Giả định dữ liệu của luật đã áp dụng → dbt test đi cùng pipeline (`compare.assumption_tests`): trước đây chỉ kiểm trên 6 bộ thử,
+  dữ liệu thật vi phạm về sau thì bản tối ưu cho kết quả khác bản gốc mà không ai biết.
+- Đo trước/sau xen kẽ cùng phiên (`duckdb_tools.benchmark_pair`) thay vì so với số đo bản gốc của lượt đầu.
+- Kết quả: 66 test optimizer đạt (thêm test test giả định qua được V1, dùng đúng `ref`/`source`; test đo cặp cùng phiên).
+
+### 2026-10-18 — Hiện cho người dùng những gì hệ thống kiểm (Engineer và Reviewer)
+
+- API trả `dbt_tests` (đọc artifact dbt đã lưu của lần V2 cuối, phân loại Testgen / bảo vệ bản tối ưu / khai báo).
+- Màn Reviewer: thẻ "dbt test đã chạy trên sandbox" liệt kê từng test; tab Code có nhóm "Test bảo vệ bản tối ưu".
+- Màn Tối ưu: ghi chú cách đo mới (xen kẽ cùng phiên, trung vị + IQR); thẻ đối chiếu liệt kê test bảo vệ đã thêm vào pipeline.
+- Tổng quan: ô "Tối ưu" ghi "Nhanh hơn x%" / "Giữ nguyên" (trước đây "+x%" dễ đọc nhầm là chậm hơn), bấm vào mở tab Tối ưu.

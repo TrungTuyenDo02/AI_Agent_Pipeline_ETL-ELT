@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { formatNumber, formatPct, formatUsd } from "@/lib/format";
 
 import { SampleTag } from "../GuestBar";
@@ -7,7 +9,7 @@ import { Card, Empty, Stat } from "../ui";
 import { useRun } from "./RunContext";
 
 function Summary() {
-  const { detail } = useRun();
+  const { runId, detail } = useRun();
   if (!detail) return null;
   const { summary } = detail.record;
   const simulated = summary.simulated;
@@ -26,8 +28,15 @@ function Summary() {
       <Stat
         label="Tối ưu"
         value={
-          summary.optimization === "applied" ? `+${formatPct(summary.improvement_pct)}` : (summary.optimization ?? "—")
+          <Link href={`/runs/${runId}/optimize`}>
+            {summary.optimization === "applied"
+              ? `Nhanh hơn ${formatPct(summary.improvement_pct)}`
+              : summary.optimization === "skipped"
+                ? "Giữ nguyên"
+                : "—"}
+          </Link>
         }
+        hint="Xem so sánh trước / sau"
       />
     </div>
   );

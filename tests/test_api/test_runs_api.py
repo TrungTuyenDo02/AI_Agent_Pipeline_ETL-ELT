@@ -180,6 +180,9 @@ async def test_review_gate_blocks_direct_approve_api(
     assert {c["id"]: c["status"] for c in gate["extra"]}["airflow_run"] == "unverified"
     assert detail["sandbox"]["model_timings"] and detail["optimization"]["bottlenecks"]["measured"]
     assert detail["reviews"] == []
+    tests = detail["dbt_tests"]  # từng dbt test của lần V2 cuối, người dùng xem được (không chỉ con số x/y)
+    assert len(tests) == detail["sandbox"]["tests_total"] and {t["kind"] for t in tests} >= {"testgen"}
+    assert all(t["status"] in ("pass", "warn") for t in tests)
     real = runner.get_values(run_id)
     reviewer = await login("reviewer")
     tampered = {

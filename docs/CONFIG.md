@@ -115,6 +115,7 @@ Luật cố định (mẫu tấn công prompt, động từ nghiệp vụ, bản
 | `OPT_COMPUTE_COST_PER_HOUR_USD` | Giá tính toán mỗi giờ (USD) | `0.5` | không |
 | `OPT_MAX_ATTEMPTS` | Số ứng viên viết lại tối đa | `3` | không |
 | `OPT_BENCH_RUNS` | Số lần đo tốc độ (lấy trung vị và IQR; cần ≥ 2 để có IQR, thiếu IQR thì không kết luận nhanh hơn) | `5` | không |
+| `OPT_SIGNAL_MIN_MS` | Optimizer chỉ dùng bằng chứng thực thi (báo cáo điểm nghẽn, ADR 0018) khi truy vấn chạy ≥ ngưỡng này (ms) trên bộ dữ liệu đo | `100` | không |
 | `OPT_BENCH_THREADS` | Số luồng DuckDB cố định khi đo trước/sau; `0` = mặc định của DuckDB | `0` | không |
 | `COMPARE_ABS_TOL` | Sai số tuyệt đối khi so kết quả hai query | `1e-6` | không |
 

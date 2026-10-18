@@ -82,6 +82,8 @@ def test_perf_eval_two_rounds_writes_reports(tmp_path: Path):
     assert summary["provider"] == "mock" and summary["correct"] == "2/2" and summary["bottleneck_in_top_n"] == "1/1"
     rows = {r["id"]: r for r in csv.DictReader((out / "cases.csv").open(encoding="utf-8"))}
     assert rows["range_join"]["bottleneck_hit"] == "đạt" and rows["control_clean"]["decision"] == "skipped"
+    # sqlglot bỏ sót nối theo khoảng → dùng bằng chứng thực thi; ca đối chứng không có tín hiệu (không tối ưu hàng loạt)
+    assert rows["range_join"]["signal"] == "exec_non_equi_join" and rows["control_clean"]["signal"] == ""
     assert rows["range_join"]["dag_wall_ms"] == "chưa đo" and rows["range_join"]["before_ms"] != "chưa đo"
     text = (out / "summary.md").read_text(encoding="utf-8")
     assert "không đánh giá năng lực LLM" in text

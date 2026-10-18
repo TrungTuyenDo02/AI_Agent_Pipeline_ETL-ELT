@@ -1,7 +1,7 @@
 "use client";
 
 import { formatNumber, formatPct, formatUsd } from "@/lib/format";
-import type { Optimization } from "@/lib/types";
+import type { DbtTestResult, Optimization } from "@/lib/types";
 
 import { CodeDiff } from "../CodeDiff";
 import { SampleTag } from "../GuestBar";
@@ -44,63 +44,67 @@ function BeforeAfter({ report }: { report: Optimization }) {
               : "không có bản tối ưu đạt yêu cầu, giữ bản gốc"}
           </span>
         </div>
-        <table className="figures ba-table">
-          <thead>
-            <tr>
-              <th>Chỉ số</th>
-              <th className="num">Trước</th>
-              <th className="num">Sau</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Thời gian chạy (trung vị)</td>
-              <td className="num">{before != null ? `${formatNumber(before)} ms` : "—"}</td>
-              <td className="num">{after != null ? `${formatNumber(after)} ms` : "—"}</td>
-            </tr>
-            <tr>
-              <td>
-                Độ phân tán (IQR)
-                <small className="muted ba-note">Q3 − Q1 của các lần đo</small>
-              </td>
-              <td className="num">{spread(report.before?.spread_ms)}</td>
-              <td className="num">{report.after ? spread(report.after.spread_ms) : "—"}</td>
-            </tr>
-            <tr>
-              <td>
-                Chi phí máy mỗi lần chạy
-                <small className="muted ba-note">Tỉ lệ theo thời gian chạy</small>
-              </td>
-              <td className="num">100%</td>
-              <td className="num">{before && after != null ? formatPct((100 * after) / before) : "—"}</td>
-            </tr>
-            <tr>
-              <td>Độ đúng kết quả</td>
-              <td className="num">Bản gốc</td>
-              <td className="num">
-                <span className={checks.length && same === checks.length ? "badge ok" : "badge warn"}>
-                  {correct}
-                  {checks.length > 0 && ` (${same}/${checks.length} bộ dữ liệu)`}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div className="table-wrap" role="region" aria-label="So sánh trước và sau tối ưu" tabIndex={0}>
+          <table className="figures ba-table">
+            <thead>
+              <tr>
+                <th>Chỉ số</th>
+                <th className="num">Trước</th>
+                <th className="num">Sau</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Thời gian chạy (trung vị)</td>
+                <td className="num">{before != null ? `${formatNumber(before)} ms` : "—"}</td>
+                <td className="num">{after != null ? `${formatNumber(after)} ms` : "—"}</td>
+              </tr>
+              <tr>
+                <td>
+                  Độ phân tán (IQR)
+                  <small className="muted ba-note">Q3 − Q1 của các lần đo</small>
+                </td>
+                <td className="num">{spread(report.before?.spread_ms)}</td>
+                <td className="num">{report.after ? spread(report.after.spread_ms) : "—"}</td>
+              </tr>
+              <tr>
+                <td>
+                  Chi phí máy mỗi lần chạy
+                  <small className="muted ba-note">Tỉ lệ theo thời gian chạy</small>
+                </td>
+                <td className="num">100%</td>
+                <td className="num">{before && after != null ? formatPct((100 * after) / before) : "—"}</td>
+              </tr>
+              <tr>
+                <td>Độ đúng kết quả</td>
+                <td className="num">Bản gốc</td>
+                <td className="num">
+                  <span className={checks.length && same === checks.length ? "badge ok" : "badge warn"}>
+                    {correct}
+                    {checks.length > 0 && ` (${same}/${checks.length} bộ dữ liệu)`}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
       <p className="small">
         <strong>Lý do:</strong> {report.reason || "—"}
       </p>
       <small className="muted">
-        Chi phí gọi LLM để tối ưu: {formatUsd(report.llm_cost_usd)} · {report.attempts ?? 0} lần thử · đo 1 lần khởi
-        động + {report.before?.runs ?? "N"} lần, lấy trung vị. Chỉ áp dụng khi kết quả giống hệt trên mọi bộ và đạt
-        ngưỡng lợi ích.
+        Chi phí gọi LLM để tối ưu: {formatUsd(report.llm_cost_usd)} · {report.attempts ?? 0} lần thử · bản gốc và bản
+        sửa đo xen kẽ trong cùng phiên (mỗi bản 1 lần khởi động + {report.before?.runs ?? "N"} lần, lấy trung vị và
+        IQR). Chỉ áp dụng khi kết quả giống hệt trên mọi bộ, nhanh hơn ngưỡng lợi ích và chênh lệch vượt độ phân tán đo
+        được.
       </small>
     </section>
   );
 }
 
-function Equivalence({ report }: { report: Optimization }) {
+function Equivalence({ report, tests }: { report: Optimization; tests: DbtTestResult[] }) {
   const checks = report.equivalence ?? [];
+  const guards = tests.filter((t) => t.kind === "optimizer");
   return (
     <Card title="Đối chiếu kết quả hai chiều">
       {checks.length === 0 && <Empty>Không có bản viết lại nào cần đối chiếu.</Empty>}
@@ -114,6 +118,26 @@ function Equivalence({ report }: { report: Optimization }) {
           </li>
         ))}
       </ul>
+      {report.decision === "applied" && (
+        <div style={{ marginTop: 12 }}>
+          <h3>Test bảo vệ bản tối ưu đã thêm vào pipeline</h3>
+          {guards.length === 0 ? (
+            <p className="small muted">Bản tối ưu không dựa vào giả định dữ liệu nào (không cần test bảo vệ).</p>
+          ) : (
+            <ul className="measured-list">
+              {guards.map((t) => (
+                <li key={t.name}>
+                  <PassMark passed={["pass", "success", "warn"].includes(t.status)} />
+                  <span>
+                    <strong className="mono">{t.name}</strong>: chạy mỗi lần pipeline chạy; dữ liệu vi phạm giả định thì
+                    dbt báo lỗi thay vì cho kết quả sai.
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </Card>
   );
 }
@@ -178,7 +202,7 @@ export function OptimizationScreen() {
         <Bottlenecks perf={report.bottlenecks} />
       </div>
       <div className="grid-2">
-        <Equivalence report={report} />
+        <Equivalence report={report} tests={detail.dbt_tests ?? []} />
         <Findings report={report} />
       </div>
       <Card title="SQL bảng đích: bản gốc ↔ bản đề xuất">

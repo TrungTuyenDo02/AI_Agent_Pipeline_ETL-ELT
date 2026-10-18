@@ -33,9 +33,10 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "eval" / "benchmarks" / "tpch"))
 
 from src.agents.nodes.optimizer import OptimizeJob, optimize_standalone  # noqa: E402
-from src.agents.tools.bottleneck import analyze_bottlenecks  # noqa: E402
+from src.agents.tools.bottleneck import analyze_bottlenecks, execution_findings, matching_timing  # noqa: E402
 from src.agents.tools.dbt_tools import prepare_workspace, run_dbt_build, write_sources_yml  # noqa: E402
 from src.agents.tools.duckdb_tools import benchmark_query, run_query  # noqa: E402
+from src.agents.tools.slow_patterns import detect_slow_patterns  # noqa: E402
 from src.agents.tools.sql_tools import render_dbt_sql  # noqa: E402
 from src.config import get_settings  # noqa: E402
 from src.models.evidence import QueryMetrics  # noqa: E402
@@ -119,10 +120,11 @@ def noise_of(db: Path, sql: str, runs: int) -> tuple[float | None, dict, dict]:
     return pct, first.model_dump(), second.model_dump()
 
 
-def optimization_row(sql: str, datasets: dict[str, str], runs: int) -> dict:
+def optimization_row(sql: str, datasets: dict[str, str], runs: int, signals: list | None = None) -> dict:
     """Optimizer trên SQL gốc; tự kiểm lại (ngoài V3) bản áp dụng có giữ kết quả bản gốc không trên mọi bộ."""
     noise, first, _ = noise_of(Path(datasets["large"]), sql, runs)
-    report, usages = optimize_standalone(OptimizeJob(sql=sql, datasets=datasets, bench="large"))
+    job = OptimizeJob(sql=sql, datasets=datasets, bench="large", signals=signals or [])
+    report, usages = optimize_standalone(job)
     kept = None
     if report.decision == "applied":
         kept = all(
@@ -135,6 +137,8 @@ def optimization_row(sql: str, datasets: dict[str, str], runs: int) -> dict:
         "reason": report.reason,
         "attempts": report.attempts,
         "rejected": [c.dataset for c in report.equivalence if not c.equal],
+        "signal": [s.rule for s in signals or []],  # bằng chứng thực thi đã dùng (khi sqlglot không thấy mẫu)
+        "findings": [f.rule for f in report.findings],
         "before_ms": before.median_ms if before else None,
         "before_iqr_ms": before.spread_ms if before else None,
         "after_ms": after.median_ms if after else None,
@@ -173,6 +177,14 @@ def run_case(case: dict, spec: dict, work: Path, rows: int) -> dict:
     sandbox = {"dbt_invocation": build.invocation_id, "model_timings": timings, "wall_ms": build.elapsed_ms}
     perf = analyze_bottlenecks(workspace, db, sandbox, settings.perf_top_n, settings.perf_analyze_sec)
     expected, actual = read_expected(case["id"]), rows_of(db, f'SELECT * FROM main."{case["target"]}"')
+    sql = render_dbt_sql(case["sql"])
+    # Cùng điều kiện như graph: báo cáo khớp model + phiên bản SQL và trong top N, rồi EXPLAIN trên bộ sẽ đo (large)
+    matched = matching_timing(workspace, sandbox, case["target"], case["sql"], settings.perf_top_n) is not None
+    signals = (
+        execution_findings(db, sql, settings.opt_signal_min_ms, settings.perf_analyze_sec)
+        if matched and not detect_slow_patterns(sql)
+        else []
+    )
     wanted = case["bottleneck"]
     found = {f.model: f for f in perf.findings}
     hit = None
@@ -190,9 +202,7 @@ def run_case(case: dict, spec: dict, work: Path, rows: int) -> dict:
         "bottleneck_expected": f"{wanted['model']}:{'/'.join(wanted['operators'])}" if wanted["model"] else "—",
         "bottleneck_hit": hit,
         "analysis_ms": perf.analysis_ms,
-        **optimization_row(
-            render_dbt_sql(case["sql"]), {"small": str(small), "large": str(db)}, settings.opt_bench_runs
-        ),
+        **optimization_row(sql, {"small": str(small), "large": str(db)}, settings.opt_bench_runs, signals),
     }
 
 
@@ -267,7 +277,7 @@ def _cell(value: object) -> str:
 
 
 COLUMNS = [
-    "id", "kind", "correct", "bottleneck_expected", "top_models", "bottleneck_hit", "decision", "kept_result",
+    "id", "kind", "correct", "bottleneck_expected", "top_models", "bottleneck_hit", "signal", "decision", "kept_result",
     "before_ms", "before_iqr_ms", "after_ms", "after_iqr_ms", "gain_pct", "noise_pct", "improved",
     "model_total_ms", "dbt_wall_ms", "dag_wall_ms", "llm_calls", "tokens", "llm_cost_usd", "reason", "detail",
 ]  # fmt: skip

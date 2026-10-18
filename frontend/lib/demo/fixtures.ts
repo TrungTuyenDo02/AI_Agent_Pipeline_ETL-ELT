@@ -17,8 +17,8 @@ export const FIXTURES = {
     "status": "waiting_clarification",
     "provider": "demo",
     "model": "mô hình mẫu",
-    "created_at": "2026-10-18T11:54:17+00:00",
-    "updated_at": "2026-10-18T11:54:19+00:00",
+    "created_at": "2026-10-18T14:55:26+00:00",
+    "updated_at": "2026-10-18T14:55:27+00:00",
     "summary": {
      "target": "fct_daily_revenue",
      "mode": "ELT",
@@ -90,7 +90,7 @@ export const FIXTURES = {
      "label": "E1 Lập kế hoạch",
      "ok": true,
      "detail": "bảng đích fct_daily_revenue, mode ELT",
-     "seconds": 1.01,
+     "seconds": 1.04,
      "tokens": 0,
      "finished_at": 0
     },
@@ -358,6 +358,7 @@ export const FIXTURES = {
      }
     ]
    },
+   "dbt_tests": [],
    "reviews": []
   },
   "plan": {
@@ -368,8 +369,8 @@ export const FIXTURES = {
     "status": "waiting_plan_review",
     "provider": "demo",
     "model": "mô hình mẫu",
-    "created_at": "2026-10-18T11:54:17+00:00",
-    "updated_at": "2026-10-18T11:54:19+00:00",
+    "created_at": "2026-10-18T14:55:26+00:00",
+    "updated_at": "2026-10-18T14:55:27+00:00",
     "summary": {
      "target": "fct_daily_revenue",
      "mode": "ELT",
@@ -565,7 +566,7 @@ export const FIXTURES = {
      "label": "E1 Lập kế hoạch",
      "ok": true,
      "detail": "bảng đích fct_daily_revenue, mode ELT",
-     "seconds": 1.01,
+     "seconds": 1.04,
      "tokens": 0,
      "finished_at": 0
     },
@@ -583,7 +584,7 @@ export const FIXTURES = {
      "label": "J1 Hỏi làm rõ",
      "ok": true,
      "detail": "",
-     "seconds": 0.01,
+     "seconds": 0.04,
      "tokens": 0,
      "finished_at": 0
     },
@@ -592,7 +593,7 @@ export const FIXTURES = {
      "label": "E1 Lập kế hoạch",
      "ok": true,
      "detail": "bảng đích fct_daily_revenue, mode ELT",
-     "seconds": 0.03,
+     "seconds": 0.04,
      "tokens": 0,
      "finished_at": 0
     },
@@ -897,6 +898,7 @@ export const FIXTURES = {
      }
     ]
    },
+   "dbt_tests": [],
    "reviews": []
   },
   "review": {
@@ -907,8 +909,8 @@ export const FIXTURES = {
     "status": "waiting_review",
     "provider": "demo",
     "model": "mô hình mẫu",
-    "created_at": "2026-10-18T11:54:17+00:00",
-    "updated_at": "2026-10-18T11:54:47+00:00",
+    "created_at": "2026-10-18T14:55:26+00:00",
+    "updated_at": "2026-10-18T14:55:56+00:00",
     "summary": {
      "target": "fct_daily_revenue",
      "mode": "ELT",
@@ -916,7 +918,7 @@ export const FIXTURES = {
      "rescue_count": 0,
      "review_rounds": 0,
      "optimization": "applied",
-     "improvement_pct": 43.2,
+     "improvement_pct": 43.0,
      "llm_calls": 5,
      "tokens": 28530,
      "cost_usd": 0.158,
@@ -956,7 +958,7 @@ export const FIXTURES = {
      "label": "E1 Lập kế hoạch",
      "ok": true,
      "detail": "bảng đích fct_daily_revenue, mode ELT",
-     "seconds": 1.01,
+     "seconds": 1.04,
      "tokens": 0,
      "finished_at": 0
     },
@@ -974,7 +976,7 @@ export const FIXTURES = {
      "label": "J1 Hỏi làm rõ",
      "ok": true,
      "detail": "",
-     "seconds": 0.01,
+     "seconds": 0.04,
      "tokens": 0,
      "finished_at": 0
     },
@@ -983,7 +985,7 @@ export const FIXTURES = {
      "label": "E1 Lập kế hoạch",
      "ok": true,
      "detail": "bảng đích fct_daily_revenue, mode ELT",
-     "seconds": 0.03,
+     "seconds": 0.04,
      "tokens": 0,
      "finished_at": 0
     },
@@ -1001,7 +1003,7 @@ export const FIXTURES = {
      "label": "J1b Duyệt kế hoạch",
      "ok": true,
      "detail": "",
-     "seconds": 0.01,
+     "seconds": 0.0,
      "tokens": 0,
      "finished_at": 0
     },
@@ -1028,7 +1030,7 @@ export const FIXTURES = {
      "label": "Vs Soát cấu trúc nguồn",
      "ok": true,
      "detail": "Không đổi so với bản đã duyệt.",
-     "seconds": 0.03,
+     "seconds": 0.04,
      "tokens": 0,
      "finished_at": 0
     },
@@ -1037,7 +1039,7 @@ export const FIXTURES = {
      "label": "E2 Dữ liệu thử",
      "ok": true,
      "detail": "small, large, dirty, empty, few, dupkeys, nullmoney",
-     "seconds": 0.48,
+     "seconds": 0.47,
      "tokens": 0,
      "finished_at": 0
     },
@@ -1046,7 +1048,7 @@ export const FIXTURES = {
      "label": "E3 Sinh code",
      "ok": true,
      "detail": "5 file",
-     "seconds": 0.02,
+     "seconds": 0.04,
      "tokens": 0,
      "finished_at": 0
     },
@@ -1073,7 +1075,7 @@ export const FIXTURES = {
      "label": "V2 Chạy sandbox",
      "ok": true,
      "detail": "1/1 model, 17/17 test đạt",
-     "seconds": 12.6,
+     "seconds": 12.7,
      "tokens": 0,
      "finished_at": 0
     },
@@ -1081,8 +1083,8 @@ export const FIXTURES = {
      "node": "optimizer",
      "label": "E4 Tối ưu",
      "ok": true,
-     "detail": "2 dấu hiệu chậm, baseline 31.257 ms, ứng viên từ sqlglot",
-     "seconds": 1.05,
+     "detail": "2 dấu hiệu chậm, baseline 34.395 ms, ứng viên từ sqlglot",
+     "seconds": 1.03,
      "tokens": 0,
      "finished_at": 0
     },
@@ -1091,7 +1093,7 @@ export const FIXTURES = {
      "label": "V3 Đối chiếu",
      "ok": false,
      "detail": "ứng viên chưa đạt, thử ứng viên kế tiếp",
-     "seconds": 0.52,
+     "seconds": 0.54,
      "tokens": 0,
      "finished_at": 0
     },
@@ -1099,7 +1101,7 @@ export const FIXTURES = {
      "node": "optimizer",
      "label": "E4 Tối ưu",
      "ok": true,
-     "detail": "2 dấu hiệu chậm, baseline 31.257 ms, ứng viên từ llm",
+     "detail": "2 dấu hiệu chậm, baseline 34.395 ms, ứng viên từ llm",
      "seconds": 0.19,
      "tokens": 0,
      "finished_at": 0
@@ -1108,8 +1110,8 @@ export const FIXTURES = {
      "node": "compare",
      "label": "V3 Đối chiếu",
      "ok": true,
-     "detail": "applied: Nhanh hơn 43.2% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
-     "seconds": 0.69,
+     "detail": "applied: Nhanh hơn 43.0% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
+     "seconds": 0.91,
      "tokens": 0,
      "finished_at": 0
     },
@@ -1118,7 +1120,7 @@ export const FIXTURES = {
      "label": "V1 An toàn",
      "ok": true,
      "detail": "không phát hiện vấn đề",
-     "seconds": 0.43,
+     "seconds": 0.35,
      "tokens": 0,
      "finished_at": 0
     },
@@ -1127,7 +1129,7 @@ export const FIXTURES = {
      "label": "V2 Chạy sandbox",
      "ok": true,
      "detail": "1/1 model, 17/17 test đạt",
-     "seconds": 11.28,
+     "seconds": 11.45,
      "tokens": 0,
      "finished_at": 0
     },
@@ -1394,25 +1396,25 @@ export const FIXTURES = {
      {
       "node": "E4/V3 Tối ưu",
       "check": "Thời gian trung vị trên bộ large",
-      "result": "31.257 ms → 17.746 ms",
+      "result": "31.886 ms → 18.173 ms",
       "passed": null
      },
      {
       "node": "E4/V3 Tối ưu",
       "check": "Quyết định",
-      "result": "applied: Nhanh hơn 43.2% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
+      "result": "applied: Nhanh hơn 43.0% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
       "passed": null
      },
      {
       "node": "Đo hiệu năng",
       "check": "Tổng thời gian các model",
-      "result": "139.8 ms",
+      "result": "144.7 ms",
       "passed": null
      },
      {
       "node": "Đo hiệu năng",
       "check": "Thời gian lệnh dbt build",
-      "result": "913.8 ms",
+      "result": "894.3 ms",
       "passed": null
      },
      {
@@ -1424,7 +1426,7 @@ export const FIXTURES = {
      {
       "node": "Điểm nghẽn",
       "check": "#1 fct_daily_revenue",
-      "result": "Model fct_daily_revenue chạy 139.8 ms, 100% tổng thời gian các model. Toán tử WINDOW chiếm 64% thời gian toán tử (31.4 ms), ra 366 dòng từ đầu vào [366] dòng; Dấu hiệu tĩnh (window_dedupe): row_number() theo PARTITION BY để khử trùng: tốn phân vùng/sắp xếp; thừa nếu khóa đã duy nhất.",
+      "result": "Model fct_daily_revenue chạy 144.7 ms, 100% tổng thời gian các model. Toán tử WINDOW chiếm 73% thời gian toán tử (39.0 ms), ra 366 dòng từ đầu vào [366] dòng; Dấu hiệu tĩnh (window_dedupe): row_number() theo PARTITION BY để khử trùng: tốn phân vùng/sắp xếp; thừa nếu khóa đã duy nhất.",
       "passed": null
      }
     ],
@@ -1451,20 +1453,20 @@ export const FIXTURES = {
      }
     ],
     "before": {
-     "median_ms": 31.257,
+     "median_ms": 31.886,
      "runs": 5,
-     "peak_memory_mb": 96.9,
-     "spread_ms": 2.891
+     "peak_memory_mb": 87.1,
+     "spread_ms": 5.523
     },
     "after": {
-     "median_ms": 17.746,
+     "median_ms": 18.173,
      "runs": 5,
-     "peak_memory_mb": 33.4,
-     "spread_ms": 2.251
+     "peak_memory_mb": 87.1,
+     "spread_ms": 0.432
     },
-    "improvement_pct": 43.2,
+    "improvement_pct": 43.0,
     "decision": "applied",
-    "reason": "Nhanh hơn 43.2% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
+    "reason": "Nhanh hơn 43.0% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
     "attempts": 2,
     "equivalence": [
      {
@@ -1510,21 +1512,21 @@ export const FIXTURES = {
     ],
     "bottlenecks": {
      "measured": true,
-     "model_total_ms": 139.813,
-     "dbt_wall_ms": 913.815,
+     "model_total_ms": 144.743,
+     "dbt_wall_ms": 894.29,
      "dag_wall_ms": null,
-     "analysis_ms": 49.72,
+     "analysis_ms": 52.811,
      "top_n": 3,
      "findings": [
       {
        "model": "fct_daily_revenue",
        "rank": 1,
-       "execute_ms": 139.813,
+       "execute_ms": 144.743,
        "analyzed": true,
        "operator": "WINDOW",
-       "phenomenon": "Model fct_daily_revenue chạy 139.8 ms, 100% tổng thời gian các model.",
+       "phenomenon": "Model fct_daily_revenue chạy 144.7 ms, 100% tổng thời gian các model.",
        "evidence": [
-        "Toán tử WINDOW chiếm 64% thời gian toán tử (31.4 ms), ra 366 dòng từ đầu vào [366] dòng",
+        "Toán tử WINDOW chiếm 73% thời gian toán tử (39.0 ms), ra 366 dòng từ đầu vào [366] dòng",
         "Dấu hiệu tĩnh (window_dedupe): row_number() theo PARTITION BY để khử trùng: tốn phân vùng/sắp xếp; thừa nếu khóa đã duy nhất."
        ],
        "hypothesis": "Hàm cửa sổ phải phân vùng và sắp xếp toàn bộ dữ liệu.",
@@ -1595,18 +1597,18 @@ export const FIXTURES = {
     "models_total": 1,
     "tests_ok": 17,
     "tests_total": 17,
-    "dbt_invocation": "4268b9ab-f6e8-4b84-8234-24948b99b9f2",
+    "dbt_invocation": "5d2e0848-015d-4b19-a23f-caf68cf63358",
     "model_timings": [
      {
       "model": "fct_daily_revenue",
       "status": "success",
-      "compile_ms": 12.031,
-      "execute_ms": 139.813,
+      "compile_ms": 0.0,
+      "execute_ms": 144.743,
       "rows": null,
       "materialized": "table"
      }
     ],
-    "wall_ms": 913.815
+    "wall_ms": 894.29
    },
    "code_notes": [
     "Mỗi nguồn một model staging chuẩn hóa ngày, tiền VND và trạng thái về cùng một bộ giá trị.",
@@ -1720,7 +1722,7 @@ export const FIXTURES = {
      "label": "Tối ưu",
      "kind": "E",
      "state": "passed",
-     "detail": "2 dấu hiệu chậm, baseline 31.257 ms, ứng viên từ llm"
+     "detail": "2 dấu hiệu chậm, baseline 34.395 ms, ứng viên từ llm"
     },
     {
      "id": "compare",
@@ -1728,7 +1730,7 @@ export const FIXTURES = {
      "label": "Đối chiếu",
      "kind": "V",
      "state": "passed",
-     "detail": "applied: Nhanh hơn 43.2% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu."
+     "detail": "applied: Nhanh hơn 43.0% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu."
     },
     {
      "id": "review",
@@ -1919,6 +1921,110 @@ export const FIXTURES = {
      }
     ]
    },
+   "dbt_tests": [
+    {
+     "name": "assert_san_a_orders_order_date_castable",
+     "status": "pass",
+     "kind": "testgen",
+     "message": ""
+    },
+    {
+     "name": "assert_san_a_orders_total_amount_castable",
+     "status": "pass",
+     "kind": "testgen",
+     "message": ""
+    },
+    {
+     "name": "assert_website_orders_created_ts_castable",
+     "status": "pass",
+     "kind": "testgen",
+     "message": ""
+    },
+    {
+     "name": "source_accepted_values_raw_san_a_orders_status__CANCELLED__COMPLETED__RETURNED",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_accepted_values_raw_san_b_orders_state__canceled__delivered__refunded",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_accepted_values_raw_website_orders_status__cancelled__paid__refunded",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_not_null_raw_san_a_orders_order_date",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_not_null_raw_san_a_orders_order_id",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_not_null_raw_san_b_orders_created_at",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_not_null_raw_san_b_orders_id",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_not_null_raw_website_orders_created_ts",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_not_null_raw_website_orders_order_id",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_unique_raw_san_b_orders_id",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_unique_raw_website_orders_order_id",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "assert_grain_unique",
+     "status": "pass",
+     "kind": "testgen",
+     "message": ""
+    },
+    {
+     "name": "assert_fct_daily_revenue_reconciles",
+     "status": "pass",
+     "kind": "testgen",
+     "message": ""
+    },
+    {
+     "name": "not_null_fct_daily_revenue_order_date",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    }
+   ],
    "reviews": []
   },
   "approved": {
@@ -1929,8 +2035,8 @@ export const FIXTURES = {
     "status": "approved",
     "provider": "demo",
     "model": "mô hình mẫu",
-    "created_at": "2026-10-18T11:54:17+00:00",
-    "updated_at": "2026-10-18T11:54:48+00:00",
+    "created_at": "2026-10-18T14:55:26+00:00",
+    "updated_at": "2026-10-18T14:55:58+00:00",
     "summary": {
      "target": "fct_daily_revenue",
      "mode": "ELT",
@@ -1938,7 +2044,7 @@ export const FIXTURES = {
      "rescue_count": 0,
      "review_rounds": 0,
      "optimization": "applied",
-     "improvement_pct": 43.2,
+     "improvement_pct": 43.0,
      "llm_calls": 5,
      "tokens": 28530,
      "cost_usd": 0.158,
@@ -1974,7 +2080,7 @@ export const FIXTURES = {
      "label": "E1 Lập kế hoạch",
      "ok": true,
      "detail": "bảng đích fct_daily_revenue, mode ELT",
-     "seconds": 1.01,
+     "seconds": 1.04,
      "tokens": 0,
      "finished_at": 0
     },
@@ -1992,7 +2098,7 @@ export const FIXTURES = {
      "label": "J1 Hỏi làm rõ",
      "ok": true,
      "detail": "",
-     "seconds": 0.01,
+     "seconds": 0.04,
      "tokens": 0,
      "finished_at": 0
     },
@@ -2001,7 +2107,7 @@ export const FIXTURES = {
      "label": "E1 Lập kế hoạch",
      "ok": true,
      "detail": "bảng đích fct_daily_revenue, mode ELT",
-     "seconds": 0.03,
+     "seconds": 0.04,
      "tokens": 0,
      "finished_at": 0
     },
@@ -2019,7 +2125,7 @@ export const FIXTURES = {
      "label": "J1b Duyệt kế hoạch",
      "ok": true,
      "detail": "",
-     "seconds": 0.01,
+     "seconds": 0.0,
      "tokens": 0,
      "finished_at": 0
     },
@@ -2046,7 +2152,7 @@ export const FIXTURES = {
      "label": "Vs Soát cấu trúc nguồn",
      "ok": true,
      "detail": "Không đổi so với bản đã duyệt.",
-     "seconds": 0.03,
+     "seconds": 0.04,
      "tokens": 0,
      "finished_at": 0
     },
@@ -2055,7 +2161,7 @@ export const FIXTURES = {
      "label": "E2 Dữ liệu thử",
      "ok": true,
      "detail": "small, large, dirty, empty, few, dupkeys, nullmoney",
-     "seconds": 0.48,
+     "seconds": 0.47,
      "tokens": 0,
      "finished_at": 0
     },
@@ -2064,7 +2170,7 @@ export const FIXTURES = {
      "label": "E3 Sinh code",
      "ok": true,
      "detail": "5 file",
-     "seconds": 0.02,
+     "seconds": 0.04,
      "tokens": 0,
      "finished_at": 0
     },
@@ -2091,7 +2197,7 @@ export const FIXTURES = {
      "label": "V2 Chạy sandbox",
      "ok": true,
      "detail": "1/1 model, 17/17 test đạt",
-     "seconds": 12.6,
+     "seconds": 12.7,
      "tokens": 0,
      "finished_at": 0
     },
@@ -2099,8 +2205,8 @@ export const FIXTURES = {
      "node": "optimizer",
      "label": "E4 Tối ưu",
      "ok": true,
-     "detail": "2 dấu hiệu chậm, baseline 31.257 ms, ứng viên từ sqlglot",
-     "seconds": 1.05,
+     "detail": "2 dấu hiệu chậm, baseline 34.395 ms, ứng viên từ sqlglot",
+     "seconds": 1.03,
      "tokens": 0,
      "finished_at": 0
     },
@@ -2109,7 +2215,7 @@ export const FIXTURES = {
      "label": "V3 Đối chiếu",
      "ok": false,
      "detail": "ứng viên chưa đạt, thử ứng viên kế tiếp",
-     "seconds": 0.52,
+     "seconds": 0.54,
      "tokens": 0,
      "finished_at": 0
     },
@@ -2117,7 +2223,7 @@ export const FIXTURES = {
      "node": "optimizer",
      "label": "E4 Tối ưu",
      "ok": true,
-     "detail": "2 dấu hiệu chậm, baseline 31.257 ms, ứng viên từ llm",
+     "detail": "2 dấu hiệu chậm, baseline 34.395 ms, ứng viên từ llm",
      "seconds": 0.19,
      "tokens": 0,
      "finished_at": 0
@@ -2126,8 +2232,8 @@ export const FIXTURES = {
      "node": "compare",
      "label": "V3 Đối chiếu",
      "ok": true,
-     "detail": "applied: Nhanh hơn 43.2% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
-     "seconds": 0.69,
+     "detail": "applied: Nhanh hơn 43.0% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
+     "seconds": 0.91,
      "tokens": 0,
      "finished_at": 0
     },
@@ -2136,7 +2242,7 @@ export const FIXTURES = {
      "label": "V1 An toàn",
      "ok": true,
      "detail": "không phát hiện vấn đề",
-     "seconds": 0.43,
+     "seconds": 0.35,
      "tokens": 0,
      "finished_at": 0
     },
@@ -2145,7 +2251,7 @@ export const FIXTURES = {
      "label": "V2 Chạy sandbox",
      "ok": true,
      "detail": "1/1 model, 17/17 test đạt",
-     "seconds": 11.28,
+     "seconds": 11.45,
      "tokens": 0,
      "finished_at": 0
     },
@@ -2172,7 +2278,7 @@ export const FIXTURES = {
      "label": "Hoàn tất",
      "ok": true,
      "detail": "",
-     "seconds": 0.02,
+     "seconds": 0.01,
      "tokens": 0,
      "finished_at": 0
     }
@@ -2430,25 +2536,25 @@ export const FIXTURES = {
      {
       "node": "E4/V3 Tối ưu",
       "check": "Thời gian trung vị trên bộ large",
-      "result": "31.257 ms → 17.746 ms",
+      "result": "31.886 ms → 18.173 ms",
       "passed": null
      },
      {
       "node": "E4/V3 Tối ưu",
       "check": "Quyết định",
-      "result": "applied: Nhanh hơn 43.2% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
+      "result": "applied: Nhanh hơn 43.0% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
       "passed": null
      },
      {
       "node": "Đo hiệu năng",
       "check": "Tổng thời gian các model",
-      "result": "139.8 ms",
+      "result": "144.7 ms",
       "passed": null
      },
      {
       "node": "Đo hiệu năng",
       "check": "Thời gian lệnh dbt build",
-      "result": "913.8 ms",
+      "result": "894.3 ms",
       "passed": null
      },
      {
@@ -2460,7 +2566,7 @@ export const FIXTURES = {
      {
       "node": "Điểm nghẽn",
       "check": "#1 fct_daily_revenue",
-      "result": "Model fct_daily_revenue chạy 139.8 ms, 100% tổng thời gian các model. Toán tử WINDOW chiếm 64% thời gian toán tử (31.4 ms), ra 366 dòng từ đầu vào [366] dòng; Dấu hiệu tĩnh (window_dedupe): row_number() theo PARTITION BY để khử trùng: tốn phân vùng/sắp xếp; thừa nếu khóa đã duy nhất.",
+      "result": "Model fct_daily_revenue chạy 144.7 ms, 100% tổng thời gian các model. Toán tử WINDOW chiếm 73% thời gian toán tử (39.0 ms), ra 366 dòng từ đầu vào [366] dòng; Dấu hiệu tĩnh (window_dedupe): row_number() theo PARTITION BY để khử trùng: tốn phân vùng/sắp xếp; thừa nếu khóa đã duy nhất.",
       "passed": null
      }
     ],
@@ -2487,20 +2593,20 @@ export const FIXTURES = {
      }
     ],
     "before": {
-     "median_ms": 31.257,
+     "median_ms": 31.886,
      "runs": 5,
-     "peak_memory_mb": 96.9,
-     "spread_ms": 2.891
+     "peak_memory_mb": 87.1,
+     "spread_ms": 5.523
     },
     "after": {
-     "median_ms": 17.746,
+     "median_ms": 18.173,
      "runs": 5,
-     "peak_memory_mb": 33.4,
-     "spread_ms": 2.251
+     "peak_memory_mb": 87.1,
+     "spread_ms": 0.432
     },
-    "improvement_pct": 43.2,
+    "improvement_pct": 43.0,
     "decision": "applied",
-    "reason": "Nhanh hơn 43.2% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
+    "reason": "Nhanh hơn 43.0% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
     "attempts": 2,
     "equivalence": [
      {
@@ -2546,21 +2652,21 @@ export const FIXTURES = {
     ],
     "bottlenecks": {
      "measured": true,
-     "model_total_ms": 139.813,
-     "dbt_wall_ms": 913.815,
+     "model_total_ms": 144.743,
+     "dbt_wall_ms": 894.29,
      "dag_wall_ms": null,
-     "analysis_ms": 49.72,
+     "analysis_ms": 52.811,
      "top_n": 3,
      "findings": [
       {
        "model": "fct_daily_revenue",
        "rank": 1,
-       "execute_ms": 139.813,
+       "execute_ms": 144.743,
        "analyzed": true,
        "operator": "WINDOW",
-       "phenomenon": "Model fct_daily_revenue chạy 139.8 ms, 100% tổng thời gian các model.",
+       "phenomenon": "Model fct_daily_revenue chạy 144.7 ms, 100% tổng thời gian các model.",
        "evidence": [
-        "Toán tử WINDOW chiếm 64% thời gian toán tử (31.4 ms), ra 366 dòng từ đầu vào [366] dòng",
+        "Toán tử WINDOW chiếm 73% thời gian toán tử (39.0 ms), ra 366 dòng từ đầu vào [366] dòng",
         "Dấu hiệu tĩnh (window_dedupe): row_number() theo PARTITION BY để khử trùng: tốn phân vùng/sắp xếp; thừa nếu khóa đã duy nhất."
        ],
        "hypothesis": "Hàm cửa sổ phải phân vùng và sắp xếp toàn bộ dữ liệu.",
@@ -2631,18 +2737,18 @@ export const FIXTURES = {
     "models_total": 1,
     "tests_ok": 17,
     "tests_total": 17,
-    "dbt_invocation": "4268b9ab-f6e8-4b84-8234-24948b99b9f2",
+    "dbt_invocation": "5d2e0848-015d-4b19-a23f-caf68cf63358",
     "model_timings": [
      {
       "model": "fct_daily_revenue",
       "status": "success",
-      "compile_ms": 12.031,
-      "execute_ms": 139.813,
+      "compile_ms": 0.0,
+      "execute_ms": 144.743,
       "rows": null,
       "materialized": "table"
      }
     ],
-    "wall_ms": 913.815
+    "wall_ms": 894.29
    },
    "code_notes": [
     "Mỗi nguồn một model staging chuẩn hóa ngày, tiền VND và trạng thái về cùng một bộ giá trị.",
@@ -2756,7 +2862,7 @@ export const FIXTURES = {
      "label": "Tối ưu",
      "kind": "E",
      "state": "passed",
-     "detail": "2 dấu hiệu chậm, baseline 31.257 ms, ứng viên từ llm"
+     "detail": "2 dấu hiệu chậm, baseline 34.395 ms, ứng viên từ llm"
     },
     {
      "id": "compare",
@@ -2764,7 +2870,7 @@ export const FIXTURES = {
      "label": "Đối chiếu",
      "kind": "V",
      "state": "passed",
-     "detail": "applied: Nhanh hơn 43.2% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu."
+     "detail": "applied: Nhanh hơn 43.0% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu."
     },
     {
      "id": "review",
@@ -2950,12 +3056,116 @@ export const FIXTURES = {
      }
     ]
    },
+   "dbt_tests": [
+    {
+     "name": "assert_san_a_orders_order_date_castable",
+     "status": "pass",
+     "kind": "testgen",
+     "message": ""
+    },
+    {
+     "name": "assert_san_a_orders_total_amount_castable",
+     "status": "pass",
+     "kind": "testgen",
+     "message": ""
+    },
+    {
+     "name": "assert_website_orders_created_ts_castable",
+     "status": "pass",
+     "kind": "testgen",
+     "message": ""
+    },
+    {
+     "name": "source_accepted_values_raw_san_a_orders_status__CANCELLED__COMPLETED__RETURNED",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_accepted_values_raw_san_b_orders_state__canceled__delivered__refunded",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_accepted_values_raw_website_orders_status__cancelled__paid__refunded",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_not_null_raw_san_a_orders_order_date",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_not_null_raw_san_a_orders_order_id",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_not_null_raw_san_b_orders_created_at",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_not_null_raw_san_b_orders_id",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_not_null_raw_website_orders_created_ts",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_not_null_raw_website_orders_order_id",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_unique_raw_san_b_orders_id",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "source_unique_raw_website_orders_order_id",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    },
+    {
+     "name": "assert_grain_unique",
+     "status": "pass",
+     "kind": "testgen",
+     "message": ""
+    },
+    {
+     "name": "assert_fct_daily_revenue_reconciles",
+     "status": "pass",
+     "kind": "testgen",
+     "message": ""
+    },
+    {
+     "name": "not_null_fct_daily_revenue_order_date",
+     "status": "pass",
+     "kind": "declared",
+     "message": ""
+    }
+   ],
    "reviews": [
     {
      "reviewer": "khach-duyet",
      "decision": "approve",
      "note": "",
-     "decided_at": "2026-10-18T11:54:48.832829+00:00"
+     "decided_at": "2026-10-18T14:55:58.031822+00:00"
     }
    ]
   }
@@ -2973,8 +3183,8 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:17+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:26+00:00",
       "summary": {
        "tokens": 0,
        "cost_usd": 0,
@@ -3106,8 +3316,8 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:17+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:26+00:00",
       "summary": {
        "tokens": 0,
        "cost_usd": 0,
@@ -3259,147 +3469,6 @@ export const FIXTURES = {
      },
      "queue_position": 0
     }
-   },
-   {
-    "dur": 1.2,
-    "events_count": 3,
-    "patch": {
-     "record": {
-      "id": "__RUN__",
-      "request_text": "Gộp đơn hàng 3 nguồn, tính doanh thu theo ngày",
-      "requester": "khach",
-      "status": "running",
-      "provider": "demo",
-      "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:17+00:00",
-      "summary": {
-       "tokens": 4540,
-       "cost_usd": 0.0213,
-       "llm_calls": 1,
-       "simulated": false,
-       "workspace": null
-      },
-      "pause_requested": false
-     },
-     "busy": true,
-     "pending": null,
-     "stages": [
-      {
-       "id": "input_gate",
-       "code": "G0",
-       "label": "Kiểm tra đầu vào",
-       "kind": "V",
-       "state": "passed",
-       "detail": "đạt"
-      },
-      {
-       "id": "drift_gate",
-       "code": "G1",
-       "label": "Kiểm tra cấu trúc nguồn",
-       "kind": "V",
-       "state": "passed",
-       "detail": "chưa kiểm (không có cơ sở dữ liệu)"
-      },
-      {
-       "id": "planner",
-       "code": "E1",
-       "label": "Lập kế hoạch",
-       "kind": "E",
-       "state": "passed",
-       "detail": "bảng đích fct_daily_revenue, mode ELT"
-      },
-      {
-       "id": "spec_check",
-       "code": "V0",
-       "label": "Soát đặc tả",
-       "kind": "V",
-       "state": "running",
-       "detail": "đang chạy"
-      },
-      {
-       "id": "plan_review",
-       "code": "J1b",
-       "label": "Duyệt kế hoạch",
-       "kind": "J",
-       "state": "waiting",
-       "detail": ""
-      },
-      {
-       "id": "prepare",
-       "code": "E0–E2",
-       "label": "Nạp và soi dữ liệu",
-       "kind": "E",
-       "state": "waiting",
-       "detail": ""
-      },
-      {
-       "id": "schema",
-       "code": "Vs",
-       "label": "Soát cấu trúc nguồn",
-       "kind": "V",
-       "state": "waiting",
-       "detail": ""
-      },
-      {
-       "id": "codegen",
-       "code": "E3",
-       "label": "Sinh code",
-       "kind": "E",
-       "state": "waiting",
-       "detail": ""
-      },
-      {
-       "id": "testgen",
-       "code": "E3b",
-       "label": "Sinh test",
-       "kind": "E",
-       "state": "waiting",
-       "detail": ""
-      },
-      {
-       "id": "safety",
-       "code": "V1",
-       "label": "Kiểm an toàn",
-       "kind": "V",
-       "state": "waiting",
-       "detail": ""
-      },
-      {
-       "id": "sandbox",
-       "code": "V2",
-       "label": "Chạy thử",
-       "kind": "V",
-       "state": "waiting",
-       "detail": ""
-      },
-      {
-       "id": "optimizer",
-       "code": "E4",
-       "label": "Tối ưu",
-       "kind": "E",
-       "state": "waiting",
-       "detail": ""
-      },
-      {
-       "id": "compare",
-       "code": "V3",
-       "label": "Đối chiếu",
-       "kind": "V",
-       "state": "waiting",
-       "detail": ""
-      },
-      {
-       "id": "review",
-       "code": "J2",
-       "label": "Duyệt code",
-       "kind": "J",
-       "state": "waiting",
-       "detail": ""
-      }
-     ],
-     "queue_position": 0
-    }
    }
   ],
   "plan": [
@@ -3414,8 +3483,8 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:19+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
       "summary": {
        "target": "fct_daily_revenue",
        "mode": "ELT",
@@ -3624,9 +3693,486 @@ export const FIXTURES = {
      },
      "queue_position": 0
     }
+   },
+   {
+    "dur": 1.2,
+    "events_count": 5,
+    "patch": {
+     "record": {
+      "id": "__RUN__",
+      "request_text": "Gộp đơn hàng 3 nguồn, tính doanh thu theo ngày",
+      "requester": "khach",
+      "status": "running",
+      "provider": "demo",
+      "model": "mô hình mẫu",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
+      "summary": {
+       "target": "fct_daily_revenue",
+       "mode": "ELT",
+       "fix_attempts": 0,
+       "rescue_count": 0,
+       "review_rounds": 0,
+       "optimization": null,
+       "improvement_pct": null,
+       "llm_calls": 1,
+       "tokens": 4540,
+       "cost_usd": 0.0213,
+       "simulated": false,
+       "workspace": null,
+       "error": ""
+      },
+      "pause_requested": false
+     },
+     "busy": true,
+     "pending": null,
+     "spec": {
+      "target": "fct_daily_revenue",
+      "mode": "ELT",
+      "mode_reason": "Mặc định ELT: nạp dữ liệu thô vào kho trước rồi biến đổi bằng dbt (giữ nguyên bản gốc nên chạy lại được khi cần vá).",
+      "grain": [
+       "order_date"
+      ],
+      "output_columns": [
+       {
+        "name": "order_date",
+        "type": "DATE",
+        "description": "Ngày đặt đơn",
+        "references": ""
+       },
+       {
+        "name": "order_count",
+        "type": "BIGINT",
+        "description": "Số đơn hợp lệ trong ngày",
+        "references": ""
+       },
+       {
+        "name": "revenue_vnd",
+        "type": "BIGINT",
+        "description": "Tổng doanh thu (VND)",
+        "references": ""
+       }
+      ],
+      "metrics": [
+       {
+        "name": "revenue_vnd",
+        "description": "Tổng tiền các đơn hợp lệ theo ngày, đơn vị VND"
+       }
+      ],
+      "filters": [
+       "Chỉ tính đơn có trạng thái hợp lệ theo câu trả lời làm rõ"
+      ],
+      "assumptions": [],
+      "plan_summary": "",
+      "plan": [],
+      "sources": [
+       {
+        "name": "san_a_orders",
+        "kind": "csv"
+       },
+       {
+        "name": "san_b_orders",
+        "kind": "json"
+       },
+       {
+        "name": "website_orders",
+        "kind": "sqlite"
+       }
+      ]
+     },
+     "stages": [
+      {
+       "id": "input_gate",
+       "code": "G0",
+       "label": "Kiểm tra đầu vào",
+       "kind": "V",
+       "state": "passed",
+       "detail": "đạt"
+      },
+      {
+       "id": "drift_gate",
+       "code": "G1",
+       "label": "Kiểm tra cấu trúc nguồn",
+       "kind": "V",
+       "state": "passed",
+       "detail": "chưa kiểm (không có cơ sở dữ liệu)"
+      },
+      {
+       "id": "planner",
+       "code": "E1",
+       "label": "Lập kế hoạch",
+       "kind": "E",
+       "state": "running",
+       "detail": "đang chạy"
+      },
+      {
+       "id": "clarify",
+       "code": "J1",
+       "label": "Hỏi làm rõ",
+       "kind": "J",
+       "state": "passed",
+       "detail": ""
+      },
+      {
+       "id": "spec_check",
+       "code": "V0",
+       "label": "Soát đặc tả",
+       "kind": "V",
+       "state": "failed",
+       "detail": "Còn 2 điểm chưa rõ: Trạng thái đơn nào được tính doanh thu; Cách xử lý mã đơn bị trùng trong cùng nguồn"
+      },
+      {
+       "id": "plan_review",
+       "code": "J1b",
+       "label": "Duyệt kế hoạch",
+       "kind": "J",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "prepare",
+       "code": "E0–E2",
+       "label": "Nạp và soi dữ liệu",
+       "kind": "E",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "schema",
+       "code": "Vs",
+       "label": "Soát cấu trúc nguồn",
+       "kind": "V",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "codegen",
+       "code": "E3",
+       "label": "Sinh code",
+       "kind": "E",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "testgen",
+       "code": "E3b",
+       "label": "Sinh test",
+       "kind": "E",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "safety",
+       "code": "V1",
+       "label": "Kiểm an toàn",
+       "kind": "V",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "sandbox",
+       "code": "V2",
+       "label": "Chạy thử",
+       "kind": "V",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "optimizer",
+       "code": "E4",
+       "label": "Tối ưu",
+       "kind": "E",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "compare",
+       "code": "V3",
+       "label": "Đối chiếu",
+       "kind": "V",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "review",
+       "code": "J2",
+       "label": "Duyệt code",
+       "kind": "J",
+       "state": "waiting",
+       "detail": ""
+      }
+     ],
+     "usage": {
+      "rows": [
+       {
+        "task": "planner",
+        "calls": 1,
+        "input_tokens": 3900,
+        "output_tokens": 640,
+        "cached_tokens": 1170,
+        "cost_usd": 0.0213,
+        "seconds": 6.2,
+        "models": [
+         "mô hình mẫu"
+        ]
+       }
+      ],
+      "cache_hit_rate": 0.3,
+      "simulated": false
+     },
+     "current": {
+      "node": "planner",
+      "label": "E1 Lập kế hoạch",
+      "started_at": 0,
+      "activity": [
+       "Đọc yêu cầu “Gộp đơn hàng 3 nguồn, tính doanh thu theo ngày”",
+       "Xem cấu trúc và thống kê (không có dòng dữ liệu thật) của 3 bảng nguồn: san_a_orders, san_b_orders, website_orders",
+       "Dùng 2 câu trả lời làm rõ của bạn",
+       "Chọn bảng đích, mỗi dòng là gì (grain), cột đầu ra và chỉ số",
+       "Quyết định ELT hay ETL; điểm nào chưa rõ thì soạn câu hỏi cho bạn",
+       "Viết kế hoạch từng bước kèm lý do để bạn duyệt (J1b)"
+      ],
+      "elapsed_s": 0,
+      "typical_s": null,
+      "samples": 1,
+      "stage": "planner"
+     },
+     "queue_position": 0
+    }
    }
   ],
   "build": [
+   {
+    "dur": 1.2,
+    "events_count": 7,
+    "patch": {
+     "record": {
+      "id": "__RUN__",
+      "request_text": "Gộp đơn hàng 3 nguồn, tính doanh thu theo ngày",
+      "requester": "khach",
+      "status": "running",
+      "provider": "demo",
+      "model": "mô hình mẫu",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
+      "summary": {
+       "target": "fct_daily_revenue",
+       "mode": "ELT",
+       "fix_attempts": 0,
+       "rescue_count": 0,
+       "review_rounds": 0,
+       "optimization": null,
+       "improvement_pct": null,
+       "llm_calls": 2,
+       "tokens": 9080,
+       "cost_usd": 0.0426,
+       "simulated": false,
+       "workspace": null,
+       "error": ""
+      },
+      "pause_requested": false
+     },
+     "busy": true,
+     "pending": null,
+     "evidence": {},
+     "optimization": {},
+     "sandbox": {},
+     "code_notes": [],
+     "test_notes": [],
+     "stages": [
+      {
+       "id": "input_gate",
+       "code": "G0",
+       "label": "Kiểm tra đầu vào",
+       "kind": "V",
+       "state": "passed",
+       "detail": "đạt"
+      },
+      {
+       "id": "drift_gate",
+       "code": "G1",
+       "label": "Kiểm tra cấu trúc nguồn",
+       "kind": "V",
+       "state": "passed",
+       "detail": "chưa kiểm (không có cơ sở dữ liệu)"
+      },
+      {
+       "id": "planner",
+       "code": "E1",
+       "label": "Lập kế hoạch",
+       "kind": "E",
+       "state": "passed",
+       "detail": "bảng đích fct_daily_revenue, mode ELT"
+      },
+      {
+       "id": "clarify",
+       "code": "J1",
+       "label": "Hỏi làm rõ",
+       "kind": "J",
+       "state": "passed",
+       "detail": ""
+      },
+      {
+       "id": "spec_check",
+       "code": "V0",
+       "label": "Soát đặc tả",
+       "kind": "V",
+       "state": "passed",
+       "detail": "đạt"
+      },
+      {
+       "id": "plan_review",
+       "code": "J1b",
+       "label": "Duyệt kế hoạch",
+       "kind": "J",
+       "state": "running",
+       "detail": "đang chạy"
+      },
+      {
+       "id": "prepare",
+       "code": "E0–E2",
+       "label": "Nạp và soi dữ liệu",
+       "kind": "E",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "schema",
+       "code": "Vs",
+       "label": "Soát cấu trúc nguồn",
+       "kind": "V",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "codegen",
+       "code": "E3",
+       "label": "Sinh code",
+       "kind": "E",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "testgen",
+       "code": "E3b",
+       "label": "Sinh test",
+       "kind": "E",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "safety",
+       "code": "V1",
+       "label": "Kiểm an toàn",
+       "kind": "V",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "sandbox",
+       "code": "V2",
+       "label": "Chạy thử",
+       "kind": "V",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "optimizer",
+       "code": "E4",
+       "label": "Tối ưu",
+       "kind": "E",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "compare",
+       "code": "V3",
+       "label": "Đối chiếu",
+       "kind": "V",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "review",
+       "code": "J2",
+       "label": "Duyệt code",
+       "kind": "J",
+       "state": "waiting",
+       "detail": ""
+      }
+     ],
+     "usage": {
+      "rows": [
+       {
+        "task": "planner",
+        "calls": 2,
+        "input_tokens": 7800,
+        "output_tokens": 1280,
+        "cached_tokens": 2340,
+        "cost_usd": 0.0426,
+        "seconds": 12.4,
+        "models": [
+         "mô hình mẫu"
+        ]
+       }
+      ],
+      "cache_hit_rate": 0.3,
+      "simulated": false
+     },
+     "queue_position": 0,
+     "schema_report": {},
+     "value_filters": [],
+     "reconciliation": [],
+     "drift": {
+      "checked": false,
+      "warnings": []
+     },
+     "review_gate": {
+      "passed": false,
+      "checks": [
+       {
+        "id": "model_run",
+        "name": "Model dbt chạy được trên sandbox",
+        "status": "unverified",
+        "reason": "Chưa có kết quả dbt build trên sandbox (V2)."
+       },
+       {
+        "id": "dag",
+        "name": "DAG nạp được, phụ thuộc đúng, cấu hình hợp lệ, đích sandbox",
+        "status": "unverified",
+        "reason": "Chưa có kết quả kiểm tra an toàn (V1)."
+       },
+       {
+        "id": "dbt_tests",
+        "name": "dbt tests đạt",
+        "status": "unverified",
+        "reason": "Chưa có kết quả dbt build trên sandbox (V2)."
+       },
+       {
+        "id": "expected",
+        "name": "Kết quả khớp kỳ vọng",
+        "status": "unverified",
+        "reason": "Thiếu test độc lập của Testgen hoặc kết quả V2."
+       }
+      ],
+      "extra": [
+       {
+        "id": "airflow_run",
+        "name": "Airflow chạy thật trên sandbox, chạy lại không nhân đôi dữ liệu",
+        "status": "unverified",
+        "reason": "Môi trường không có Airflow; DAG chỉ được kiểm bằng AST."
+       },
+       {
+        "id": "optimization",
+        "name": "Bản tối ưu giống hệt bản gốc trên sandbox",
+        "status": "passed",
+        "reason": "Không áp dụng bản tối ưu: giữ nguyên bản gốc."
+       }
+      ]
+     },
+     "dbt_tests": []
+    }
+   },
    {
     "dur": 1.2,
     "events_count": 8,
@@ -3638,8 +4184,8 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:19+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
       "summary": {
        "target": "fct_daily_revenue",
        "mode": "ELT",
@@ -3866,7 +4412,8 @@ export const FIXTURES = {
         "reason": "Không áp dụng bản tối ưu: giữ nguyên bản gốc."
        }
       ]
-     }
+     },
+     "dbt_tests": []
     }
    },
    {
@@ -3880,8 +4427,239 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:19+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
+      "summary": {
+       "target": "fct_daily_revenue",
+       "mode": "ELT",
+       "fix_attempts": 0,
+       "rescue_count": 0,
+       "review_rounds": 0,
+       "optimization": null,
+       "improvement_pct": null,
+       "llm_calls": 2,
+       "tokens": 9080,
+       "cost_usd": 0.0426,
+       "simulated": false,
+       "workspace": null,
+       "error": ""
+      },
+      "pause_requested": false
+     },
+     "busy": true,
+     "pending": null,
+     "evidence": {},
+     "optimization": {},
+     "sandbox": {},
+     "code_notes": [],
+     "test_notes": [],
+     "stages": [
+      {
+       "id": "input_gate",
+       "code": "G0",
+       "label": "Kiểm tra đầu vào",
+       "kind": "V",
+       "state": "passed",
+       "detail": "đạt"
+      },
+      {
+       "id": "drift_gate",
+       "code": "G1",
+       "label": "Kiểm tra cấu trúc nguồn",
+       "kind": "V",
+       "state": "passed",
+       "detail": "chưa kiểm (không có cơ sở dữ liệu)"
+      },
+      {
+       "id": "planner",
+       "code": "E1",
+       "label": "Lập kế hoạch",
+       "kind": "E",
+       "state": "passed",
+       "detail": "bảng đích fct_daily_revenue, mode ELT"
+      },
+      {
+       "id": "clarify",
+       "code": "J1",
+       "label": "Hỏi làm rõ",
+       "kind": "J",
+       "state": "passed",
+       "detail": ""
+      },
+      {
+       "id": "spec_check",
+       "code": "V0",
+       "label": "Soát đặc tả",
+       "kind": "V",
+       "state": "passed",
+       "detail": "đạt"
+      },
+      {
+       "id": "plan_review",
+       "code": "J1b",
+       "label": "Duyệt kế hoạch",
+       "kind": "J",
+       "state": "passed",
+       "detail": ""
+      },
+      {
+       "id": "prepare",
+       "code": "E0–E2",
+       "label": "Nạp và soi dữ liệu",
+       "kind": "E",
+       "state": "passed",
+       "detail": "san_a_orders: 126 dòng, san_b_orders: 120 dòng, website_orders: 120 dòng"
+      },
+      {
+       "id": "schema",
+       "code": "Vs",
+       "label": "Soát cấu trúc nguồn",
+       "kind": "V",
+       "state": "running",
+       "detail": "đang chạy"
+      },
+      {
+       "id": "codegen",
+       "code": "E3",
+       "label": "Sinh code",
+       "kind": "E",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "testgen",
+       "code": "E3b",
+       "label": "Sinh test",
+       "kind": "E",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "safety",
+       "code": "V1",
+       "label": "Kiểm an toàn",
+       "kind": "V",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "sandbox",
+       "code": "V2",
+       "label": "Chạy thử",
+       "kind": "V",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "optimizer",
+       "code": "E4",
+       "label": "Tối ưu",
+       "kind": "E",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "compare",
+       "code": "V3",
+       "label": "Đối chiếu",
+       "kind": "V",
+       "state": "waiting",
+       "detail": ""
+      },
+      {
+       "id": "review",
+       "code": "J2",
+       "label": "Duyệt code",
+       "kind": "J",
+       "state": "waiting",
+       "detail": ""
+      }
+     ],
+     "usage": {
+      "rows": [
+       {
+        "task": "planner",
+        "calls": 2,
+        "input_tokens": 7800,
+        "output_tokens": 1280,
+        "cached_tokens": 2340,
+        "cost_usd": 0.0426,
+        "seconds": 12.4,
+        "models": [
+         "mô hình mẫu"
+        ]
+       }
+      ],
+      "cache_hit_rate": 0.3,
+      "simulated": false
+     },
+     "queue_position": 0,
+     "schema_report": {},
+     "value_filters": [],
+     "reconciliation": [],
+     "drift": {
+      "checked": false,
+      "warnings": []
+     },
+     "review_gate": {
+      "passed": false,
+      "checks": [
+       {
+        "id": "model_run",
+        "name": "Model dbt chạy được trên sandbox",
+        "status": "unverified",
+        "reason": "Chưa có kết quả dbt build trên sandbox (V2)."
+       },
+       {
+        "id": "dag",
+        "name": "DAG nạp được, phụ thuộc đúng, cấu hình hợp lệ, đích sandbox",
+        "status": "unverified",
+        "reason": "Chưa có kết quả kiểm tra an toàn (V1)."
+       },
+       {
+        "id": "dbt_tests",
+        "name": "dbt tests đạt",
+        "status": "unverified",
+        "reason": "Chưa có kết quả dbt build trên sandbox (V2)."
+       },
+       {
+        "id": "expected",
+        "name": "Kết quả khớp kỳ vọng",
+        "status": "unverified",
+        "reason": "Thiếu test độc lập của Testgen hoặc kết quả V2."
+       }
+      ],
+      "extra": [
+       {
+        "id": "airflow_run",
+        "name": "Airflow chạy thật trên sandbox, chạy lại không nhân đôi dữ liệu",
+        "status": "unverified",
+        "reason": "Môi trường không có Airflow; DAG chỉ được kiểm bằng AST."
+       },
+       {
+        "id": "optimization",
+        "name": "Bản tối ưu giống hệt bản gốc trên sandbox",
+        "status": "passed",
+        "reason": "Không áp dụng bản tối ưu: giữ nguyên bản gốc."
+       }
+      ]
+     },
+     "dbt_tests": []
+    }
+   },
+   {
+    "dur": 1.2,
+    "events_count": 9,
+    "patch": {
+     "record": {
+      "id": "__RUN__",
+      "request_text": "Gộp đơn hàng 3 nguồn, tính doanh thu theo ngày",
+      "requester": "khach",
+      "status": "running",
+      "provider": "demo",
+      "model": "mô hình mẫu",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
       "summary": {
        "target": "fct_daily_revenue",
        "mode": "ELT",
@@ -4108,7 +4886,8 @@ export const FIXTURES = {
         "reason": "Không áp dụng bản tối ưu: giữ nguyên bản gốc."
        }
       ]
-     }
+     },
+     "dbt_tests": []
     }
    },
    {
@@ -4122,8 +4901,8 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:19+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
       "summary": {
        "target": "fct_daily_revenue",
        "mode": "ELT",
@@ -4338,7 +5117,8 @@ export const FIXTURES = {
         "reason": "Không áp dụng bản tối ưu: giữ nguyên bản gốc."
        }
       ]
-     }
+     },
+     "dbt_tests": []
     }
    },
    {
@@ -4352,8 +5132,8 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:19+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
       "summary": {
        "target": "fct_daily_revenue",
        "mode": "ELT",
@@ -4579,12 +5359,13 @@ export const FIXTURES = {
         "reason": "Không áp dụng bản tối ưu: giữ nguyên bản gốc."
        }
       ]
-     }
+     },
+     "dbt_tests": []
     }
    },
    {
     "dur": 1.2,
-    "events_count": 13,
+    "events_count": 12,
     "patch": {
      "record": {
       "id": "__RUN__",
@@ -4593,8 +5374,8 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:19+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
       "summary": {
        "target": "fct_daily_revenue",
        "mode": "ELT",
@@ -4603,9 +5384,9 @@ export const FIXTURES = {
        "review_rounds": 0,
        "optimization": null,
        "improvement_pct": null,
-       "llm_calls": 3,
-       "tokens": 18660,
-       "cost_usd": 0.1011,
+       "llm_calls": 2,
+       "tokens": 9080,
+       "cost_usd": 0.0426,
        "simulated": false,
        "workspace": null,
        "error": ""
@@ -4617,6 +5398,7 @@ export const FIXTURES = {
      "evidence": {},
      "optimization": {},
      "sandbox": {},
+     "code_notes": [],
      "test_notes": [],
      "stages": [
       {
@@ -4688,16 +5470,16 @@ export const FIXTURES = {
        "code": "E3",
        "label": "Sinh code",
        "kind": "E",
-       "state": "passed",
-       "detail": "5 file"
+       "state": "running",
+       "detail": "đang chạy"
       },
       {
        "id": "testgen",
        "code": "E3b",
        "label": "Sinh test",
        "kind": "E",
-       "state": "running",
-       "detail": "đang chạy"
+       "state": "waiting",
+       "detail": ""
       },
       {
        "id": "safety",
@@ -4753,36 +5535,25 @@ export const FIXTURES = {
         "models": [
          "mô hình mẫu"
         ]
-       },
-       {
-        "task": "codegen",
-        "calls": 1,
-        "input_tokens": 7100,
-        "output_tokens": 2480,
-        "cached_tokens": 2130,
-        "cost_usd": 0.0585,
-        "seconds": 14.6,
-        "models": [
-         "mô hình mẫu"
-        ]
        }
       ],
       "cache_hit_rate": 0.3,
       "simulated": false
      },
      "current": {
-      "node": "testgen",
-      "label": "E3b Sinh test",
+      "node": "codegen",
+      "label": "E3 Sinh code",
       "started_at": 0,
       "activity": [
-       "Viết một câu SELECT độc lập tính lại kết quả mong đợi từ dữ liệu thô (không xem code pipeline)",
-       "Tính lại các chỉ số: revenue_vnd",
-       "Hệ thống sẽ so hai chiều với `fct_daily_revenue` theo khóa order_date"
+       "Viết model staging cho 3 nguồn: san_a_orders, san_b_orders, website_orders",
+       "Viết model mart `fct_daily_revenue` với 3 cột: order_date, order_count, revenue_vnd",
+       "Mỗi dòng của mart là một giá trị của order_date",
+       "Viết DAG Airflow chạy `dbt build`"
       ],
       "elapsed_s": 0,
       "typical_s": null,
       "samples": 0,
-      "stage": "testgen"
+      "stage": "codegen"
      },
      "queue_position": 0,
      "value_filters": [],
@@ -4833,7 +5604,8 @@ export const FIXTURES = {
         "reason": "Không áp dụng bản tối ưu: giữ nguyên bản gốc."
        }
       ]
-     }
+     },
+     "dbt_tests": []
     }
    },
    {
@@ -4847,8 +5619,8 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:19+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
       "summary": {
        "target": "fct_daily_revenue",
        "mode": "ELT",
@@ -5096,7 +5868,8 @@ export const FIXTURES = {
         "reason": "Không áp dụng bản tối ưu: giữ nguyên bản gốc."
        }
       ]
-     }
+     },
+     "dbt_tests": []
     }
    },
    {
@@ -5110,8 +5883,8 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:19+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
       "summary": {
        "target": "fct_daily_revenue",
        "mode": "ELT",
@@ -5359,7 +6132,8 @@ export const FIXTURES = {
         "reason": "Không áp dụng bản tối ưu: giữ nguyên bản gốc."
        }
       ]
-     }
+     },
+     "dbt_tests": []
     }
    },
    {
@@ -5373,8 +6147,8 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:19+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
       "summary": {
        "target": "fct_daily_revenue",
        "mode": "ELT",
@@ -5456,18 +6230,18 @@ export const FIXTURES = {
       "models_total": 1,
       "tests_ok": 17,
       "tests_total": 17,
-      "dbt_invocation": "879ebb50-d7cf-4edf-bedc-60490b7ab2ca",
+      "dbt_invocation": "b4ae607d-b241-42a6-aeee-bad6313d2df2",
       "model_timings": [
        {
         "model": "fct_daily_revenue",
         "status": "success",
-        "compile_ms": 11.977,
-        "execute_ms": 130.938,
+        "compile_ms": 24.121,
+        "execute_ms": 135.485,
         "rows": null,
         "materialized": "table"
        }
       ],
-      "wall_ms": 884.45
+      "wall_ms": 921.861
      },
      "stages": [
       {
@@ -5709,8 +6483,8 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:19+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
       "summary": {
        "target": "fct_daily_revenue",
        "mode": "ELT",
@@ -5792,18 +6566,18 @@ export const FIXTURES = {
       "models_total": 1,
       "tests_ok": 17,
       "tests_total": 17,
-      "dbt_invocation": "879ebb50-d7cf-4edf-bedc-60490b7ab2ca",
+      "dbt_invocation": "b4ae607d-b241-42a6-aeee-bad6313d2df2",
       "model_timings": [
        {
         "model": "fct_daily_revenue",
         "status": "success",
-        "compile_ms": 11.977,
-        "execute_ms": 130.938,
+        "compile_ms": 24.121,
+        "execute_ms": 135.485,
         "rows": null,
         "materialized": "table"
        }
       ],
-      "wall_ms": 884.45
+      "wall_ms": 921.861
      },
      "stages": [
       {
@@ -5908,329 +6682,7 @@ export const FIXTURES = {
        "label": "Tối ưu",
        "kind": "E",
        "state": "passed",
-       "detail": "2 dấu hiệu chậm, baseline 31.257 ms, ứng viên từ sqlglot"
-      },
-      {
-       "id": "compare",
-       "code": "V3",
-       "label": "Đối chiếu",
-       "kind": "V",
-       "state": "running",
-       "detail": "đang chạy"
-      },
-      {
-       "id": "review",
-       "code": "J2",
-       "label": "Duyệt code",
-       "kind": "J",
-       "state": "waiting",
-       "detail": ""
-      }
-     ],
-     "usage": {
-      "rows": [
-       {
-        "task": "planner",
-        "calls": 2,
-        "input_tokens": 7800,
-        "output_tokens": 1280,
-        "cached_tokens": 2340,
-        "cost_usd": 0.0426,
-        "seconds": 12.4,
-        "models": [
-         "mô hình mẫu"
-        ]
-       },
-       {
-        "task": "codegen",
-        "calls": 1,
-        "input_tokens": 7100,
-        "output_tokens": 2480,
-        "cached_tokens": 2130,
-        "cost_usd": 0.0585,
-        "seconds": 14.6,
-        "models": [
-         "mô hình mẫu"
-        ]
-       },
-       {
-        "task": "testgen",
-        "calls": 1,
-        "input_tokens": 4200,
-        "output_tokens": 1350,
-        "cached_tokens": 1260,
-        "cost_usd": 0.0329,
-        "seconds": 8.1,
-        "models": [
-         "mô hình mẫu"
-        ]
-       }
-      ],
-      "cache_hit_rate": 0.3,
-      "simulated": false
-     },
-     "queue_position": 0,
-     "value_filters": [],
-     "drift": {
-      "checked": false,
-      "warnings": []
-     },
-     "review_gate": {
-      "passed": true,
-      "checks": [
-       {
-        "id": "model_run",
-        "name": "Model dbt chạy được trên sandbox",
-        "status": "passed",
-        "reason": "1/1 model chạy được"
-       },
-       {
-        "id": "dag",
-        "name": "DAG nạp được, phụ thuộc đúng, cấu hình hợp lệ, đích sandbox",
-        "status": "passed",
-        "reason": "Kiểm AST (V1): cú pháp, thứ tự, vòng lặp, task mồ côi, lịch, retries, đích."
-       },
-       {
-        "id": "dbt_tests",
-        "name": "dbt tests đạt",
-        "status": "passed",
-        "reason": "17/17 test đạt"
-       },
-       {
-        "id": "expected",
-        "name": "Kết quả khớp kỳ vọng",
-        "status": "passed",
-        "reason": "5 test độc lập của Testgen (gồm đối soát) đạt; kiểu cột bảng đích khớp đặc tả."
-       }
-      ],
-      "extra": [
-       {
-        "id": "airflow_run",
-        "name": "Airflow chạy thật trên sandbox, chạy lại không nhân đôi dữ liệu",
-        "status": "unverified",
-        "reason": "Môi trường không có Airflow; DAG chỉ được kiểm bằng AST."
-       },
-       {
-        "id": "optimization",
-        "name": "Bản tối ưu giống hệt bản gốc trên sandbox",
-        "status": "passed",
-        "reason": "Không áp dụng bản tối ưu: giữ nguyên bản gốc."
-       }
-      ]
-     }
-    }
-   },
-   {
-    "dur": 1.2,
-    "events_count": 17,
-    "patch": {
-     "record": {
-      "id": "__RUN__",
-      "request_text": "Gộp đơn hàng 3 nguồn, tính doanh thu theo ngày",
-      "requester": "khach",
-      "status": "running",
-      "provider": "demo",
-      "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:19+00:00",
-      "summary": {
-       "target": "fct_daily_revenue",
-       "mode": "ELT",
-       "fix_attempts": 0,
-       "rescue_count": 0,
-       "review_rounds": 0,
-       "optimization": null,
-       "improvement_pct": null,
-       "llm_calls": 4,
-       "tokens": 24210,
-       "cost_usd": 0.134,
-       "simulated": false,
-       "workspace": null,
-       "error": ""
-      },
-      "pause_requested": false
-     },
-     "busy": true,
-     "pending": null,
-     "evidence": {},
-     "optimization": {},
-     "sandbox": {
-      "passed": true,
-      "error": "",
-      "target_rows": 30,
-      "sample": [
-       {
-        "order_date": "2026-09-01",
-        "order_count": "2",
-        "revenue_vnd": "5168000"
-       },
-       {
-        "order_date": "2026-09-02",
-        "order_count": "6",
-        "revenue_vnd": "8608000"
-       },
-       {
-        "order_date": "2026-09-03",
-        "order_count": "10",
-        "revenue_vnd": "16402000"
-       },
-       {
-        "order_date": "2026-09-04",
-        "order_count": "6",
-        "revenue_vnd": "10088000"
-       },
-       {
-        "order_date": "2026-09-05",
-        "order_count": "12",
-        "revenue_vnd": "24429000"
-       },
-       {
-        "order_date": "2026-09-06",
-        "order_count": "7",
-        "revenue_vnd": "9959000"
-       },
-       {
-        "order_date": "2026-09-07",
-        "order_count": "6",
-        "revenue_vnd": "10250000"
-       },
-       {
-        "order_date": "2026-09-08",
-        "order_count": "10",
-        "revenue_vnd": "13961000"
-       },
-       {
-        "order_date": "2026-09-09",
-        "order_count": "6",
-        "revenue_vnd": "9289000"
-       },
-       {
-        "order_date": "2026-09-10",
-        "order_count": "10",
-        "revenue_vnd": "15045000"
-       }
-      ],
-      "models_ok": 1,
-      "models_total": 1,
-      "tests_ok": 17,
-      "tests_total": 17,
-      "dbt_invocation": "879ebb50-d7cf-4edf-bedc-60490b7ab2ca",
-      "model_timings": [
-       {
-        "model": "fct_daily_revenue",
-        "status": "success",
-        "compile_ms": 11.977,
-        "execute_ms": 130.938,
-        "rows": null,
-        "materialized": "table"
-       }
-      ],
-      "wall_ms": 884.45
-     },
-     "stages": [
-      {
-       "id": "input_gate",
-       "code": "G0",
-       "label": "Kiểm tra đầu vào",
-       "kind": "V",
-       "state": "passed",
-       "detail": "đạt"
-      },
-      {
-       "id": "drift_gate",
-       "code": "G1",
-       "label": "Kiểm tra cấu trúc nguồn",
-       "kind": "V",
-       "state": "passed",
-       "detail": "chưa kiểm (không có cơ sở dữ liệu)"
-      },
-      {
-       "id": "planner",
-       "code": "E1",
-       "label": "Lập kế hoạch",
-       "kind": "E",
-       "state": "passed",
-       "detail": "bảng đích fct_daily_revenue, mode ELT"
-      },
-      {
-       "id": "clarify",
-       "code": "J1",
-       "label": "Hỏi làm rõ",
-       "kind": "J",
-       "state": "passed",
-       "detail": ""
-      },
-      {
-       "id": "spec_check",
-       "code": "V0",
-       "label": "Soát đặc tả",
-       "kind": "V",
-       "state": "passed",
-       "detail": "đạt"
-      },
-      {
-       "id": "plan_review",
-       "code": "J1b",
-       "label": "Duyệt kế hoạch",
-       "kind": "J",
-       "state": "passed",
-       "detail": ""
-      },
-      {
-       "id": "prepare",
-       "code": "E0–E2",
-       "label": "Nạp và soi dữ liệu",
-       "kind": "E",
-       "state": "passed",
-       "detail": "small, large, dirty, empty, few, dupkeys, nullmoney"
-      },
-      {
-       "id": "schema",
-       "code": "Vs",
-       "label": "Soát cấu trúc nguồn",
-       "kind": "V",
-       "state": "passed",
-       "detail": "Không đổi so với bản đã duyệt."
-      },
-      {
-       "id": "codegen",
-       "code": "E3",
-       "label": "Sinh code",
-       "kind": "E",
-       "state": "passed",
-       "detail": "5 file"
-      },
-      {
-       "id": "testgen",
-       "code": "E3b",
-       "label": "Sinh test",
-       "kind": "E",
-       "state": "passed",
-       "detail": "6 file test"
-      },
-      {
-       "id": "safety",
-       "code": "V1",
-       "label": "Kiểm an toàn",
-       "kind": "V",
-       "state": "passed",
-       "detail": "không phát hiện vấn đề"
-      },
-      {
-       "id": "sandbox",
-       "code": "V2",
-       "label": "Chạy thử",
-       "kind": "V",
-       "state": "passed",
-       "detail": "1/1 model, 17/17 test đạt"
-      },
-      {
-       "id": "optimizer",
-       "code": "E4",
-       "label": "Tối ưu",
-       "kind": "E",
-       "state": "passed",
-       "detail": "2 dấu hiệu chậm, baseline 31.257 ms, ứng viên từ sqlglot"
+       "detail": "2 dấu hiệu chậm, baseline 34.395 ms, ứng viên từ sqlglot"
       },
       {
        "id": "compare",
@@ -6365,8 +6817,8 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:19+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
       "summary": {
        "target": "fct_daily_revenue",
        "mode": "ELT",
@@ -6448,18 +6900,18 @@ export const FIXTURES = {
       "models_total": 1,
       "tests_ok": 17,
       "tests_total": 17,
-      "dbt_invocation": "879ebb50-d7cf-4edf-bedc-60490b7ab2ca",
+      "dbt_invocation": "b4ae607d-b241-42a6-aeee-bad6313d2df2",
       "model_timings": [
        {
         "model": "fct_daily_revenue",
         "status": "success",
-        "compile_ms": 11.977,
-        "execute_ms": 130.938,
+        "compile_ms": 24.121,
+        "execute_ms": 135.485,
         "rows": null,
         "materialized": "table"
        }
       ],
-      "wall_ms": 884.45
+      "wall_ms": 921.861
      },
      "stages": [
       {
@@ -6702,8 +7154,8 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:19+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
       "summary": {
        "target": "fct_daily_revenue",
        "mode": "ELT",
@@ -6785,18 +7237,18 @@ export const FIXTURES = {
       "models_total": 1,
       "tests_ok": 17,
       "tests_total": 17,
-      "dbt_invocation": "879ebb50-d7cf-4edf-bedc-60490b7ab2ca",
+      "dbt_invocation": "b4ae607d-b241-42a6-aeee-bad6313d2df2",
       "model_timings": [
        {
         "model": "fct_daily_revenue",
         "status": "success",
-        "compile_ms": 11.977,
-        "execute_ms": 130.938,
+        "compile_ms": 24.121,
+        "execute_ms": 135.485,
         "rows": null,
         "materialized": "table"
        }
       ],
-      "wall_ms": 884.45
+      "wall_ms": 921.861
      },
      "stages": [
       {
@@ -6901,7 +7353,7 @@ export const FIXTURES = {
        "label": "Tối ưu",
        "kind": "E",
        "state": "passed",
-       "detail": "2 dấu hiệu chậm, baseline 31.257 ms, ứng viên từ llm"
+       "detail": "2 dấu hiệu chậm, baseline 34.395 ms, ứng viên từ llm"
       },
       {
        "id": "compare",
@@ -6994,8 +7446,8 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:19+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
       "summary": {
        "target": "fct_daily_revenue",
        "mode": "ELT",
@@ -7030,20 +7482,20 @@ export const FIXTURES = {
        }
       ],
       "before": {
-       "median_ms": 31.257,
+       "median_ms": 31.886,
        "runs": 5,
-       "peak_memory_mb": 96.9,
-       "spread_ms": 2.891
+       "peak_memory_mb": 87.1,
+       "spread_ms": 5.523
       },
       "after": {
-       "median_ms": 17.746,
+       "median_ms": 18.173,
        "runs": 5,
-       "peak_memory_mb": 33.4,
-       "spread_ms": 2.251
+       "peak_memory_mb": 87.1,
+       "spread_ms": 0.432
       },
-      "improvement_pct": 43.2,
+      "improvement_pct": 43.0,
       "decision": "applied",
-      "reason": "Nhanh hơn 43.2% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
+      "reason": "Nhanh hơn 43.0% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
       "attempts": 2,
       "equivalence": [
        {
@@ -7144,18 +7596,365 @@ export const FIXTURES = {
       "models_total": 1,
       "tests_ok": 17,
       "tests_total": 17,
-      "dbt_invocation": "879ebb50-d7cf-4edf-bedc-60490b7ab2ca",
+      "dbt_invocation": "b4ae607d-b241-42a6-aeee-bad6313d2df2",
       "model_timings": [
        {
         "model": "fct_daily_revenue",
         "status": "success",
-        "compile_ms": 11.977,
-        "execute_ms": 130.938,
+        "compile_ms": 24.121,
+        "execute_ms": 135.485,
         "rows": null,
         "materialized": "table"
        }
       ],
-      "wall_ms": 884.45
+      "wall_ms": 921.861
+     },
+     "stages": [
+      {
+       "id": "input_gate",
+       "code": "G0",
+       "label": "Kiểm tra đầu vào",
+       "kind": "V",
+       "state": "passed",
+       "detail": "đạt"
+      },
+      {
+       "id": "drift_gate",
+       "code": "G1",
+       "label": "Kiểm tra cấu trúc nguồn",
+       "kind": "V",
+       "state": "passed",
+       "detail": "chưa kiểm (không có cơ sở dữ liệu)"
+      },
+      {
+       "id": "planner",
+       "code": "E1",
+       "label": "Lập kế hoạch",
+       "kind": "E",
+       "state": "passed",
+       "detail": "bảng đích fct_daily_revenue, mode ELT"
+      },
+      {
+       "id": "clarify",
+       "code": "J1",
+       "label": "Hỏi làm rõ",
+       "kind": "J",
+       "state": "passed",
+       "detail": ""
+      },
+      {
+       "id": "spec_check",
+       "code": "V0",
+       "label": "Soát đặc tả",
+       "kind": "V",
+       "state": "passed",
+       "detail": "đạt"
+      },
+      {
+       "id": "plan_review",
+       "code": "J1b",
+       "label": "Duyệt kế hoạch",
+       "kind": "J",
+       "state": "passed",
+       "detail": ""
+      },
+      {
+       "id": "prepare",
+       "code": "E0–E2",
+       "label": "Nạp và soi dữ liệu",
+       "kind": "E",
+       "state": "passed",
+       "detail": "small, large, dirty, empty, few, dupkeys, nullmoney"
+      },
+      {
+       "id": "schema",
+       "code": "Vs",
+       "label": "Soát cấu trúc nguồn",
+       "kind": "V",
+       "state": "passed",
+       "detail": "Không đổi so với bản đã duyệt."
+      },
+      {
+       "id": "codegen",
+       "code": "E3",
+       "label": "Sinh code",
+       "kind": "E",
+       "state": "passed",
+       "detail": "5 file"
+      },
+      {
+       "id": "testgen",
+       "code": "E3b",
+       "label": "Sinh test",
+       "kind": "E",
+       "state": "passed",
+       "detail": "6 file test"
+      },
+      {
+       "id": "safety",
+       "code": "V1",
+       "label": "Kiểm an toàn",
+       "kind": "V",
+       "state": "passed",
+       "detail": "không phát hiện vấn đề"
+      },
+      {
+       "id": "sandbox",
+       "code": "V2",
+       "label": "Chạy thử",
+       "kind": "V",
+       "state": "passed",
+       "detail": "1/1 model, 17/17 test đạt"
+      },
+      {
+       "id": "optimizer",
+       "code": "E4",
+       "label": "Tối ưu",
+       "kind": "E",
+       "state": "passed",
+       "detail": "2 dấu hiệu chậm, baseline 34.395 ms, ứng viên từ llm"
+      },
+      {
+       "id": "compare",
+       "code": "V3",
+       "label": "Đối chiếu",
+       "kind": "V",
+       "state": "passed",
+       "detail": "applied: Nhanh hơn 43.0% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu."
+      },
+      {
+       "id": "review",
+       "code": "J2",
+       "label": "Duyệt code",
+       "kind": "J",
+       "state": "running",
+       "detail": "đang chạy"
+      }
+     ],
+     "queue_position": 0,
+     "value_filters": [],
+     "drift": {
+      "checked": false,
+      "warnings": []
+     },
+     "review_gate": {
+      "passed": true,
+      "checks": [
+       {
+        "id": "model_run",
+        "name": "Model dbt chạy được trên sandbox",
+        "status": "passed",
+        "reason": "1/1 model chạy được"
+       },
+       {
+        "id": "dag",
+        "name": "DAG nạp được, phụ thuộc đúng, cấu hình hợp lệ, đích sandbox",
+        "status": "passed",
+        "reason": "Kiểm AST (V1): cú pháp, thứ tự, vòng lặp, task mồ côi, lịch, retries, đích."
+       },
+       {
+        "id": "dbt_tests",
+        "name": "dbt tests đạt",
+        "status": "passed",
+        "reason": "17/17 test đạt"
+       },
+       {
+        "id": "expected",
+        "name": "Kết quả khớp kỳ vọng",
+        "status": "passed",
+        "reason": "5 test độc lập của Testgen (gồm đối soát) đạt; kiểu cột bảng đích khớp đặc tả."
+       }
+      ],
+      "extra": [
+       {
+        "id": "airflow_run",
+        "name": "Airflow chạy thật trên sandbox, chạy lại không nhân đôi dữ liệu",
+        "status": "unverified",
+        "reason": "Môi trường không có Airflow; DAG chỉ được kiểm bằng AST."
+       },
+       {
+        "id": "optimization",
+        "name": "Bản tối ưu giống hệt bản gốc trên sandbox",
+        "status": "unverified",
+        "reason": "Chưa có đối chiếu với bản gốc trên dữ liệu sandbox."
+       }
+      ]
+     }
+    }
+   },
+   {
+    "dur": 1.2,
+    "events_count": 20,
+    "patch": {
+     "record": {
+      "id": "__RUN__",
+      "request_text": "Gộp đơn hàng 3 nguồn, tính doanh thu theo ngày",
+      "requester": "khach",
+      "status": "running",
+      "provider": "demo",
+      "model": "mô hình mẫu",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
+      "summary": {
+       "target": "fct_daily_revenue",
+       "mode": "ELT",
+       "fix_attempts": 0,
+       "rescue_count": 0,
+       "review_rounds": 0,
+       "optimization": null,
+       "improvement_pct": null,
+       "llm_calls": 5,
+       "tokens": 28530,
+       "cost_usd": 0.158,
+       "simulated": false,
+       "workspace": null,
+       "error": ""
+      },
+      "pause_requested": false
+     },
+     "busy": true,
+     "pending": null,
+     "evidence": {},
+     "optimization": {
+      "original_sql": "-- Doanh thu theo ngày từ 3 nguồn; mỗi (nguồn, mã đơn) tính một lần\nwith all_orders as (\n    select source, order_id, order_date, status, amount_vnd from main.stg_san_a_orders\n    union\n    select source, order_id, order_date, status, amount_vnd from main.stg_san_b_orders\n    union\n    select source, order_id, order_date, status, amount_vnd from main.stg_website_orders\n),\n\ndeduped as (\n    select source, order_id, order_date, status, amount_vnd\n    from all_orders\n    qualify row_number() over (\n        partition by source, order_id\n        order by order_date, amount_vnd desc nulls last, status\n    ) = 1\n)\n\nselect\n    order_date,\n    count(*) as order_count,\n    cast(coalesce(sum(amount_vnd), 0) as bigint) as revenue_vnd\nfrom deduped\nwhere status in ('completed')\ngroup by order_date\norder by order_date",
+      "proposed_sql": "/* Doanh thu theo ngày từ 3 nguồn; mỗi (nguồn, mã đơn) tính một lần */\nWITH all_orders AS (\n  SELECT\n    source,\n    order_id,\n    order_date,\n    status,\n    amount_vnd\n  FROM main.stg_san_a_orders\n  UNION ALL\n  SELECT\n    source,\n    order_id,\n    order_date,\n    status,\n    amount_vnd\n  FROM main.stg_san_b_orders\n  UNION ALL\n  SELECT\n    source,\n    order_id,\n    order_date,\n    status,\n    amount_vnd\n  FROM main.stg_website_orders\n), deduped AS (\n  SELECT\n    source,\n    order_id,\n    order_date,\n    status,\n    amount_vnd\n  FROM all_orders\n  QUALIFY\n    ROW_NUMBER() OVER (PARTITION BY source, order_id ORDER BY order_date, amount_vnd DESC, status) = 1\n)\nSELECT\n  order_date,\n  COUNT(*) AS order_count,\n  CAST(COALESCE(SUM(amount_vnd), 0) AS BIGINT) AS revenue_vnd\nFROM deduped\nWHERE\n  status IN ('completed')\nGROUP BY\n  order_date\nORDER BY\n  order_date",
+      "findings": [
+       {
+        "rule": "union_distinct",
+        "message": "UNION (khử trùng) thay vì UNION ALL: phải băm toàn bộ dòng để loại trùng."
+       },
+       {
+        "rule": "window_dedupe",
+        "message": "row_number() theo PARTITION BY để khử trùng: tốn phân vùng/sắp xếp; thừa nếu khóa đã duy nhất."
+       }
+      ],
+      "before": {
+       "median_ms": 31.886,
+       "runs": 5,
+       "peak_memory_mb": 87.1,
+       "spread_ms": 5.523
+      },
+      "after": {
+       "median_ms": 18.173,
+       "runs": 5,
+       "peak_memory_mb": 87.1,
+       "spread_ms": 0.432
+      },
+      "improvement_pct": 43.0,
+      "decision": "applied",
+      "reason": "Nhanh hơn 43.0% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
+      "attempts": 2,
+      "equivalence": [
+       {
+        "dataset": "small",
+        "equal": true,
+        "detail": "Giống hệt (30 dòng)"
+       },
+       {
+        "dataset": "dirty",
+        "equal": true,
+        "detail": "Giống hệt (29 dòng)"
+       },
+       {
+        "dataset": "empty",
+        "equal": true,
+        "detail": "Giống hệt (0 dòng)"
+       },
+       {
+        "dataset": "few",
+        "equal": true,
+        "detail": "Giống hệt (6 dòng)"
+       },
+       {
+        "dataset": "dupkeys",
+        "equal": true,
+        "detail": "Giống hệt (30 dòng)"
+       },
+       {
+        "dataset": "nullmoney",
+        "equal": true,
+        "detail": "Giống hệt (30 dòng)"
+       }
+      ],
+      "llm_cost_usd": 0.024,
+      "explanation": "Đổi UNION thành UNION ALL: bước bỏ trùng theo (nguồn, mã đơn) phía sau đã xử lý trùng, nên không cần băm toàn bộ dữ liệu thêm một lần.",
+      "warehouse_hints": [
+       "BigQuery/Snowflake: phân vùng bảng đích theo order_date và cluster theo source (chỉ gợi ý)."
+      ],
+      "bottlenecks": null
+     },
+     "sandbox": {
+      "passed": true,
+      "error": "",
+      "target_rows": 30,
+      "sample": [
+       {
+        "order_date": "2026-09-01",
+        "order_count": "2",
+        "revenue_vnd": "5168000"
+       },
+       {
+        "order_date": "2026-09-02",
+        "order_count": "6",
+        "revenue_vnd": "8608000"
+       },
+       {
+        "order_date": "2026-09-03",
+        "order_count": "10",
+        "revenue_vnd": "16402000"
+       },
+       {
+        "order_date": "2026-09-04",
+        "order_count": "6",
+        "revenue_vnd": "10088000"
+       },
+       {
+        "order_date": "2026-09-05",
+        "order_count": "12",
+        "revenue_vnd": "24429000"
+       },
+       {
+        "order_date": "2026-09-06",
+        "order_count": "7",
+        "revenue_vnd": "9959000"
+       },
+       {
+        "order_date": "2026-09-07",
+        "order_count": "6",
+        "revenue_vnd": "10250000"
+       },
+       {
+        "order_date": "2026-09-08",
+        "order_count": "10",
+        "revenue_vnd": "13961000"
+       },
+       {
+        "order_date": "2026-09-09",
+        "order_count": "6",
+        "revenue_vnd": "9289000"
+       },
+       {
+        "order_date": "2026-09-10",
+        "order_count": "10",
+        "revenue_vnd": "15045000"
+       }
+      ],
+      "models_ok": 1,
+      "models_total": 1,
+      "tests_ok": 17,
+      "tests_total": 17,
+      "dbt_invocation": "b4ae607d-b241-42a6-aeee-bad6313d2df2",
+      "model_timings": [
+       {
+        "model": "fct_daily_revenue",
+        "status": "success",
+        "compile_ms": 24.121,
+        "execute_ms": 135.485,
+        "rows": null,
+        "materialized": "table"
+       }
+      ],
+      "wall_ms": 921.861
      },
      "stages": [
       {
@@ -7260,7 +8059,7 @@ export const FIXTURES = {
        "label": "Tối ưu",
        "kind": "E",
        "state": "passed",
-       "detail": "2 dấu hiệu chậm, baseline 31.257 ms, ứng viên từ llm"
+       "detail": "2 dấu hiệu chậm, baseline 34.395 ms, ứng viên từ llm"
       },
       {
        "id": "compare",
@@ -7268,7 +8067,7 @@ export const FIXTURES = {
        "label": "Đối chiếu",
        "kind": "V",
        "state": "passed",
-       "detail": "applied: Nhanh hơn 43.2% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu."
+       "detail": "applied: Nhanh hơn 43.0% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu."
       },
       {
        "id": "review",
@@ -7353,8 +8152,8 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:19+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
       "summary": {
        "target": "fct_daily_revenue",
        "mode": "ELT",
@@ -7389,20 +8188,20 @@ export const FIXTURES = {
        }
       ],
       "before": {
-       "median_ms": 31.257,
+       "median_ms": 31.886,
        "runs": 5,
-       "peak_memory_mb": 96.9,
-       "spread_ms": 2.891
+       "peak_memory_mb": 87.1,
+       "spread_ms": 5.523
       },
       "after": {
-       "median_ms": 17.746,
+       "median_ms": 18.173,
        "runs": 5,
-       "peak_memory_mb": 33.4,
-       "spread_ms": 2.251
+       "peak_memory_mb": 87.1,
+       "spread_ms": 0.432
       },
-      "improvement_pct": 43.2,
+      "improvement_pct": 43.0,
       "decision": "applied",
-      "reason": "Nhanh hơn 43.2% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
+      "reason": "Nhanh hơn 43.0% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
       "attempts": 2,
       "equivalence": [
        {
@@ -7503,18 +8302,18 @@ export const FIXTURES = {
       "models_total": 1,
       "tests_ok": 17,
       "tests_total": 17,
-      "dbt_invocation": "879ebb50-d7cf-4edf-bedc-60490b7ab2ca",
+      "dbt_invocation": "b4ae607d-b241-42a6-aeee-bad6313d2df2",
       "model_timings": [
        {
         "model": "fct_daily_revenue",
         "status": "success",
-        "compile_ms": 11.977,
-        "execute_ms": 130.938,
+        "compile_ms": 24.121,
+        "execute_ms": 135.485,
         "rows": null,
         "materialized": "table"
        }
       ],
-      "wall_ms": 884.45
+      "wall_ms": 921.861
      },
      "stages": [
       {
@@ -7619,7 +8418,7 @@ export const FIXTURES = {
        "label": "Tối ưu",
        "kind": "E",
        "state": "passed",
-       "detail": "2 dấu hiệu chậm, baseline 31.257 ms, ứng viên từ llm"
+       "detail": "2 dấu hiệu chậm, baseline 34.395 ms, ứng viên từ llm"
       },
       {
        "id": "compare",
@@ -7627,7 +8426,7 @@ export const FIXTURES = {
        "label": "Đối chiếu",
        "kind": "V",
        "state": "passed",
-       "detail": "applied: Nhanh hơn 43.2% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu."
+       "detail": "applied: Nhanh hơn 43.0% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu."
       },
       {
        "id": "review",
@@ -7712,8 +8511,8 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:19+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
       "summary": {
        "target": "fct_daily_revenue",
        "mode": "ELT",
@@ -7748,20 +8547,20 @@ export const FIXTURES = {
        }
       ],
       "before": {
-       "median_ms": 31.257,
+       "median_ms": 31.886,
        "runs": 5,
-       "peak_memory_mb": 96.9,
-       "spread_ms": 2.891
+       "peak_memory_mb": 87.1,
+       "spread_ms": 5.523
       },
       "after": {
-       "median_ms": 17.746,
+       "median_ms": 18.173,
        "runs": 5,
-       "peak_memory_mb": 33.4,
-       "spread_ms": 2.251
+       "peak_memory_mb": 87.1,
+       "spread_ms": 0.432
       },
-      "improvement_pct": 43.2,
+      "improvement_pct": 43.0,
       "decision": "applied",
-      "reason": "Nhanh hơn 43.2% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
+      "reason": "Nhanh hơn 43.0% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu.",
       "attempts": 2,
       "equivalence": [
        {
@@ -7910,7 +8709,7 @@ export const FIXTURES = {
        "label": "Tối ưu",
        "kind": "E",
        "state": "passed",
-       "detail": "2 dấu hiệu chậm, baseline 31.257 ms, ứng viên từ llm"
+       "detail": "2 dấu hiệu chậm, baseline 34.395 ms, ứng viên từ llm"
       },
       {
        "id": "compare",
@@ -7918,7 +8717,7 @@ export const FIXTURES = {
        "label": "Đối chiếu",
        "kind": "V",
        "state": "passed",
-       "detail": "applied: Nhanh hơn 43.2% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu."
+       "detail": "applied: Nhanh hơn 43.0% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu."
       },
       {
        "id": "review",
@@ -7960,8 +8759,8 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:19+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:27+00:00",
       "summary": {
        "target": "fct_daily_revenue",
        "mode": "ELT",
@@ -8084,7 +8883,7 @@ export const FIXTURES = {
        "label": "Tối ưu",
        "kind": "E",
        "state": "passed",
-       "detail": "2 dấu hiệu chậm, baseline 31.257 ms, ứng viên từ llm"
+       "detail": "2 dấu hiệu chậm, baseline 34.395 ms, ứng viên từ llm"
       },
       {
        "id": "compare",
@@ -8092,27 +8891,17 @@ export const FIXTURES = {
        "label": "Đối chiếu",
        "kind": "V",
        "state": "passed",
-       "detail": "applied: Nhanh hơn 43.2% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu."
+       "detail": "applied: Nhanh hơn 43.0% (≥ 15.0%), kết quả giống hệt trên mọi bộ dữ liệu."
       },
       {
        "id": "review",
        "code": "J2",
        "label": "Duyệt code",
        "kind": "J",
-       "state": "running",
-       "detail": "đang chạy"
+       "state": "passed",
+       "detail": ""
       }
      ],
-     "current": {
-      "node": "review",
-      "label": "J2 Duyệt",
-      "started_at": 0,
-      "activity": [],
-      "elapsed_s": 0,
-      "typical_s": null,
-      "samples": 0,
-      "stage": "review"
-     },
      "queue_position": 0,
      "drift": {
       "checked": false,
@@ -8133,8 +8922,8 @@ export const FIXTURES = {
       "status": "running",
       "provider": "demo",
       "model": "mô hình mẫu",
-      "created_at": "2026-10-18T11:54:17+00:00",
-      "updated_at": "2026-10-18T11:54:48+00:00",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:58+00:00",
       "summary": {
        "target": "fct_daily_revenue",
        "mode": "ELT",
@@ -8142,7 +8931,42 @@ export const FIXTURES = {
        "rescue_count": 0,
        "review_rounds": 0,
        "optimization": "applied",
-       "improvement_pct": 43.2,
+       "improvement_pct": 43.0,
+       "llm_calls": 5,
+       "tokens": 28530,
+       "cost_usd": 0.158,
+       "simulated": false,
+       "workspace": null,
+       "error": ""
+      },
+      "pause_requested": false
+     },
+     "busy": true,
+     "queue_position": 0,
+     "reviews": []
+    }
+   },
+   {
+    "dur": 1.2,
+    "events_count": 25,
+    "patch": {
+     "record": {
+      "id": "__RUN__",
+      "request_text": "Gộp đơn hàng 3 nguồn, tính doanh thu theo ngày",
+      "requester": "khach",
+      "status": "running",
+      "provider": "demo",
+      "model": "mô hình mẫu",
+      "created_at": "2026-10-18T14:55:26+00:00",
+      "updated_at": "2026-10-18T14:55:58+00:00",
+      "summary": {
+       "target": "fct_daily_revenue",
+       "mode": "ELT",
+       "fix_attempts": 0,
+       "rescue_count": 0,
+       "review_rounds": 0,
+       "optimization": "applied",
+       "improvement_pct": 43.0,
        "llm_calls": 5,
        "tokens": 28530,
        "cost_usd": 0.158,
@@ -12530,8 +13354,8 @@ export const FIXTURES = {
     "status": "failed",
     "provider": "demo",
     "model": "mô hình mẫu",
-    "created_at": "2026-10-18T11:54:49+00:00",
-    "updated_at": "2026-10-18T11:54:50+00:00",
+    "created_at": "2026-10-18T14:55:58+00:00",
+    "updated_at": "2026-10-18T14:55:59+00:00",
     "summary": {
      "target": "fct_daily_revenue",
      "mode": "ELT",
@@ -12638,7 +13462,7 @@ export const FIXTURES = {
      "label": "P  Soi dữ liệu",
      "ok": true,
      "detail": "3 bảng",
-     "seconds": 0.23,
+     "seconds": 0.21,
      "tokens": 0,
      "finished_at": 0
     },
@@ -12647,7 +13471,7 @@ export const FIXTURES = {
      "label": "Vs Soát cấu trúc nguồn",
      "ok": true,
      "detail": "Không đổi so với bản đã duyệt.",
-     "seconds": 0.01,
+     "seconds": 0.04,
      "tokens": 0,
      "finished_at": 0
     },
@@ -12674,7 +13498,7 @@ export const FIXTURES = {
      "label": "E3b Sinh test",
      "ok": true,
      "detail": "6 file test",
-     "seconds": 0.03,
+     "seconds": 0.02,
      "tokens": 0,
      "finished_at": 0
     },
@@ -12683,7 +13507,7 @@ export const FIXTURES = {
      "label": "V1 An toàn",
      "ok": false,
      "detail": "1 vấn đề: models/marts/fct_daily_revenue.sql: Bảng 'main.stg_khuyen_mai_quy' không có trong danh mục dữ liệu t",
-     "seconds": 0.11,
+     "seconds": 0.1,
      "tokens": 0,
      "finished_at": 0
     },
@@ -13099,29 +13923,30 @@ export const FIXTURES = {
      }
     ]
    },
+   "dbt_tests": [],
    "reviews": []
   },
   "eventOffsets": [
    0.01,
    0.01,
-   0.06,
-   0.06,
-   0.22,
-   0.25,
-   0.26,
-   0.31,
-   0.47,
-   0.7,
-   0.71,
+   0.07,
+   0.07,
+   0.14,
+   0.18,
+   0.18,
+   0.27,
+   0.42,
+   0.64,
+   0.68,
+   1.14,
    1.16,
-   1.18,
-   1.21,
-   1.32,
-   1.35,
-   1.36,
-   1.46,
-   1.57,
-   1.58
+   1.17,
+   1.28,
+   1.3,
+   1.31,
+   1.41,
+   1.52,
+   1.53
   ],
   "files": {
    "code_files": {

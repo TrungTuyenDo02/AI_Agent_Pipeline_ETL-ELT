@@ -164,3 +164,24 @@ def test_package_without_timings_says_not_measured(tmp_path: Path):
     update = package_node(state)
     assert update["optimization"]["bottlenecks"]["measured"] is False
     assert any(m["result"] == "chưa đo" for m in update["evidence"]["measured"])
+
+
+def test_archived_tests_lists_each_dbt_test_with_its_origin(tmp_path: Path):
+    from src.agents.tools.dbt_tools import archived_tests
+
+    runs = tmp_path / "target" / "runs"
+    runs.mkdir(parents=True)
+    results = [
+        {"unique_id": "model.p.fct", "status": "success"},
+        {"unique_id": "test.p.assert_fct_reconciles", "status": "pass"},
+        {"unique_id": "test.p.assert_opt_assumption_1", "status": "fail", "message": "Got 2 results"},
+        {"unique_id": "test.p.not_null_fct_order_date.ab12", "status": "pass"},
+    ]
+    (runs / "inv.json").write_text(json.dumps({"results": results}), encoding="utf-8")
+    tests = archived_tests(tmp_path, "inv", {"tests/assert_fct_reconciles.sql": "select 1"})
+    assert [(t["name"], t["kind"], t["status"]) for t in tests] == [
+        ("assert_fct_reconciles", "testgen", "pass"),
+        ("assert_opt_assumption_1", "optimizer", "fail"),
+        ("not_null_fct_order_date", "declared", "pass"),
+    ]
+    assert tests[1]["message"] == "Got 2 results" and archived_tests(tmp_path, "khong-co", {}) == []

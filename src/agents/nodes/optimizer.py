@@ -1,5 +1,8 @@
 """E4 Optimizer: phát hiện dấu hiệu chậm (code) → đo baseline → đề xuất viết lại → (V3 kiểm tra).
 
+Dấu hiệu chậm: mẫu sqlglot; không có mẫu thì dùng bằng chứng thực thi (báo cáo điểm nghẽn V2 khớp model + phiên bản SQL, rồi
+EXPLAIN ANALYZE đúng SQL trên bộ dữ liệu sẽ đo). Thiếu/lệch/lỗi bằng chứng → giữ luồng cũ (`skipped`).
+
 Thứ tự ứng viên: luật tất định (0 token) → sqlglot.optimizer (0 token) → LLM. LLM chỉ được gọi khi hai nguồn
 tất định không còn ứng viên. Mọi ứng viên đều qua V1 (an toàn, tên bảng/cột) trước khi chạy.
 """
@@ -14,6 +17,7 @@ from src.agents.nodes.common import mart_path, spec_of
 from src.agents.nodes.compare import BENCH_DATASET, evaluate_candidate
 from src.agents.nodes.safety import check_sql
 from src.agents.state import PipelineState
+from src.agents.tools.bottleneck import execution_findings, matching_timing
 from src.agents.tools.duckdb_tools import benchmark_query, explain_outline, materialize_views, read_catalog
 from src.agents.tools.rewrite_rules import rules_candidate, sqlglot_candidate
 from src.agents.tools.scrub import prompt_error
@@ -110,6 +114,32 @@ def prepare_datasets(state: PipelineState) -> None:
         materialize_views(Path(db), staging)
 
 
+def execution_signal(state: PipelineState, sql: str) -> list[Finding]:
+    """Tín hiệu bổ sung khi sqlglot không thấy mẫu: model đích trong top N của báo cáo V2 với đúng phiên bản SQL hiện tại, và
+    EXPLAIN ANALYZE `sql` trên bộ dữ liệu sẽ đo cho thấy mẫu cụ thể. Mọi thiếu sót/lỗi → [] (luồng cũ)."""
+    settings, spec = get_settings(), spec_of(state)
+    code = (state.get("code_files") or {}).get(mart_path(spec))
+    bench = (state.get("datasets") or {}).get(BENCH_DATASET)
+    if not code or not bench or not state.get("workspace"):
+        return []
+    sandbox = state.get("sandbox") or {}
+    if matching_timing(Path(state["workspace"]), sandbox, spec.target, code, settings.perf_top_n) is None:
+        return []
+    try:
+        prepare_datasets(state)
+    except (duckdb.Error, SqlCheckError):
+        return []
+    return execution_findings(Path(bench), sql, settings.opt_signal_min_ms, settings.perf_analyze_sec)
+
+
+def slow_findings(state: PipelineState, sql: str) -> list[Finding]:
+    """Dấu hiệu của vòng hiện tại (giữ nguyên qua các lần thử E4 ⇄ V3), không thì sqlglot rồi bằng chứng thực thi."""
+    previous = (state.get("opt_candidate") or {}).get("findings")
+    if previous:
+        return [Finding.model_validate(f) for f in previous]
+    return detect_slow_patterns(sql) or execution_signal(state, sql)
+
+
 def skipped_report(sql: str, reason: str) -> dict:
     """Báo cáo `skipped` (hợp lệ: tối ưu chỉ khi đáng)."""
     return OptimizationReport(original_sql=sql, decision="skipped", reason=reason).model_dump(mode="json")
@@ -125,7 +155,7 @@ def _first_attempt(state: PipelineState, sql: str) -> dict:
 def optimizer_node(state: PipelineState) -> dict:
     """E4: không có dấu hiệu chậm → `skipped`; ngược lại tạo ứng viên kế tiếp cho V3 kiểm tra."""
     sql = render_dbt_sql(state["code_files"][mart_path(spec_of(state))])
-    findings = detect_slow_patterns(sql)
+    findings = slow_findings(state, sql)
     if not findings:
         return {"optimization": skipped_report(sql, "Không phát hiện dấu hiệu query chậm; giữ nguyên.")}
     try:
@@ -162,11 +192,14 @@ class OptimizeJob(BaseModel):
     sql: str
     datasets: dict[str, str]
     bench: str = BENCH_DATASET
+    signals: list[Finding] = Field(
+        default_factory=list, description="Bằng chứng thực thi (execution_findings) đã khớp SQL"
+    )
 
 
 def optimize_standalone(job: OptimizeJob) -> tuple[OptimizationReport, list[LLMUsage]]:
     """Vòng E4 → V3 không cần graph (CLI `optimize`): dừng ở ứng viên đầu tiên được áp dụng."""
-    findings = detect_slow_patterns(job.sql)
+    findings = detect_slow_patterns(job.sql) or job.signals
     if not findings:
         return OptimizationReport.model_validate(skipped_report(job.sql, "Không phát hiện dấu hiệu query chậm.")), []
     bench_db = Path(job.datasets[job.bench])

@@ -14,8 +14,9 @@ import duckdb
 
 from src.agents.nodes.common import mart_path, sandbox_db, spec_of
 from src.agents.state import PipelineState
-from src.agents.tools.duckdb_tools import QueryResult, benchmark_query, connect_read, run_query
-from src.agents.tools.sql_tools import same_query, to_dbt_refs
+from src.agents.tools.dbt_tools import OPT_ASSUMPTION_PREFIX
+from src.agents.tools.duckdb_tools import QueryResult, benchmark_pair, connect_read, run_query
+from src.agents.tools.sql_tools import same_query, to_dbt_refs, to_dbt_sources
 from src.config import get_settings
 from src.models.contracts import OptCandidate, hand_off
 from src.models.evidence import DatasetCheck, OptimizationReport, QueryMetrics
@@ -208,9 +209,10 @@ def evaluate_candidate(candidate: dict, datasets: dict[str, str]) -> Optimizatio
         reason = f"{what} trên bộ: {', '.join(c.dataset.removeprefix('giả định@') for c in failed)}."
         return build_report(candidate, checks, None).model_copy(update={"reason": reason})
     bench = Path(datasets[candidate.get("bench", BENCH_DATASET)])
-    after = benchmark_query(bench, candidate["sql"], get_settings().opt_bench_runs)
-    report = build_report(candidate, checks, after)
-    decision, reason, gain = decide(QueryMetrics.model_validate(candidate["before"]), after, report.llm_cost_usd)
+    # Bản gốc và bản sửa đo xen kẽ trong cùng phiên: không dùng số đo bản gốc của lượt đầu (máy có thể đã trôi tốc độ)
+    before, after = benchmark_pair(bench, candidate["original_sql"], candidate["sql"], get_settings().opt_bench_runs)
+    report = build_report({**candidate, "before": before.model_dump()}, checks, after)
+    decision, reason, gain = decide(before, after, report.llm_cost_usd)
     return report.model_copy(update={"decision": decision, "reason": reason, "improvement_pct": gain})
 
 
@@ -218,10 +220,28 @@ def _staging_models(state: PipelineState) -> list[str]:
     return [p.rsplit("/", 1)[-1].removesuffix(".sql") for p in state.get("code_files", {}) if p.startswith("models/")]
 
 
-def _applied_code(state: PipelineState, report: OptimizationReport) -> dict[str, str]:
-    path = mart_path(spec_of(state))
+def assumption_tests(candidate: dict, models: list[str]) -> dict[str, str]:
+    """Giả định dữ liệu của luật đã áp dụng → dbt test đi cùng pipeline. Bộ thử chỉ chứng minh giả định đúng HÔM NAY; test này
+    chạy ở V2 (sandbox) và mỗi lần pipeline chạy thật: dữ liệu vi phạm thì dbt báo lỗi thay vì cho kết quả sai lặng lẽ."""
+    tests = {}
+    for i, assumption in enumerate(candidate.get("assumptions") or [], 1):
+        if not assumption.get("check_sql"):
+            continue
+        check = to_dbt_sources(to_dbt_refs(assumption["check_sql"], models))
+        text = " ".join(str(assumption.get("text", "")).split())
+        tests[f"tests/{OPT_ASSUMPTION_PREFIX}{i}.sql"] = (
+            f"-- Giả định của bản tối ưu (E4): {text}. Vi phạm → bản tối ưu không còn đúng, khôi phục bản gốc.\n"
+            f"select violations from (select ({check}) as violations) as t where violations <> 0\n"
+        )
+    return tests
+
+
+def _applied_code(state: PipelineState, report: OptimizationReport, candidate: dict) -> dict[str, str]:
+    """Model đích bản tối ưu + test giả định (nằm trong `code_files` nên `opt_revert` khôi phục bản gốc là bỏ luôn test)."""
+    path, models = mart_path(spec_of(state)), _staging_models(state)
     header = "-- Bản đã tối ưu (E4), đối chiếu giống hệt bản gốc (V3)\n"
-    return {**state["code_files"], path: header + to_dbt_refs(report.proposed_sql, _staging_models(state)) + "\n"}
+    mart = header + to_dbt_refs(report.proposed_sql, models) + "\n"
+    return {**state["code_files"], path: mart, **assumption_tests(candidate, models)}
 
 
 def compare_node(state: PipelineState) -> dict:
@@ -250,6 +270,6 @@ def compare_node(state: PipelineState) -> dict:
         }
     return {
         "optimization": report.model_dump(mode="json"),
-        "code_files": _applied_code(state, report),
+        "code_files": _applied_code(state, report, candidate),
         "opt_baseline": {"code_files": state["code_files"], "fingerprint": fingerprint},
     }

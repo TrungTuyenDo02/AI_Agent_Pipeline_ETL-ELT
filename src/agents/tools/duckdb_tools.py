@@ -270,23 +270,47 @@ def explain_outline(db_path: Path, sql: str) -> str:
     return f"total {plan.get('latency', 0):.4f}s\n" + "\n".join(lines)
 
 
-def benchmark_query(db_path: Path, sql: str, runs: int) -> QueryMetrics:
-    """Đo thời gian: 1 lần khởi động + `runs` lần, lấy trung vị và IQR (Q3 − Q1, mili giây; cần ≥ 2 lần đo)."""
-    timings: list[float] = []
-    with connect_read(db_path) as con:
-        if threads := get_settings().opt_bench_threads:
-            con.execute(f"SET threads = {int(threads)}")  # cố định số luồng để so trước/sau công bằng
-        con.execute(sql).fetchall()
-        for _ in range(runs):
-            start = time.perf_counter()
-            con.execute(sql).fetchall()
-            timings.append((time.perf_counter() - start) * 1000)
-        peak_mb = _peak_buffer_mb(con, sql)
-    q1, _, q3 = statistics.quantiles(timings, n=4, method="inclusive") if runs >= 2 else (None, None, None)
+def _bench_connection(db_path: Path) -> duckdb.DuckDBPyConnection:
+    con = connect_read(db_path)
+    if threads := get_settings().opt_bench_threads:
+        con.execute(f"SET threads = {int(threads)}")  # cố định số luồng để so trước/sau công bằng
+    return con
+
+
+def _once_ms(con: duckdb.DuckDBPyConnection, sql: str) -> float:
+    start = time.perf_counter()
+    con.execute(sql).fetchall()
+    return (time.perf_counter() - start) * 1000
+
+
+def _metrics(timings: list[float], peak_mb: float | None) -> QueryMetrics:
+    """Trung vị + IQR (Q3 − Q1, mili giây; cần ≥ 2 lần đo)."""
+    q1, _, q3 = statistics.quantiles(timings, n=4, method="inclusive") if len(timings) >= 2 else (None, None, None)
     spread = round(q3 - q1, 3) if q1 is not None and q3 is not None else None
     return QueryMetrics(
-        median_ms=round(statistics.median(timings), 3), runs=runs, peak_memory_mb=peak_mb, spread_ms=spread
+        median_ms=round(statistics.median(timings), 3), runs=len(timings), peak_memory_mb=peak_mb, spread_ms=spread
     )
+
+
+def benchmark_query(db_path: Path, sql: str, runs: int) -> QueryMetrics:
+    """Đo thời gian: 1 lần khởi động + `runs` lần, lấy trung vị và IQR."""
+    with _bench_connection(db_path) as con:
+        con.execute(sql).fetchall()
+        timings = [_once_ms(con, sql) for _ in range(runs)]
+        return _metrics(timings, _peak_buffer_mb(con, sql))
+
+
+def benchmark_pair(db_path: Path, first: str, second: str, runs: int) -> tuple[QueryMetrics, QueryMetrics]:
+    """Đo hai câu xen kẽ A/B trên CÙNG kết nối, cùng thời điểm (mỗi câu 1 lần khởi động + `runs` lần, đổi thứ tự mỗi vòng để
+    không bên nào luôn chạy trước): máy trôi tốc độ thì ảnh hưởng đều hai bên, không bị tính thành lợi ích."""
+    times: dict[str, list[float]] = {"a": [], "b": []}
+    with _bench_connection(db_path) as con:
+        con.execute(first).fetchall()
+        con.execute(second).fetchall()
+        for i in range(runs):
+            for key, sql in (("a", first), ("b", second)) if i % 2 == 0 else (("b", second), ("a", first)):
+                times[key].append(_once_ms(con, sql))
+        return _metrics(times["a"], _peak_buffer_mb(con, first)), _metrics(times["b"], _peak_buffer_mb(con, second))
 
 
 def _peak_buffer_mb(con: duckdb.DuckDBPyConnection, sql: str) -> float | None:

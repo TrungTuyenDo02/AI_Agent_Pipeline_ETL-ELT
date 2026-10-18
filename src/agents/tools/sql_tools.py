@@ -129,6 +129,11 @@ def to_dbt_refs(sql: str, models: list[str]) -> str:
     return sql
 
 
+def to_dbt_sources(sql: str) -> str:
+    """Đổi `raw.<bảng>` về `{{ source('raw', '<bảng>') }}` (test dbt sinh bằng code đọc thẳng bảng nguồn)."""
+    return re.sub(r'\b"?raw"?\."?(\w+)"?', r"{{ source('raw', '\1') }}", sql)
+
+
 def select_star_issues(sql: str) -> list[str]:
     """Mọi `SELECT *` / `SELECT t.*` (kể cả trong CTE) ở model staging/mart: phải liệt kê cột tường minh để cột mới ở nguồn không vô
     tình lọt vào mart và cột bị xóa làm hỏng TO thay vì sai lặng lẽ. `count(*)` không tính. SQL lỗi cú pháp để các kiểm tra khác báo."""
