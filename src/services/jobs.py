@@ -166,13 +166,22 @@ class JobQueue:
         check_limits(owner, active, new_run=not run_id)
 
     def submit(
-        self, run_id: str, job: Job, actor: str = "", owner: str = "", guard: Callable[[], None] | None = None
+        self,
+        run_id: str,
+        job: Job,
+        actor: str = "",
+        owner: str = "",
+        guard: Callable[[], None] | None = None,
+        limits: bool = False,
     ) -> None:
         """Đánh dấu đang chạy rồi đưa vào hàng đợi (`actor` = người khởi động, để ghi nhật ký kiểm toán;
         `owner` = người tạo yêu cầu, để giới hạn theo người).
 
         Kiểm "đang bận" và đưa vào hàng trong CÙNG khóa: bấm lặp hoặc hai yêu cầu đồng thời không làm một lần chạy chạy trùng
         (lần thứ hai nhận RunBusyError). `guard` chạy trong khóa, ném lỗi để hủy (ví dụ trạng thái vừa đổi).
+        `limits`: kiểm giới hạn theo người (JobLimitError) cũng trong khóa này, nên hai lần chạy khác nhau của một người
+        không cùng lọt giới hạn số lần chạy cùng lúc. Bị từ chối thì chưa đổi gì (trạng thái, yêu cầu tạm dừng giữ nguyên).
+        Khóa không gọi lại hàng đợi nên không kẹt: chỉ đọc DB (số lần chạy hôm nay, sổ chi phí).
         Lượt chạy mới bỏ yêu cầu tạm dừng cũ còn sót; yêu cầu tạm dừng đến SAU lúc này vẫn có hiệu lực.
         """
         store = get_store()
@@ -182,6 +191,8 @@ class JobQueue:
                 raise RunBusyError(BUSY)
             if guard:
                 guard()
+            if limits:
+                check_limits(owner or actor, self._active(owner or actor, exclude=run_id))
             store.clear_pause(run_id)
             store.update_run(run_id, RunStatus.RUNNING)
             self._owners[run_id] = owner or actor

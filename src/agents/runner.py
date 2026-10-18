@@ -265,19 +265,31 @@ def run_created(run_id: str, on_event: EventCallback | None = None) -> RunOutcom
     return _finish(run_id, _stream(run_id, _initial_payload(record), on_event))
 
 
-def run_patch(run_id: str, seed: dict, on_event: EventCallback | None = None) -> RunOutcome:
-    """Chạy run vá: trạng thái khởi đầu (`seed`) mang đặc tả, câu trả lời và code của lần chạy gốc nên graph vào thẳng `patch_start`."""
+def _started(run_id: str) -> bool:
+    """Graph đã nhận đầu vào ban đầu (có checkpoint) chưa."""
+    return get_graph().get_state(_config(run_id)).created_at is not None
+
+
+def prepare_patch(run_id: str, seed: dict) -> None:
+    """Ghi đầu vào của run vá vào checkpoint NGAY khi tạo, trước khi xếp hàng (ADR 0016).
+
+    Chỉ chạy bước nhận đầu vào và định tuyến START (code, 0 token): dừng trước `patch_start`, không node nào chạy. Nhờ vậy tạm
+    dừng khi còn xếp hàng hoặc server khởi động lại trước khi job chạy vẫn giữ `patch_of`/spec/code gốc; tiếp tục đi thẳng
+    `patch_start`, không quay về cửa kiểm tra đầu vào hay Planner.
+    """
+    if _started(run_id):
+        return
     record = get_store().get_run(run_id)
     if record is None:
         raise RunStateError(f"Không tìm thấy lần chạy {run_id}.")
-    payload = {
-        "run_id": run_id,
-        "request_text": record.request_text,
-        "requester": record.requester,
-        "llm_usage": [],
-        **seed,
-    }
-    return _finish(run_id, _stream(run_id, payload, on_event))
+    for _ in get_graph().stream({**_initial_payload(record), **seed}, _config(run_id), interrupt_before="*"):
+        pass
+
+
+def run_patch(run_id: str, seed: dict, on_event: EventCallback | None = None) -> RunOutcome:
+    """Chạy run vá: trạng thái khởi đầu (`seed`) mang đặc tả, câu trả lời và code của lần chạy gốc nên graph vào thẳng `patch_start`."""
+    prepare_patch(run_id, seed)  # API đã ghi lúc tạo thì bỏ qua; CLI/test gọi thẳng thì ghi ở đây
+    return _finish(run_id, _stream(run_id, None, on_event))
 
 
 def start_run(request_text: str, requester: str, on_event: EventCallback | None = None) -> RunOutcome:
@@ -375,7 +387,7 @@ def continue_run(run_id: str, on_event: EventCallback | None = None) -> RunOutco
     record = get_store().get_run(run_id)
     if record is None:
         raise RunStateError(f"Không tìm thấy lần chạy {run_id}.")
-    started = get_graph().get_state(_config(run_id)).created_at is not None
+    started = _started(run_id)  # run vá luôn đã có checkpoint đầu vào (`prepare_patch`)
     get_store().update_run(run_id, RunStatus.RUNNING)
     return _finish(run_id, _stream(run_id, None if started else _initial_payload(record), on_event))
 

@@ -14,7 +14,7 @@ from src.agents import runner
 from src.agents.nodes import planner
 from src.config import get_settings
 from src.models.schemas import LLMUsage, RunStatus
-from src.services import auth, llm_mock
+from src.services import auth, jobs, llm_mock
 from src.services.jobs import get_jobs
 from src.services.llm import LLMCallError
 from src.services.store import get_store
@@ -315,3 +315,51 @@ async def test_restart_mid_node_while_pausing_redoes_only_that_node(client: Asyn
     assert gate.calls == 1  # planner làm lại đúng một lần
     ran = [e["node"] for e in after["events"]]
     assert ran[0] == "planner" and "input_gate" not in ran and "drift_gate" not in ran
+
+
+async def test_concurrent_resume_of_two_runs_respects_active_limit(
+    client: AsyncClient, gate, monkeypatch: pytest.MonkeyPatch, seeded_sources
+):
+    """Hai lần chạy KHÁC NHAU của cùng người, cùng bấm Tiếp tục với giới hạn 1 lần chạy cùng lúc: kiểm hạn mức và nhận vào hàng
+    phải nguyên tử. Chỉ một lần được nhận; lần kia 429 và vẫn "đã tạm dừng"."""
+    first = (await client.post(f"{API}/runs", json=REQUEST)).json()["run_id"]
+    assert gate.entered.wait(30)
+    second = (await client.post(f"{API}/runs", json=REQUEST)).json()["run_id"]  # xếp hàng sau lần đầu
+    for run_id in (first, second):
+        assert (await client.post(f"{API}/runs/{run_id}/pause")).status_code == 202
+    gate.release.set()
+    get_jobs().wait(first)
+    get_jobs().wait(second)
+    assert {get_store().get_run(r).status for r in (first, second)} == {RunStatus.PAUSED}
+
+    monkeypatch.setattr(get_settings(), "max_active_runs_per_user", 1)
+    # Hai yêu cầu cùng kiểm hạn mức trước khi bên nào kịp đưa vào hàng (cửa hẹn 2 bên). Khi việc kiểm nằm trong khóa của hàng
+    # đợi thì bên thứ hai không tới được cửa: bên thứ nhất chờ hết hạn rồi đi tiếp, không kẹt khóa.
+    meet = threading.Barrier(2, timeout=1)
+    real_check = jobs.check_limits
+
+    def racing_check(owner: str, active: int, new_run: bool = False) -> None:
+        try:
+            meet.wait()
+        except threading.BrokenBarrierError:
+            pass
+        real_check(owner, active, new_run)
+
+    monkeypatch.setattr(jobs, "check_limits", racing_check)
+    hold = threading.Event()  # giữ luồng nền: lần chạy được nhận còn trong hàng, vẫn tính là "đang chạy"
+    get_jobs().submit("blocker-limit", lambda sink: hold.wait(60), actor="blocker", owner="blocker")
+    try:
+        responses = await asyncio.gather(*(client.post(f"{API}/runs/{r}/resume") for r in (first, second)))
+    finally:
+        hold.set()
+    codes = {run_id: r.status_code for run_id, r in zip((first, second), responses, strict=True)}
+    assert sorted(codes.values()) == [202, 429], codes
+    accepted = next(r for r, code in codes.items() if code == 202)
+    refused = next(r for r, code in codes.items() if code == 429)
+    assert "tối đa 1" in dict(zip((first, second), responses, strict=True))[refused].json()["detail"]
+    get_jobs().wait("blocker-limit")
+    get_jobs().wait(accepted)
+    assert get_store().get_run(accepted).status == RunStatus.WAITING_CLARIFICATION
+    assert get_store().get_run(refused).status == RunStatus.PAUSED and not get_jobs().busy(refused)
+    resumed = [a.target for a in auth.recent_audit(50) if a.action == "run.resume"]
+    assert accepted in resumed and refused not in resumed  # bị từ chối thì không ghi "đã tiếp tục"

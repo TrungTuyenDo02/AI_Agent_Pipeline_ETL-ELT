@@ -110,7 +110,7 @@ Chi tiết và điều kiện đo: [eval/results/report.md](eval/results/report.
 | Optimizer: model LLM nào tốt hơn | LLM thật, chỉ ứng viên do LLM viết, 13 query, 1 lần, 2026-10-14 | Claude Haiku 4.5 **11/13** (áp dụng 8/13), 0,083 USD; **Haiku 5.5 9/13** (áp dụng 7/13), 0,025 USD (đang dùng); gpt-5.6-terra 5/13, 0,24 USD; Claude Opus 5.5 3/13, 0,96 USD • [ab_optimizer.md](eval/results/ab_optimizer.md) |
 | Baseline: truy vấn viết tay không tối ưu = 100% | `mock` (luật cố định + sqlglot), sf=0,1, 1 lần, 2026-10-14 | cả bộ còn **14%** thời gian, **86%** dòng quét; chi phí tính toán ước tính (giả định) cũng còn 14% • [tpch_baseline.md](eval/results/tpch_baseline.md) |
 | Extract: đúng nguồn và kết quả nạp | Dataset tổng hợp độc lập; CSV/JSON/SQLite/DuckDB/Parquet; 0 LLM | 21/21 ca; đối chiếu schema và từng dòng kể cả dòng trùng, kiểm quyền và sửa nguồn để xác nhận đầu ra đổi; chưa đo PostgreSQL thật • [extract.md](eval/results/extract.md), [dataset](eval/datasets/extract_v1/README.md) |
-| Test tự động | `mock`, độ phủ ngưỡng 60% | 1211 passed, 31 skipped, 2 xfailed, độ phủ 92,01% (2026-10-18; bỏ qua: 25 test PostgreSQL cần `RUN_PG_TESTS=1`/`TEST_DATABASE_URL`, 6 test ngân sách prompt khi không tải được bộ mã tiktoken) |
+| Test tự động | `mock`, độ phủ ngưỡng 60% | 1214 passed, 31 skipped, 2 xfailed, độ phủ 91,99% (2026-10-18; bỏ qua: 25 test PostgreSQL cần `RUN_PG_TESTS=1`/`TEST_DATABASE_URL`, 6 test ngân sách prompt khi không tải được bộ mã tiktoken) |
 | Thời gian phản hồi API | trong tiến trình, SQLite, 100 lần | p50 2,2 ms, p95 4,3 ms (`/health`) • [api_latency.md](eval/results/api_latency.md) |
 
 ## Tài liệu

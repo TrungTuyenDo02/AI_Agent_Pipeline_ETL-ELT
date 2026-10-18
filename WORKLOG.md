@@ -143,6 +143,7 @@
 | TrungTuyenDo02 | Hướng dẫn nhúng sẵn trong chế độ khách: quy trình 4 bước, giải thích từng giai đoạn, từ điển | ✅ Done | Headless: 4 bước đổi đúng 8 giai đoạn, lần chạy dừng báo đúng bước; người dùng thường không thấy hướng dẫn | — |
 | TrungTuyenDo02 | Trang `/docs` công khai, tiến độ đọc từ `lib/projectStatus.ts`, liên kết Tài liệu | ✅ Done | Mở được khi chưa đăng nhập; ý dài nhất 54 từ; đổi 2 mục → thanh 1/10 đúng; CI 1205 đạt | — |
 | TrungTuyenDo02 | Hoàn thiện tạm dừng/tiếp tục lần chạy (ADR 0016): sửa 2 test sai giả định, lỗi tham số PostgreSQL | ✅ Done | Pause API 17/17 trên SQLite; PostgreSQL 16 tạm 63/63; nút chỉ hiện cho người tạo; CI 1211 đạt | — |
+| TrungTuyenDo02 | Sửa lỗi review: run vá mất đầu vào khi tạm dừng xếp hàng; tiếp tục đồng thời vượt hạn mức | ✅ Done | 3 test tái hiện lỗi trước khi sửa; đầu vào bản vá lưu lúc tạo; kiểm hạn mức trong khóa hàng đợi; CI 1214 đạt | — |
 ---
 
 <!-- Format: copy khối trên cho mỗi ngày làm việc. Status: ✅ Done · 🔄 Doing · ⚠️ Chưa sửa · ⏳ Chưa làm -->

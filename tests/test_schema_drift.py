@@ -3,13 +3,17 @@
 import csv
 import secrets as pysecrets
 import shutil
+import threading
 import uuid
 from pathlib import Path
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from src.agents import runner
+from src.agents.nodes import planner
 from src.config import get_settings
+from src.models.schemas import RunStatus
 from src.models.sources import CreateSourceBody
 from src.services import auth, schema_drift, secrets
 from src.services import source_registry as registry
@@ -406,6 +410,76 @@ async def test_review_blocked_when_structure_changes_after_codegen_then_patch(wo
     assert schema_drift.list_changes([world["source"].id], status="open") == []
     await engineer.aclose()
     await reviewer.aclose()
+
+
+class _Blocker:
+    """Chiếm luồng nền duy nhất (SQLite) để lần chạy kế tiếp nằm trong hàng đợi tới khi test mở cửa."""
+
+    def __init__(self) -> None:
+        self.release = threading.Event()
+        self.run_id = f"blocker-{uuid.uuid4().hex[:8]}"  # không có bản ghi: submit chỉ cập nhật 0 dòng
+        get_jobs().submit(self.run_id, lambda sink: self.release.wait(60), actor="blocker", owner="blocker")
+
+    def done(self) -> None:
+        self.release.set()
+        get_jobs().wait(self.run_id)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("restart", [False, True], ids=["resume", "restart-then-resume"])
+async def test_patch_run_paused_in_queue_keeps_patch_input(world, drift_on, monkeypatch, restart: bool):
+    """ADR 0016: run vá bị tạm dừng khi còn xếp hàng (trước checkpoint đầu tiên) vẫn giữ đầu vào bản vá (patch_of, spec, code
+    gốc) qua tạm dừng và khởi động lại; tiếp tục đi thẳng patch_start, không qua G0/Planner/J1/J1b."""
+    engineer = await client_for("engineer", world["dept"].id)
+    run_id = await _to_review(engineer)
+    rename_header(world["dir"] / "shopee_orders.csv", "order_date", "ordered_at")
+    schema_drift.forget_rechecks()
+    assert (await engineer.post(f"{API}/sources/{world['source'].id}/check-drift")).status_code == 200
+    plan = (await engineer.post(f"{API}/runs/{run_id}/patch-plan", json={})).json()
+    answers = {plan["items"][0]["question"]["id"]: "use:ordered_at"}
+    planner_calls: list[str] = []
+    real_planner_llm = planner.call_llm
+    monkeypatch.setattr(planner, "call_llm", lambda *a: planner_calls.append(a[0]) or real_planner_llm(*a))
+
+    blocker = _Blocker()
+    try:
+        patch = await engineer.post(f"{API}/runs/{run_id}/patch", json={"answers": answers})
+        assert patch.status_code == 202, patch.text
+        patch_id = patch.json()["run_id"]
+        assert (await engineer.get(f"{API}/runs/{patch_id}")).json()["queue_position"] == 1
+        saved = runner.get_values(
+            patch_id
+        )  # đầu vào bản vá đã lưu TRƯỚC khi job chạy: chết trong hàng đợi cũng không mất
+        assert saved["patch_of"] == run_id and saved["spec"] and saved["code_files"]
+        assert runner._next_nodes(patch_id) == ["patch_start"]
+        paused = await engineer.post(f"{API}/runs/{patch_id}/pause")
+        assert paused.status_code == 202 and paused.json()["status"] == "pausing"
+    finally:
+        blocker.done()
+    get_jobs().wait(patch_id)
+    assert get_store().get_run(patch_id).status == RunStatus.PAUSED
+    assert runner._next_nodes(patch_id) == ["patch_start"] and get_jobs().events(patch_id) == []  # chưa chạy node nào
+
+    if restart:  # trạng thái lúc tiến trình chết khi còn xếp hàng: "running" + yêu cầu tạm dừng + checkpoint đầu vào
+        store = get_store()
+        store.update_run(patch_id, RunStatus.RUNNING)
+        assert store.request_pause(patch_id, engineer.username) is True
+        runner._graph.cache_clear()
+        store.fail_interrupted_runs()
+        record = store.get_run(patch_id)
+        assert record.status == RunStatus.PAUSED and "khởi động lại" in record.summary["notice"]
+        assert runner.get_values(patch_id)["patch_of"] == run_id
+
+    assert (await engineer.post(f"{API}/runs/{patch_id}/resume")).status_code == 202
+    get_jobs().wait(patch_id)
+    detail = (await engineer.get(f"{API}/runs/{patch_id}")).json()
+    assert detail["record"]["status"] == "waiting_review", detail["record"]
+    nodes = [e["node"] for e in detail["events"]]
+    assert nodes[0] == "patch_start" and {"patch_apply", "patch_verify"} <= set(nodes)
+    assert not set(nodes) & {"input_gate", "drift_gate", "planner", "clarify", "spec_check", "plan_review"}
+    assert planner_calls == [] and detail["record"]["summary"]["tokens"] == 0
+    assert detail["patch"]["regression"]["same"] is True
+    await engineer.aclose()
 
 
 async def test_patch_needs_open_changes(world, drift_on):

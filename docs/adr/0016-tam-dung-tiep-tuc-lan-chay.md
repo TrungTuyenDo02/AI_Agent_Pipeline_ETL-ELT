@@ -19,12 +19,20 @@ Trước đây chỉ có các điểm dừng chờ người (J1, J1b, G1, Vs, c�
   `request_pause` chỉ ghi khi `runs.status = 'running'`; bấm lặp không thêm dòng. `update_run` sang trạng thái khác `running` xóa
   dòng trong cùng giao dịch, nên lần chạy tự xong, lỗi hoặc tới bước chờ người không bị ghi đè thành "đã tạm dừng".
 - **Xếp hàng.** Yêu cầu tạm dừng đến khi lần chạy còn trong hàng đợi được nhận ngay ở ranh giới đầu tiên, trước mọi node. Không chạy
-  G0, Planner hay gọi LLM nào. Tiếp tục thì bắt đầu từ đầu vào ban đầu, vì graph chưa có checkpoint.
+  G0, Planner hay gọi LLM nào. Lần chạy thường chưa có checkpoint: tiếp tục dựng lại đầu vào ban đầu từ bản ghi (`request_text`,
+  `requester`).
+- **Run vá.** Đầu vào của run vá (`patch_of`, spec, câu trả lời, code gốc) không dựng lại được từ bản ghi. `propose_patch` gọi
+  `runner.prepare_patch` NGAY khi tạo, trước khi xếp hàng: chỉ chạy bước nhận đầu vào và định tuyến START (code, 0 token), lưu
+  checkpoint rồi dừng trước `patch_start`. Tạm dừng khi còn xếp hàng, hay server tắt trước khi job chạy, vẫn giữ đầu vào; tiếp tục
+  hoặc chạy lại đi thẳng `patch_start`, không qua G0, Planner, J1, J1b. Không lưu được đầu vào thì run vá thành `failed` và API
+  trả 500 kèm lời nhắc, chưa xếp hàng.
 - **Tiếp tục.** `continue_run` chạy tiếp từ checkpoint cuối, cùng `run_id`. Node đã xong không chạy lại, không gọi lại AI; các bước
   chờ người phía sau vẫn đi đúng như cũ. Câu trả lời `Command(resume=…)` luôn được ghi vào graph trước khi kiểm cờ tạm dừng.
 - **Quyền.** Chỉ Engineer là người tạo yêu cầu (`record.requester`) được tạm dừng hoặc tiếp tục. Reviewer, Admin và Engineer khác
   bị chặn ở backend (403/404), độc lập với web. Giữ CSRF (`X-Requested-With`). Chế độ khách (ADR 0015) không có nút này.
 - **Hạn mức.** Tiếp tục kiểm như lượt chạy mới: số lần chạy cùng lúc và trần chi phí người dùng hôm nay (429, `jobs.check_limits`).
+  Việc kiểm này chạy TRONG khóa của hàng đợi, cùng lúc với nhận vào hàng (`JobQueue.submit(..., limits=True)`). Hai lần chạy khác
+  nhau của một người bấm Tiếp tục đồng thời không cùng lọt giới hạn. Trong khóa chỉ đọc DB, không gọi lại hàng đợi, nên không kẹt.
   Thêm trần riêng của lần chạy: token đã ghi trong checkpoint (`RUN_TOKEN_BUDGET`), USD theo sổ chi phí (`RUN_COST_BUDGET_USD`) và
   ngân sách toàn hệ thống hôm nay (409). Bị từ chối thì trạng thái `paused` giữ nguyên.
 - **Chống chạy trùng.** `JobQueue.submit` kiểm "đang bận" và đưa vào hàng trong cùng khóa. Lần bấm thứ hai nhận `RunBusyError` →
@@ -51,5 +59,10 @@ Trước đây chỉ có các điểm dừng chờ người (J1, J1b, G1, Vs, c�
 
 - Mỗi node thêm một lần đọc `get_state` và một câu `DELETE` nhỏ. Không đáng kể so với lời gọi LLM hoặc `dbt build`.
 - Tạm dừng không tiết kiệm chi phí của node đang chạy. Web và API đều ghi rõ "Bước này vẫn có thể phát sinh chi phí AI".
+- Các hành động khác (tạo yêu cầu, trả lời J1/J2, chạy lại, tạo run vá) vẫn kiểm hạn mức trước khi nhận vào hàng, ngoài khóa, như
+  trước ADR này. Hai yêu cầu đồng thời của cùng người vẫn có thể cùng lọt giới hạn. Nằm ngoài phạm vi tạm dừng/tiếp tục; để lại
+  làm việc sau.
+- Run vá tạm dừng khi xếp hàng bằng code trước bản sửa này (commit `16fd218`) không có checkpoint đầu vào. Không khôi phục được;
+  tạo lại bản vá. Bản ghi này chỉ có trên máy thử của snapshot WIP.
 - Tiến trình từng bước (`events`) vẫn giữ trong bộ nhớ như trước, nên mất khi khởi động lại. Trạng thái, checkpoint và yêu cầu tạm
   dừng thì không mất.
